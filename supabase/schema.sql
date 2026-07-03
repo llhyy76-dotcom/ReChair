@@ -1,2 +1,27 @@
-create table if not exists consultations (id uuid primary key default gen_random_uuid(), name text, phone text, service text, region text, model text, message text, status text default 'new', created_at timestamptz default now());
-create table if not exists products (id uuid primary key default gen_random_uuid(), brand text, model text, grade text, price numeric, region text, description text, status text default 'selling', created_at timestamptz default now());
+create table if not exists consultations (
+  id uuid primary key default gen_random_uuid(),
+  name text,
+  phone text,
+  service text,
+  region text,
+  model text,
+  message text,
+  front_photo_url text,
+  side_photo_url text,
+  label_photo_url text,
+  back_photo_url text,
+  status text default 'new',
+  created_at timestamptz default now()
+);
+
+create table if not exists products (
+  id uuid primary key default gen_random_uuid(),
+  brand text,
+  model text,
+  grade text,
+  price numeric,
+  region text,
+  description text,
+  status text default 'selling',
+  created_at timestamptz default now()
+);
