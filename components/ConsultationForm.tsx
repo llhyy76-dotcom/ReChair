@@ -1,132 +1,164 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
 
-const photoGuide = [
-  { key: 'frontPhoto', title: '앞면 사진', desc: '전체 외관과 사용감 확인', icon: '🪑' },
-  { key: 'sidePhoto', title: '옆면 사진', desc: '팔걸이·가죽·프레임 상태 확인', icon: '↔️' },
-  { key: 'labelPhoto', title: '모델명/제품라벨', desc: '정확한 모델명·제조정보 확인', icon: '🏷️' },
-  { key: 'backPhoto', title: '뒷면 사진', desc: '후면 커버·전원부·파손 여부 확인', icon: '🔌' }
+type PhotoKey = 'front' | 'side' | 'label' | 'back';
+
+type PreviewMap = Partial<Record<PhotoKey, string>>;
+
+type Status = 'idle' | 'sending' | 'done' | 'error';
+
+const photoGuides: Array<{
+  key: PhotoKey;
+  title: string;
+  description: string;
+  badge: string;
+}> = [
+  {
+    key: 'front',
+    title: '앞면 사진',
+    description: '전체 외관과 가죽 상태가 보이게 촬영',
+    badge: 'FRONT',
+  },
+  {
+    key: 'side',
+    title: '옆면 사진',
+    description: '팔걸이, 다리부, 측면 커버 상태 확인',
+    badge: 'SIDE',
+  },
+  {
+    key: 'label',
+    title: '모델명 / 제품라벨',
+    description: '뒷면 또는 하단의 모델명 라벨을 선명하게 촬영',
+    badge: 'LABEL',
+  },
+  {
+    key: 'back',
+    title: '뒷면 사진',
+    description: '전원선, 후면 커버, 파손 여부 확인',
+    badge: 'BACK',
+  },
 ];
 
-type PreviewMap = Record<string, string>;
-
 export default function ConsultationForm() {
-  const [done, setDone] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [previews, setPreviews] = useState<PreviewMap>({});
+  const [status, setStatus] = useState<Status>('idle');
 
-  const hasPreview = useMemo(() => Object.keys(previews).length > 0, [previews]);
+  const uploadedCount = useMemo(() => Object.values(previews).filter(Boolean).length, [previews]);
 
-  function onFileChange(e: React.ChangeEvent<HTMLInputElement>, key: string) {
-    const file = e.target.files?.[0];
+  function handlePhotoChange(key: PhotoKey, event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
     if (!file) return;
+
     const url = URL.createObjectURL(file);
     setPreviews((prev) => ({ ...prev, [key]: url }));
   }
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setLoading(true);
-    setDone(false);
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus('sending');
 
-    const form = new FormData(e.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
 
     try {
-      await fetch('/api/consultations', {
+      const response = await fetch('/api/consultations', {
         method: 'POST',
-        body: form
+        body: formData,
       });
-      setDone(true);
-      e.currentTarget.reset();
+
+      if (!response.ok) throw new Error('submit failed');
+
+      setStatus('done');
+      form.reset();
       setPreviews({});
-    } catch {
-      alert('접수 저장은 DB/Storage 연결 후 활성화됩니다. 현재는 화면 접수 테스트 단계입니다.');
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error(error);
+      setStatus('error');
     }
   }
 
   return (
-    <section id="consult" className="section quoteSection">
-      <div className="quoteWrap">
-        <div className="quoteCopy">
-          <b>Free Quote</b>
+    <section id="consult" className="consultSection">
+      <div className="consultWrap">
+        <div className="consultCopy">
+          <p className="eyebrow">Free Quote</p>
           <h2>사진만 보내도 빠르게 상담받을 수 있습니다.</h2>
           <p>
             중고 구매·판매, 이전설치, 폐기수거, 출장수리, 부품문의 중 필요한 서비스를 선택해 주세요.
-            판매/매입 상담은 아래 4가지 사진을 올려주시면 훨씬 빠르게 확인할 수 있습니다.
+            제품 상태 사진을 함께 보내주시면 더 정확하게 안내할 수 있습니다.
           </p>
-          <div className="photoGuideList">
-            {photoGuide.map((item, index) => (
-              <div className="photoGuideItem" key={item.key}>
-                <span>{index + 1}</span>
-                <strong>{item.title}</strong>
-                <small>{item.desc}</small>
-              </div>
-            ))}
+          <div className="photoHelpBox">
+            <strong>사진 등록 가이드</strong>
+            <span>앞면 · 옆면 · 모델명 라벨 · 뒷면 사진을 권장합니다.</span>
           </div>
         </div>
 
-        <form className="formBox quoteForm" onSubmit={onSubmit}>
+        <form className="consultForm" onSubmit={onSubmit}>
           <div className="grid2">
             <input name="name" placeholder="이름" required />
             <input name="phone" placeholder="연락처" required />
           </div>
 
-          <div className="grid2" style={{ marginTop: 14 }}>
-            <select name="service" defaultValue="내 안마의자 판매">
-              <option>중고 안마의자 구매</option>
-              <option>내 안마의자 판매</option>
-              <option>이전설치</option>
-              <option>폐기수거</option>
-              <option>출장수리</option>
-              <option>부품구매</option>
-            </select>
-            <input name="region" placeholder="지역 예: 경기 고양시" />
-          </div>
+          <select name="service" required>
+            <option>중고 안마의자 구매</option>
+            <option>내 안마의자 판매</option>
+            <option>이전설치</option>
+            <option>폐기수거</option>
+            <option>출장수리</option>
+            <option>부품구매</option>
+          </select>
 
-          <input
-            style={{ marginTop: 14 }}
-            name="model"
-            placeholder="브랜드/모델명 예: 코지마 CMC-A100"
-          />
+          <input name="region" placeholder="지역 예: 경기 고양시" />
+          <input name="model" placeholder="브랜드/모델명 예: 코지마 CMC-A100" />
+          <textarea name="message" placeholder="문의 내용을 적어주세요" />
 
-          <div className="uploadGuide">
-            <div>
-              <strong>제품 상태 사진 첨부</strong>
-              <p>앞면, 옆면, 모델명 라벨, 뒷면 사진을 올려주세요.</p>
+          <div className="photoUploadArea">
+            <div className="photoUploadHead">
+              <div>
+                <strong>제품 상태 사진 첨부</strong>
+                <p>판매/매입 상담은 사진이 많을수록 견적이 빨라집니다.</p>
+              </div>
+              <span>{uploadedCount}/4</span>
             </div>
-            <small>JPG/PNG 권장</small>
-          </div>
 
-          <div className="photoUploadGrid">
-            {photoGuide.map((item) => (
-              <label className="photoUploadCard" key={item.key}>
-                <input
-                  type="file"
-                  name={item.key}
-                  accept="image/*"
-                  onChange={(e) => onFileChange(e, item.key)}
-                />
-                {previews[item.key] ? (
-                  <img src={previews[item.key]} alt={item.title} />
-                ) : (
-                  <div className="photoPlaceholder">
-                    <em>{item.icon}</em>
+            <div className="photoGuideGrid">
+              {photoGuides.map((item) => (
+                <label className="photoGuideCard" key={item.key}>
+                  <input
+                    type="file"
+                    name={`${item.key}Photo`}
+                    accept="image/*"
+                    capture="environment"
+                    onChange={(event) => handlePhotoChange(item.key, event)}
+                  />
+                  {previews[item.key] ? (
+                    <img src={previews[item.key]} alt={`${item.title} 미리보기`} />
+                  ) : (
+                    <div className="photoPlaceholder">
+                      <b>{item.badge}</b>
+                      <span>+ 사진 첨부</span>
+                    </div>
+                  )}
+                  <div className="photoGuideText">
                     <strong>{item.title}</strong>
-                    <small>{item.desc}</small>
+                    <small>{item.description}</small>
                   </div>
-                )}
-              </label>
-            ))}
+                </label>
+              ))}
+            </div>
           </div>
 
-          {hasPreview && <p className="uploadHint">첨부 사진은 관리자 화면에서 제품 상태 확인용으로 사용됩니다.</p>}
+          <button type="submit" disabled={status === 'sending'}>
+            {status === 'sending' ? '접수 중...' : '무료 상담 신청'}
+          </button>
 
-          <textarea style={{ marginTop: 14 }} name="message" placeholder="문의 내용을 적어주세요" />
-          <button disabled={loading}>{loading ? '접수 중...' : '무료 상담 신청'}</button>
-          {done && <p style={{ color: '#2563eb', fontWeight: 900 }}>접수되었습니다. 담당자가 연락드립니다.</p>}
+          {status === 'done' && (
+            <p className="formSuccess">접수되었습니다. 담당자가 순차적으로 연락드립니다.</p>
+          )}
+          {status === 'error' && (
+            <p className="formError">접수 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.</p>
+          )}
         </form>
       </div>
     </section>
