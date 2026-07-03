@@ -31,13 +31,14 @@ export async function POST(request: Request) {
   const body = await request.json();
 
   const { data, error } = await supabase
-    .from('consultations')
+    .from('reservations')
     .insert({
       name: body.name ?? '',
       phone: body.phone ?? '',
       service_type: body.service_type ?? body.serviceType ?? '',
       region: body.region ?? '',
       model: body.model ?? '',
+      requested_date: body.requested_date ?? body.requestedDate ?? null,
       message: body.message ?? '',
       status: 'new'
     })
@@ -59,7 +60,7 @@ export async function GET() {
   }
 
   const { data, error } = await supabase
-    .from('consultations')
+    .from('reservations')
     .select('*')
     .order('created_at', { ascending: false });
 
