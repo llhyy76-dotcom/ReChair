@@ -1,27 +1,23 @@
-# ReChair MVP
+# ReChair Build Fix
 
-ReChair 실제 서비스 MVP 초기 프로젝트입니다.
+Vercel build 오류를 해결하기 위한 최소 완성 Next.js 프로젝트입니다.
 
-## 포함 기능
-- 고객 홈페이지
-- 상담/예약 신청 UI
-- 관리자 대시보드 초안
-- Supabase 연동 구조
-- 상담 DB 스키마
+## 포함 폴더
+- app/page.tsx
+- app/layout.tsx
+- app/globals.css
+- app/admin/page.tsx
+- components/Header.tsx
+- components/Hero.tsx
+- components/ServiceCards.tsx
+- components/ProductList.tsx
+- components/ConsultationForm.tsx
+- components/Footer.tsx
+- lib/supabase.ts
+- supabase/schema.sql
 
-## 로컬 실행
-```bash
-npm install
-npm run dev
-```
+## GitHub 업로드 방법
+현재 ReChair 저장소의 파일 위에 이 압축파일 내용을 모두 덮어 업로드하세요.
 
 ## Vercel 배포
-1. GitHub 저장소에 전체 파일 업로드
-2. Vercel에서 Import Project
-3. Environment Variables에 아래 값 등록
-   - NEXT_PUBLIC_SUPABASE_URL
-   - NEXT_PUBLIC_SUPABASE_ANON_KEY
-4. Deploy
-
-## Supabase
-`supabase/schema.sql` 내용을 Supabase SQL Editor에서 실행하세요.
+GitHub에 반영되면 Vercel에서 자동 재배포됩니다.
