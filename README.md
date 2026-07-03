@@ -1,32 +1,27 @@
-# ReChair Commit 1
+# ReChair MVP
 
 ReChair 실제 서비스 MVP 초기 프로젝트입니다.
 
 ## 포함 기능
-- Next.js App Router
-- Tailwind CSS
-- Supabase 연결
-- 고객 랜딩페이지
-- 상품 목록
-- 상담/예약 신청
-- 관리자 접수 대시보드
+- 고객 홈페이지
+- 상담/예약 신청 UI
+- 관리자 대시보드 초안
+- Supabase 연동 구조
+- 상담 DB 스키마
 
-## 실행
+## 로컬 실행
 ```bash
 npm install
-cp .env.example .env.local
 npm run dev
 ```
 
-## Supabase
-1. Supabase 프로젝트 생성
-2. SQL Editor에서 `supabase/schema.sql` 실행
-3. `.env.local`에 아래 값 입력
-```bash
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-```
-
 ## Vercel 배포
-GitHub 저장소에 업로드 후 Vercel에서 Import Project를 선택하세요.
-Environment Variables에 `.env.local`과 같은 값을 입력합니다.
+1. GitHub 저장소에 전체 파일 업로드
+2. Vercel에서 Import Project
+3. Environment Variables에 아래 값 등록
+   - NEXT_PUBLIC_SUPABASE_URL
+   - NEXT_PUBLIC_SUPABASE_ANON_KEY
+4. Deploy
+
+## Supabase
+`supabase/schema.sql` 내용을 Supabase SQL Editor에서 실행하세요.
