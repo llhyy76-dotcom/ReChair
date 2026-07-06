@@ -1,29 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase, photoFields } from '@/lib/supabase';
-export const dynamic='force-dynamic';
-export async function GET(){
- const supabase=getSupabase();
- if(!supabase) return NextResponse.json({items:[]});
- const {data,error}=await supabase.from('consultations').select('*').order('created_at',{ascending:false});
- if(error) return NextResponse.json({error:error.message},{status:500});
- return NextResponse.json({items:data||[]});
-}
-export async function POST(req:NextRequest){
- const supabase=getSupabase(); const form=await req.formData();
- const base:any={name:String(form.get('name')||''),phone:String(form.get('phone')||''),service_type:String(form.get('service_type')||''),model:String(form.get('model')||''),message:String(form.get('message')||''),status:'신규'};
- const photoUrls:Record<string,string>={};
- if(supabase){
-  for(const field of photoFields){
-    const file=form.get(field);
-    if(file instanceof File && file.size>0){
-      const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_'); const path=`${Date.now()}-${field}-${safe}`;
-      const {error:upErr}=await supabase.storage.from('consultation-photos').upload(path,file,{upsert:true,contentType:file.type||'image/jpeg'});
-      if(!upErr){ const {data}=supabase.storage.from('consultation-photos').getPublicUrl(path); photoUrls[field]=data.publicUrl; }
-    }
-  }
-  const {data,error}=await supabase.from('consultations').insert({...base,...photoUrls}).select().single();
-  if(error) return NextResponse.json({error:error.message},{status:500});
-  return NextResponse.json({ok:true,item:data});
- }
- return NextResponse.json({ok:true,item:{...base,...photoUrls,created_at:new Date().toISOString()}});
-}
+import { NextResponse } from 'next/server';
+import { supabase, hasSupabase } from '@/lib/supabase';
+const photoKeys=['front','side','label','back'];
+export async function GET(){if(!hasSupabase||!supabase){return NextResponse.json({items:[]});}const {data,error}=await supabase.from('consultations').select('*').order('created_at',{ascending:false});if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json({items:data||[]});}
+export async function POST(req:Request){try{const formData=await req.formData();const name=String(formData.get('name')||'');const phone=String(formData.get('phone')||'');const service=String(formData.get('service')||'중고 안마의자 판매');const model=String(formData.get('model')||'');const message=String(formData.get('message')||'');let photos:Record<string,string>={};
+if(hasSupabase&&supabase){for(const key of photoKeys){const file=formData.get(`photo_${key}`);if(file instanceof File && file.size>0){const ext=file.name.split('.').pop()||'jpg';const path=`${Date.now()}-${key}.${ext}`;const {error}=await supabase.storage.from('consultation-photos').upload(path,file,{upsert:true});if(!error){const {data}=supabase.storage.from('consultation-photos').getPublicUrl(path);photos[`photo_${key}`]=data.publicUrl;}}}const {data,error}=await supabase.from('consultations').insert({name,phone,service,model,message,status:'신규',...photos}).select().single();if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json({ok:true,item:data});}
+return NextResponse.json({ok:true,item:{name,phone,service,model,message,status:'신규',...photos}});}catch(e:any){return NextResponse.json({error:e.message},{status:500});}}
