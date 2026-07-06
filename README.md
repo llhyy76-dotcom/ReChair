@@ -1,10 +1,10 @@
-# ReChair UI Master Restore
+# ReChair UI Production Restore
 
-원본 모바일 캡처 기준 UI 복구 패치입니다.
+상업용 랜딩페이지 수준으로 UI를 전면 복구하는 패치입니다.
 
 ## 교체 파일
-- app/globals.css
 - app/page.tsx
+- app/globals.css
 - components/Header.tsx
 - components/Hero.tsx
 - components/Services.tsx
@@ -12,4 +12,5 @@
 - components/ConsultationForm.tsx
 - components/Footer.tsx
 
-GitHub에 전체 덮어 업로드 후 Vercel 배포를 확인하세요.
+## 적용
+GitHub 저장소 루트에 전체 덮어 업로드 후 Vercel 자동 배포를 확인하세요.
