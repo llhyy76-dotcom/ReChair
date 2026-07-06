@@ -240,3 +240,299 @@ button, input, select, textarea { font: inherit; }
   .form-row, .photo-upload-grid { grid-template-columns:1fr; }
   .photo-example { height: 140px; }
 }
+
+/* ReChair Admin CRM UI v1 */
+.admin-page {
+  background: #f4f7fb;
+  min-height: calc(100vh - 84px);
+  padding: 48px 24px 80px;
+  color: #071126;
+}
+
+.admin-hero,
+.admin-layout {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.admin-hero {
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  color: #2478ff;
+  letter-spacing: 0.5em;
+  font-weight: 900;
+  font-size: 13px;
+  margin: 0 0 14px;
+}
+
+.admin-hero-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.admin-hero h1 {
+  font-size: clamp(32px, 5vw, 52px);
+  margin: 0 0 12px;
+  letter-spacing: -0.05em;
+}
+
+.admin-hero p {
+  margin: 0;
+  color: #526070;
+  font-size: 17px;
+}
+
+.admin-refresh {
+  background: #081126;
+  color: #fff;
+  padding: 14px 22px;
+  border-radius: 16px;
+  text-decoration: none;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 24px;
+}
+
+.admin-list-panel,
+.admin-detail-panel,
+.detail-card {
+  background: #fff;
+  border: 1px solid #dfe7f2;
+  border-radius: 28px;
+  box-shadow: 0 18px 50px rgba(8, 17, 38, 0.06);
+}
+
+.admin-list-panel {
+  padding: 22px;
+  min-height: 620px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.panel-title h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.panel-title span {
+  background: #eef5ff;
+  color: #2478ff;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.consultation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.consultation-card {
+  display: block;
+  padding: 18px;
+  border: 1px solid #e3ebf5;
+  border-radius: 20px;
+  text-decoration: none;
+  color: inherit;
+  background: #fff;
+}
+
+.consultation-card.active,
+.consultation-card:hover {
+  border-color: #2478ff;
+  background: #eef5ff;
+}
+
+.consultation-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.consultation-card-top strong {
+  font-size: 18px;
+}
+
+.consultation-card-top span,
+.status-pill {
+  background: #081126;
+  color: #fff;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.consultation-card p {
+  margin: 8px 0 6px;
+  color: #526070;
+}
+
+.consultation-card small {
+  font-weight: 800;
+  color: #071126;
+}
+
+.admin-detail-panel {
+  padding: 24px;
+}
+
+.detail-card {
+  border-radius: 24px;
+  box-shadow: none;
+  padding: 28px;
+}
+
+.detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #e5ecf5;
+}
+
+.service-label {
+  color: #2478ff;
+  font-weight: 900;
+  margin: 0 0 8px;
+}
+
+.detail-head h2 {
+  font-size: 38px;
+  margin: 0 0 6px;
+}
+
+.detail-head p {
+  margin: 0;
+  color: #526070;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 24px 0;
+}
+
+.info-box,
+.message-box,
+.memo-box {
+  background: #f6f9fd;
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.info-box span,
+.message-box span,
+.memo-box span {
+  display: block;
+  color: #687789;
+  font-weight: 800;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.info-box strong {
+  font-size: 18px;
+}
+
+.message-box p,
+.memo-box p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.photo-section {
+  margin: 28px 0;
+}
+
+.photo-section h3 {
+  margin: 0 0 14px;
+  font-size: 24px;
+}
+
+.admin-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-photo-card {
+  border: 1px solid #e3ebf5;
+  border-radius: 18px;
+  padding: 12px;
+  text-align: center;
+  background: #fff;
+}
+
+.admin-photo-card img,
+.no-photo {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 14px;
+  background: #f1f5fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.no-photo {
+  font-size: 36px;
+}
+
+.empty-box,
+.empty-detail {
+  background: #f6f9fd;
+  border-radius: 18px;
+  padding: 24px;
+  color: #687789;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-hero-row {
+    flex-direction: column;
+  }
+
+  .detail-grid,
+  .admin-photo-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-page {
+    padding: 32px 14px 60px;
+  }
+
+  .detail-card {
+    padding: 20px;
+  }
+
+  .admin-photo-grid {
+    grid-template-columns: 1fr;
+  }
+}
