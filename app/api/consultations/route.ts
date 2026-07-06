@@ -1,44 +1,105 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: Request) {
-  try {
-    const formData = await request.formData();
+export const dynamic = 'force-dynamic';
 
-    const photoFields = ['frontPhoto', 'sidePhoto', 'labelPhoto', 'backPhoto'];
-    const uploadedPhotos: string[] = [];
-    const payload: Record<string, string> = {};
+type ConsultationPayload = {
+  name: string;
+  phone: string;
+  service: string;
+  model: string;
+  message: string;
+  photos: string[];
+  status?: string;
+  manager?: string;
+  memo?: string;
+};
 
-    for (const [key, value] of Array.from(formData.entries())) {
-      if (photoFields.includes(key) && value instanceof File && value.size > 0) {
-        // 현재 단계에서는 빌드 안정화를 위해 파일명을 저장합니다.
-        // Supabase Storage 연동 단계에서 실제 업로드 URL 저장으로 교체합니다.
-        uploadedPhotos.push(`${key}:${value.name}`);
-      } else if (!(value instanceof File)) {
-        payload[key] = String(value);
-      }
-    }
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    return NextResponse.json({
-      ok: true,
-      message: '상담 신청이 접수되었습니다.',
-      data: {
-        ...payload,
-        photos: uploadedPhotos,
-        createdAt: new Date().toISOString(),
-      },
-    });
-  } catch (error) {
-    console.error('consultation error', error);
-    return NextResponse.json(
-      { ok: false, message: '상담 접수 중 오류가 발생했습니다.' },
-      { status: 500 }
-    );
+async function supabaseRequest(path: string, init?: RequestInit) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...init,
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+      ...(init?.headers || {})
+    },
+    cache: 'no-store'
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || 'Supabase request failed');
   }
+
+  return res.json();
 }
 
 export async function GET() {
-  return NextResponse.json({
-    ok: true,
-    consultations: [],
-  });
+  try {
+    const data = await supabaseRequest('consultations?select=*&order=created_at.desc');
+    if (data) return NextResponse.json({ ok: true, consultations: data });
+
+    return NextResponse.json({
+      ok: true,
+      mock: true,
+      consultations: [
+        {
+          id: 'demo-001',
+          created_at: new Date().toISOString(),
+          name: '홍길동',
+          phone: '010-0000-0000',
+          service: '중고 안마의자 판매',
+          model: '코지마 CMC-A100',
+          message: '제품 매입 상담을 원합니다.',
+          photos: ['front:demo-front.jpg', 'side:demo-side.jpg', 'label:demo-label.jpg', 'back:demo-back.jpg'],
+          status: '신규',
+          manager: '',
+          memo: ''
+        }
+      ]
+    });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const formData = await request.formData();
+    const uploadedPhotos: string[] = [];
+    const photoFields = ['frontPhoto', 'sidePhoto', 'labelPhoto', 'backPhoto'];
+
+    Array.from(formData.entries()).forEach(([key, value]) => {
+      if (photoFields.includes(key) && value instanceof File && value.size > 0) {
+        uploadedPhotos.push(`${key}:${value.name}`);
+      }
+    });
+
+    const payload: ConsultationPayload = {
+      name: String(formData.get('name') || ''),
+      phone: String(formData.get('phone') || ''),
+      service: String(formData.get('service') || ''),
+      model: String(formData.get('model') || ''),
+      message: String(formData.get('message') || ''),
+      photos: uploadedPhotos,
+      status: '신규',
+      manager: '',
+      memo: ''
+    };
+
+    const data = await supabaseRequest('consultations', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    return NextResponse.json({ ok: true, saved: Boolean(data), data: data?.[0] || payload });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+  }
 }

@@ -1,2 +1,18 @@
 import Header from '@/components/Header';
-export default function Admin(){return <div className="admin"><aside className="side"><h2>ReChair</h2><a>대시보드</a><a>상담 접수</a><a>상품 관리</a><a>예약 관리</a><a href="/">고객 화면</a></aside><main className="main"><h1>관리자 대시보드</h1><div className="cards" style={{gridTemplateColumns:'repeat(4,1fr)',margin:'28px 0'}}><div className="card"><b>오늘 상담</b><h2>31</h2></div><div className="card"><b>예약 문의</b><h2>18</h2></div><div className="card"><b>상품 문의</b><h2>7</h2></div><div className="card"><b>예상 매출</b><h2>4.8M</h2></div></div><h2>상담 접수 목록</h2><div className="table"><div className="row" style={{fontWeight:900}}><div>고객</div><div>서비스</div><div>지역</div><div>상태</div></div><div className="row"><div>임경선 / 010-0000-0000</div><div>중고 구매</div><div>경기 고양</div><div>신규</div></div><div className="row"><div>김고객 / 010-1111-2222</div><div>이전설치</div><div>서울</div><div>상담중</div></div></div></main></div>}
+import AdminConsultations from '@/components/AdminConsultations';
+
+export default function AdminPage() {
+  return (
+    <main className="min-h-screen bg-slate-50">
+      <Header />
+      <section className="mx-auto max-w-7xl px-6 py-10">
+        <div className="mb-8">
+          <p className="text-sm font-black uppercase tracking-[0.25em] text-blue-600">ReChair Admin</p>
+          <h1 className="mt-3 text-4xl font-black text-slate-950">관리자 상담 CRM</h1>
+          <p className="mt-3 text-slate-500">고객 상담, 제품 사진, 처리 상태, 담당자 메모를 한 화면에서 관리합니다.</p>
+        </div>
+        <AdminConsultations />
+      </section>
+    </main>
+  );
+}
