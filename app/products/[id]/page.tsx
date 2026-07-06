@@ -1,65 +1,48 @@
-const products = [
-  {
-    id: 'cmc-a100',
-    name: '코지마 CMC-A100',
-    brand: '코지마',
-    price: '상담 후 안내',
-    grade: 'A급',
-    description: '상태 확인 후 구매/판매/이전설치 상담이 가능한 중고 안마의자입니다.',
-  },
-  {
-    id: 'bodyfriend-phantom',
-    name: '바디프랜드 팬텀',
-    brand: '바디프랜드',
-    price: '상담 후 안내',
-    grade: 'B급',
-    description: '사진과 모델명을 남겨주시면 담당자가 빠르게 상담드립니다.',
-  },
-]
+import Link from 'next/link';
 
-type ProductPageProps = {
-  params: Promise<{
-    id: string
-  }>
+type Props = { params: Promise<{ id: string }> };
+
+async function getProduct(id: string) {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
+  try {
+    const res = await fetch(`${baseUrl}/api/products/${id}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
-export default async function ProductDetailPage({ params }: ProductPageProps) {
-  const { id } = await params
-  const product = products.find((item) => item.id === id) ?? products[0]
+export default async function ProductDetailPage({ params }: Props) {
+  const { id } = await params;
+  const product = await getProduct(id) || {
+    id,
+    name: '코지마 CMC-A100', brand: '코지마', model: 'CMC-A100', price: 890000, grade: 'A', status: '판매중', description: '상태 점검 완료 리퍼 상품입니다. 상담 후 배송/설치 일정을 확정합니다.', image_url: ''
+  };
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-12">
-      <section className="mx-auto max-w-5xl rounded-[32px] bg-white p-8 shadow-sm ring-1 ring-slate-200">
-        <div className="mb-6 inline-flex rounded-full bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700">
-          ReChair 중고상품 상세
+    <main className="min-h-screen bg-slate-50 px-5 py-16">
+      <section className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-2">
+        <div className="rounded-[2rem] bg-white p-5 shadow-sm">
+          <div className="flex h-[420px] items-center justify-center rounded-[1.5rem] bg-slate-100 text-7xl">{product.image_url ? <img src={product.image_url} alt={product.name} className="h-full w-full rounded-[1.5rem] object-cover" /> : '🛋️'}</div>
         </div>
-        <div className="grid gap-8 md:grid-cols-2">
-          <div className="flex min-h-[320px] items-center justify-center rounded-[28px] bg-gradient-to-br from-slate-100 to-slate-200 text-6xl">
-            🛋️
+        <div>
+          <p className="font-bold text-blue-600">{product.brand}</p>
+          <h1 className="mt-3 text-4xl font-black text-slate-950 md:text-6xl">{product.name}</h1>
+          <p className="mt-4 text-xl text-slate-600">{product.model} · 등급 {product.grade}</p>
+          <p className="mt-8 text-4xl font-black text-slate-950">{Number(product.price || 0).toLocaleString()}원</p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl bg-white p-4"><p className="text-sm text-slate-500">상태</p><p className="font-black">{product.status}</p></div>
+            <div className="rounded-2xl bg-white p-4"><p className="text-sm text-slate-500">등급</p><p className="font-black">{product.grade}</p></div>
+            <div className="rounded-2xl bg-white p-4"><p className="text-sm text-slate-500">상담</p><p className="font-black">가능</p></div>
           </div>
-          <div>
-            <p className="text-sm font-bold text-slate-500">{product.brand}</p>
-            <h1 className="mt-2 text-4xl font-black text-slate-950">{product.name}</h1>
-            <p className="mt-4 text-lg text-slate-600">{product.description}</p>
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-sm text-slate-500">상품 등급</p>
-                <p className="text-2xl font-black text-slate-950">{product.grade}</p>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-sm text-slate-500">가격</p>
-                <p className="text-2xl font-black text-slate-950">{product.price}</p>
-              </div>
-            </div>
-            <a
-              href="/#consultation"
-              className="mt-8 inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-4 text-lg font-black text-white shadow-lg shadow-blue-200"
-            >
-              이 상품 상담 신청
-            </a>
+          <p className="mt-8 rounded-3xl bg-white p-6 text-slate-700">{product.description}</p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link href="/#consult" className="rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-8 py-4 text-center font-black text-white">구매 상담 신청</Link>
+            <Link href="/products" className="rounded-2xl border border-slate-300 px-8 py-4 text-center font-black text-slate-900">목록으로</Link>
           </div>
         </div>
       </section>
     </main>
-  )
+  );
 }

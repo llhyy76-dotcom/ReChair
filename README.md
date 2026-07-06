@@ -1,32 +1,21 @@
-# ReChair Live DB Update
+# ReChair v0.6 Product System
 
-## 목적
-고객 상담 접수 → Supabase DB 저장 → 사진 Storage 저장 → 관리자 CRM 조회/상태변경 구조입니다.
+## 적용 파일
+- app/products/page.tsx
+- app/products/[id]/page.tsx
+- app/api/products/route.ts
+- app/api/products/[id]/route.ts
+- app/admin/products/page.tsx
+- components/ProductAdmin.tsx
+- supabase/products_schema.sql
 
-## 교체/추가 파일
-- `lib/supabaseAdmin.ts`
-- `app/api/consultations/route.ts`
-- `app/api/consultations/[id]/route.ts`
-- `components/ConsultationForm.tsx`
-- `components/AdminConsultations.tsx`
-- `app/admin/page.tsx`는 `app_admin_page.tsx` 내용을 복사해서 교체하세요.
-- `supabase/schema.sql`
+## 적용 후 확인 URL
+- 고객 상품목록: /products
+- 고객 상품상세: /products/demo-1 또는 등록상품 상세
+- 관리자 상품관리: /admin/products
 
-## Vercel 환경변수
-Vercel → Project → Settings → Environment Variables
+## Supabase 작업
+Supabase SQL Editor에서 `supabase/products_schema.sql` 내용을 실행하세요.
 
-필수:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-권장:
-- `SUPABASE_SERVICE_ROLE_KEY`
-
-주의: Service Role Key는 절대 GitHub에 올리지 마세요.
-
-## Supabase SQL 적용
-Supabase → SQL Editor → `supabase/schema.sql` 실행
-
-## 확인 경로
-- 고객: `/`
-- 관리자: `/admin`
+## 주의
+현재 RLS 정책은 빠른 MVP 테스트용으로 공개 쓰기 허용 상태입니다. 정식 오픈 전에는 관리자 인증 기반 정책으로 강화해야 합니다.
