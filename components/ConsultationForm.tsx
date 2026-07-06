@@ -1,166 +1,126 @@
-'use client';
+'use client'
 
-import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react'
 
-type PhotoKey = 'front' | 'side' | 'label' | 'back';
+type PhotoKey = 'front_photo' | 'side_photo' | 'label_photo' | 'back_photo'
 
-type PreviewMap = Partial<Record<PhotoKey, string>>;
-
-type Status = 'idle' | 'sending' | 'done' | 'error';
-
-const photoGuides: Array<{
-  key: PhotoKey;
-  title: string;
-  description: string;
-  badge: string;
-}> = [
-  {
-    key: 'front',
-    title: '앞면 사진',
-    description: '전체 외관과 가죽 상태가 보이게 촬영',
-    badge: 'FRONT',
-  },
-  {
-    key: 'side',
-    title: '옆면 사진',
-    description: '팔걸이, 다리부, 측면 커버 상태 확인',
-    badge: 'SIDE',
-  },
-  {
-    key: 'label',
-    title: '모델명 / 제품라벨',
-    description: '뒷면 또는 하단의 모델명 라벨을 선명하게 촬영',
-    badge: 'LABEL',
-  },
-  {
-    key: 'back',
-    title: '뒷면 사진',
-    description: '전원선, 후면 커버, 파손 여부 확인',
-    badge: 'BACK',
-  },
-];
+const PHOTO_GUIDE: { key: PhotoKey; title: string; desc: string; icon: string }[] = [
+  { key: 'front_photo', title: '앞면 사진', desc: '제품 전체가 보이도록 정면에서 촬영', icon: '🛋️' },
+  { key: 'side_photo', title: '옆면 사진', desc: '팔걸이·가죽 상태가 보이도록 촬영', icon: '↔️' },
+  { key: 'label_photo', title: '제품라벨', desc: '모델명·제조번호 라벨을 가까이 촬영', icon: '🏷️' },
+  { key: 'back_photo', title: '뒷면 사진', desc: '전원선·뒷커버 상태가 보이도록 촬영', icon: '🔌' },
+]
 
 export default function ConsultationForm() {
-  const [previews, setPreviews] = useState<PreviewMap>({});
-  const [status, setStatus] = useState<Status>('idle');
+  const [loading, setLoading] = useState(false)
+  const [previews, setPreviews] = useState<Record<PhotoKey, string | null>>({
+    front_photo: null,
+    side_photo: null,
+    label_photo: null,
+    back_photo: null,
+  })
 
-  const uploadedCount = useMemo(() => Object.values(previews).filter(Boolean).length, [previews]);
+  const hasPreview = useMemo(() => Object.values(previews).some(Boolean), [previews])
 
-  function handlePhotoChange(key: PhotoKey, event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const url = URL.createObjectURL(file);
-    setPreviews((prev) => ({ ...prev, [key]: url }));
+  function onFileChange(key: PhotoKey, file?: File) {
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    setPreviews((prev) => ({ ...prev, [key]: url }))
   }
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setStatus('sending');
-
-    const form = event.currentTarget;
-    const formData = new FormData(form);
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setLoading(true)
+    const form = event.currentTarget
+    const formData = new FormData(form)
 
     try {
-      const response = await fetch('/api/consultations', {
+      const res = await fetch('/api/consultations', {
         method: 'POST',
         body: formData,
-      });
-
-      if (!response.ok) throw new Error('submit failed');
-
-      setStatus('done');
-      form.reset();
-      setPreviews({});
+      })
+      const json = await res.json()
+      if (!res.ok || !json.ok) throw new Error(json.error || '접수 실패')
+      alert('상담 신청이 접수되었습니다. 담당자가 빠르게 연락드리겠습니다.')
+      form.reset()
+      setPreviews({ front_photo: null, side_photo: null, label_photo: null, back_photo: null })
     } catch (error) {
-      console.error(error);
-      setStatus('error');
+      alert(error instanceof Error ? error.message : '접수 중 오류가 발생했습니다.')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
-    <section id="consult" className="consultSection">
-      <div className="consultWrap">
-        <div className="consultCopy">
-          <p className="eyebrow">Free Quote</p>
-          <h2>사진만 보내도 빠르게 상담받을 수 있습니다.</h2>
-          <p>
+    <section id="consult" className="mx-auto max-w-7xl px-5 py-16">
+      <div className="grid gap-8 rounded-[2rem] bg-[#050a1a] p-8 text-white lg:grid-cols-[0.9fr_1.1fr] lg:p-14">
+        <div>
+          <p className="text-sm font-black uppercase tracking-[0.2em] text-cyan-300">Free Quote</p>
+          <h2 className="mt-5 text-4xl font-black leading-tight md:text-6xl">
+            사진만 보내도 빠르게<br />상담받을 수 있습니다.
+          </h2>
+          <p className="mt-6 text-lg leading-8 text-slate-300">
             중고 구매·판매, 이전설치, 폐기수거, 출장수리, 부품문의 중 필요한 서비스를 선택해 주세요.
-            제품 상태 사진을 함께 보내주시면 더 정확하게 안내할 수 있습니다.
           </p>
-          <div className="photoHelpBox">
-            <strong>사진 등록 가이드</strong>
-            <span>앞면 · 옆면 · 모델명 라벨 · 뒷면 사진을 권장합니다.</span>
+          <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-slate-300">
+            사진은 앞면·옆면·제품라벨·뒷면 순서로 올려주시면 견적 정확도가 높아집니다.
           </div>
         </div>
 
-        <form className="consultForm" onSubmit={onSubmit}>
-          <div className="grid2">
-            <input name="name" placeholder="이름" required />
-            <input name="phone" placeholder="연락처" required />
+        <form onSubmit={onSubmit} className="rounded-[1.75rem] bg-white p-5 text-slate-900 shadow-2xl md:p-7">
+          <div className="grid gap-4 md:grid-cols-2">
+            <input name="name" required placeholder="이름" className="rounded-2xl border border-slate-200 px-5 py-4 text-lg outline-none focus:border-blue-500" />
+            <input name="phone" required placeholder="연락처" className="rounded-2xl border border-slate-200 px-5 py-4 text-lg outline-none focus:border-blue-500" />
           </div>
 
-          <select name="service" required>
+          <select name="service_type" className="mt-4 w-full rounded-2xl border border-slate-200 px-5 py-4 text-lg outline-none focus:border-blue-500">
             <option>중고 안마의자 구매</option>
-            <option>내 안마의자 판매</option>
+            <option>중고 안마의자 판매</option>
             <option>이전설치</option>
             <option>폐기수거</option>
             <option>출장수리</option>
-            <option>부품구매</option>
+            <option>부품문의</option>
           </select>
 
-          <input name="region" placeholder="지역 예: 경기 고양시" />
-          <input name="model" placeholder="브랜드/모델명 예: 코지마 CMC-A100" />
-          <textarea name="message" placeholder="문의 내용을 적어주세요" />
+          <input name="model" placeholder="브랜드/모델명 예: 코지마 CMC-A100" className="mt-4 w-full rounded-2xl border border-slate-200 px-5 py-4 text-lg outline-none focus:border-blue-500" />
+          <textarea name="message" placeholder="문의 내용을 적어주세요" className="mt-4 h-32 w-full rounded-2xl border border-slate-200 px-5 py-4 text-lg outline-none focus:border-blue-500" />
 
-          <div className="photoUploadArea">
-            <div className="photoUploadHead">
-              <div>
-                <strong>제품 상태 사진 첨부</strong>
-                <p>판매/매입 상담은 사진이 많을수록 견적이 빨라집니다.</p>
-              </div>
-              <span>{uploadedCount}/4</span>
+          <div className="mt-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-lg font-black">제품 상태 사진</h3>
+              <span className="text-xs font-bold text-blue-600">휴대폰 카메라 촬영 가능</span>
             </div>
-
-            <div className="photoGuideGrid">
-              {photoGuides.map((item) => (
-                <label className="photoGuideCard" key={item.key}>
+            <div className="grid gap-3 md:grid-cols-2">
+              {PHOTO_GUIDE.map((item) => (
+                <label key={item.key} className="cursor-pointer rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-blue-400 hover:bg-blue-50">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm">
+                      {previews[item.key] ? <img src={previews[item.key] || ''} alt="preview" className="h-full w-full rounded-2xl object-cover" /> : item.icon}
+                    </div>
+                    <div>
+                      <p className="font-black">{item.title}</p>
+                      <p className="text-xs text-slate-500">{item.desc}</p>
+                    </div>
+                  </div>
                   <input
+                    name={item.key}
                     type="file"
-                    name={`${item.key}Photo`}
                     accept="image/*"
                     capture="environment"
-                    onChange={(event) => handlePhotoChange(item.key, event)}
+                    className="mt-3 block w-full text-sm text-slate-500"
+                    onChange={(e) => onFileChange(item.key, e.target.files?.[0])}
                   />
-                  {previews[item.key] ? (
-                    <img src={previews[item.key]} alt={`${item.title} 미리보기`} />
-                  ) : (
-                    <div className="photoPlaceholder">
-                      <b>{item.badge}</b>
-                      <span>+ 사진 첨부</span>
-                    </div>
-                  )}
-                  <div className="photoGuideText">
-                    <strong>{item.title}</strong>
-                    <small>{item.description}</small>
-                  </div>
                 </label>
               ))}
             </div>
+            {hasPreview && <p className="mt-3 text-xs text-slate-500">첨부된 사진은 관리자 화면에서 확인할 수 있습니다.</p>}
           </div>
 
-          <button type="submit" disabled={status === 'sending'}>
-            {status === 'sending' ? '접수 중...' : '무료 상담 신청'}
+          <button disabled={loading} className="mt-6 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-5 text-lg font-black text-white shadow-lg disabled:opacity-60">
+            {loading ? '접수 중...' : '무료 상담 신청'}
           </button>
-
-          {status === 'done' && (
-            <p className="formSuccess">접수되었습니다. 담당자가 순차적으로 연락드립니다.</p>
-          )}
-          {status === 'error' && (
-            <p className="formError">접수 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.</p>
-          )}
         </form>
       </div>
     </section>
-  );
+  )
 }

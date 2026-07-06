@@ -1,105 +1,133 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
-type ConsultationPayload = {
-  name: string;
-  phone: string;
-  service: string;
-  model: string;
-  message: string;
-  photos: string[];
-  status?: string;
-  manager?: string;
-  memo?: string;
-};
+type PhotoField = 'front_photo' | 'side_photo' | 'label_photo' | 'back_photo'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const PHOTO_FIELDS: PhotoField[] = ['front_photo', 'side_photo', 'label_photo', 'back_photo']
 
-async function supabaseRequest(path: string, init?: RequestInit) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+function safeText(value: FormDataEntryValue | null) {
+  if (!value || value instanceof File) return ''
+  return String(value).trim()
+}
 
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation',
-      ...(init?.headers || {})
-    },
-    cache: 'no-store'
-  });
+async function uploadPhoto(field: PhotoField, file: File, phone: string) {
+  const supabase = getSupabaseAdmin()
+  if (!supabase || file.size === 0) return null
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || 'Supabase request failed');
-  }
+  const ext = file.name.includes('.') ? file.name.split('.').pop() : 'jpg'
+  const safePhone = phone.replace(/[^0-9]/g, '') || 'unknown'
+  const filePath = `consultations/${Date.now()}-${safePhone}-${field}.${ext}`
+  const arrayBuffer = await file.arrayBuffer()
 
-  return res.json();
+  const { error } = await supabase.storage
+    .from('consultation-photos')
+    .upload(filePath, Buffer.from(arrayBuffer), {
+      contentType: file.type || 'image/jpeg',
+      upsert: false,
+    })
+
+  if (error) return null
+
+  const { data } = supabase.storage.from('consultation-photos').getPublicUrl(filePath)
+  return data.publicUrl
 }
 
 export async function GET() {
-  try {
-    const data = await supabaseRequest('consultations?select=*&order=created_at.desc');
-    if (data) return NextResponse.json({ ok: true, consultations: data });
+  const supabase = getSupabaseAdmin()
 
+  if (!supabase) {
     return NextResponse.json({
       ok: true,
-      mock: true,
-      consultations: [
+      mode: 'mock',
+      data: [
         {
-          id: 'demo-001',
-          created_at: new Date().toISOString(),
+          id: 'mock-1',
           name: '홍길동',
           phone: '010-0000-0000',
-          service: '중고 안마의자 판매',
+          service_type: '중고 안마의자 판매',
           model: '코지마 CMC-A100',
           message: '제품 매입 상담을 원합니다.',
-          photos: ['front:demo-front.jpg', 'side:demo-side.jpg', 'label:demo-label.jpg', 'back:demo-back.jpg'],
           status: '신규',
           manager: '',
-          memo: ''
-        }
-      ]
-    });
-  } catch (error) {
-    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+          memo: '',
+          created_at: new Date().toISOString(),
+          front_photo_url: null,
+          side_photo_url: null,
+          label_photo_url: null,
+          back_photo_url: null,
+        },
+      ],
+    })
   }
+
+  const { data, error } = await supabase
+    .from('consultations')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true, data })
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const formData = await request.formData();
-    const uploadedPhotos: string[] = [];
-    const photoFields = ['frontPhoto', 'sidePhoto', 'labelPhoto', 'backPhoto'];
+export async function POST(request: Request) {
+  const supabase = getSupabaseAdmin()
+  const formData = await request.formData()
 
-    Array.from(formData.entries()).forEach(([key, value]) => {
-      if (photoFields.includes(key) && value instanceof File && value.size > 0) {
-        uploadedPhotos.push(`${key}:${value.name}`);
-      }
-    });
+  const name = safeText(formData.get('name'))
+  const phone = safeText(formData.get('phone'))
+  const service_type = safeText(formData.get('service_type')) || safeText(formData.get('service'))
+  const model = safeText(formData.get('model'))
+  const message = safeText(formData.get('message'))
 
-    const payload: ConsultationPayload = {
-      name: String(formData.get('name') || ''),
-      phone: String(formData.get('phone') || ''),
-      service: String(formData.get('service') || ''),
-      model: String(formData.get('model') || ''),
-      message: String(formData.get('message') || ''),
-      photos: uploadedPhotos,
-      status: '신규',
-      manager: '',
-      memo: ''
-    };
-
-    const data = await supabaseRequest('consultations', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
-
-    return NextResponse.json({ ok: true, saved: Boolean(data), data: data?.[0] || payload });
-  } catch (error) {
-    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+  if (!name || !phone) {
+    return NextResponse.json({ ok: false, error: '이름과 연락처는 필수입니다.' }, { status: 400 })
   }
+
+  const photoUrls: Record<string, string | null> = {
+    front_photo_url: null,
+    side_photo_url: null,
+    label_photo_url: null,
+    back_photo_url: null,
+  }
+
+  for (const field of PHOTO_FIELDS) {
+    const value = formData.get(field)
+    if (value instanceof File && value.size > 0) {
+      const url = await uploadPhoto(field, value, phone)
+      photoUrls[`${field}_url`] = url
+    }
+  }
+
+  const payload = {
+    name,
+    phone,
+    service_type,
+    model,
+    message,
+    status: '신규',
+    manager: '',
+    memo: '',
+    ...photoUrls,
+  }
+
+  if (!supabase) {
+    return NextResponse.json({ ok: true, mode: 'mock', data: { id: 'mock-created', ...payload } })
+  }
+
+  const { data, error } = await supabase
+    .from('consultations')
+    .insert(payload)
+    .select('*')
+    .single()
+
+  if (error) {
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true, data })
 }

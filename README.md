@@ -1,35 +1,32 @@
-# ReChair Admin CRM Photo Update
+# ReChair Live DB Update
 
 ## 목적
-사진 첨부 상담이 들어온 뒤 관리자가 `/admin`에서 상담 목록, 상세 정보, 첨부 사진, 상태, 담당자, 메모를 관리할 수 있게 하는 업데이트입니다.
+고객 상담 접수 → Supabase DB 저장 → 사진 Storage 저장 → 관리자 CRM 조회/상태변경 구조입니다.
 
 ## 교체/추가 파일
-- `app/admin/page.tsx`
-- `components/AdminConsultations.tsx`
+- `lib/supabaseAdmin.ts`
 - `app/api/consultations/route.ts`
 - `app/api/consultations/[id]/route.ts`
+- `components/ConsultationForm.tsx`
+- `components/AdminConsultations.tsx`
+- `app/admin/page.tsx`는 `app_admin_page.tsx` 내용을 복사해서 교체하세요.
+- `supabase/schema.sql`
 
-## 업로드 후 확인
-1. GitHub에 전체 덮어 업로드
-2. Vercel 배포가 Ready 되는지 확인
-3. `https://re-chair-9hdc.vercel.app/admin` 접속
-4. 상담 CRM 화면이 보이면 성공
+## Vercel 환경변수
+Vercel → Project → Settings → Environment Variables
 
-## Supabase 테이블 권장 컬럼
-`consultations` 테이블에 아래 컬럼이 있으면 실제 DB 저장/조회까지 이어집니다.
+필수:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-```sql
-create table if not exists consultations (
-  id uuid primary key default gen_random_uuid(),
-  created_at timestamptz default now(),
-  name text,
-  phone text,
-  service text,
-  model text,
-  message text,
-  photos text[] default '{}',
-  status text default '신규',
-  manager text,
-  memo text
-);
-```
+권장:
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+주의: Service Role Key는 절대 GitHub에 올리지 마세요.
+
+## Supabase SQL 적용
+Supabase → SQL Editor → `supabase/schema.sql` 실행
+
+## 확인 경로
+- 고객: `/`
+- 관리자: `/admin`
