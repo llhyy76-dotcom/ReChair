@@ -1,16 +1,20 @@
-# ReChair UI Production Restore
+# ReChair v1.1 Consultation Photo Upload
 
-상업용 랜딩페이지 수준으로 UI를 전면 복구하는 패치입니다.
+목표: 고객 상담 사진 4장을 Supabase Storage에 저장하고 관리자 CRM에서 실제 사진을 표시합니다.
 
 ## 교체 파일
-- app/page.tsx
-- app/globals.css
-- components/Header.tsx
-- components/Hero.tsx
-- components/Services.tsx
-- components/ProductList.tsx
+- lib/supabase.ts
+- app/api/consultations/route.ts
+- app/api/consultations/[id]/route.ts
 - components/ConsultationForm.tsx
-- components/Footer.tsx
+- components/AdminConsultations.tsx
 
-## 적용
-GitHub 저장소 루트에 전체 덮어 업로드 후 Vercel 자동 배포를 확인하세요.
+## SQL 실행
+Supabase SQL Editor에서 실행:
+- supabase/v11_consult_photo_schema.sql
+
+## 확인
+1. GitHub에 파일 덮어 업로드
+2. Vercel 배포 Ready 확인
+3. 고객 화면에서 사진 포함 상담 신청
+4. /admin 에서 고객명/전화번호/사진 확인

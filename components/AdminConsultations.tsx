@@ -1,6 +1,161 @@
 'use client';
-import { useEffect,useState } from 'react';
-type C={id:string;name:string;phone:string;service:string;model:string;message:string;status:string;manager?:string;memo?:string;quote?:number;created_at:string;photo_front?:string;photo_side?:string;photo_label?:string;photo_back?:string};
-export default function AdminConsultations(){const [items,setItems]=useState<C[]>([]);const [sel,setSel]=useState<C|null>(null);async function load(){const r=await fetch('/api/consultations',{cache:'no-store'});const j=await r.json();setItems(j.items||[]);setSel((j.items||[])[0]||null);}useEffect(()=>{load()},[]);async function update(p:any){if(!sel)return;await fetch(`/api/consultations/${sel.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});load();}
-const photos=[['앞면',sel?.photo_front],['옆면',sel?.photo_side],['제품라벨',sel?.photo_label],['뒷면',sel?.photo_back]];
-return <div className="admin-layout"><div className="admin-card"><h2>상담 접수 CRM <span className="badge">{items.length}건</span></h2>{items.length===0&&<p className="muted">아직 접수된 상담이 없습니다. 고객 화면에서 사진 포함 상담을 테스트해 주세요.</p>}{items.map(i=><div key={i.id} onClick={()=>setSel(i)} className={`list-item ${sel?.id===i.id?'active':''}`}><b>{i.name||'이름 없음'}</b><p>{i.service}</p><b>{i.model||'모델 미입력'}</b><span style={{float:'right'}}>{i.status}</span></div>)}</div><div className="admin-card">{sel? <><b style={{color:'#246bff'}}>{sel.service}</b><h1>{sel.name}</h1><p>{sel.phone}</p><select value={sel.status||'신규'} onChange={e=>update({status:e.target.value})}><option>신규</option><option>상담중</option><option>견적발송</option><option>예약완료</option><option>방문완료</option><option>판매완료</option><option>종료</option></select><div className="detail-grid"><div className="card"><span className="muted">브랜드/모델</span><h3>{sel.model}</h3></div><div className="card"><span className="muted">접수일</span><h3>{new Date(sel.created_at).toLocaleString('ko-KR')}</h3></div></div><div className="card"><span className="muted">문의 내용</span><p>{sel.message}</p></div><h2>첨부 사진</h2><div className="photo-grid">{photos.map(([label,url])=><div className="photo-box" key={label}><b>{label}</b>{url?<a href={url} target="_blank"><img className="preview" src={url} alt={label}/></a>:<div className="preview" style={{display:'flex',alignItems:'center',justifyContent:'center',fontSize:34}}>📷</div>}</div>)}</div><br/><div className="grid2"><input placeholder="담당자" defaultValue={sel.manager||''} onBlur={e=>update({manager:e.target.value})}/><input placeholder="견적금액" type="number" defaultValue={sel.quote||''} onBlur={e=>update({quote:Number(e.target.value||0)})}/></div><br/><textarea placeholder="상담 메모" defaultValue={sel.memo||''} onBlur={e=>update({memo:e.target.value})}/></>:<p>상담을 선택하세요.</p>}</div></div>}
+
+import { useEffect, useMemo, useState } from 'react';
+
+type Consultation = {
+  id: string;
+  customer_name: string;
+  phone: string;
+  region?: string;
+  service_type?: string;
+  brand?: string;
+  model_name?: string;
+  message?: string;
+  status?: string;
+  assignee?: string;
+  memo?: string;
+  estimate_amount?: number | null;
+  created_at?: string;
+  photo_front_url?: string | null;
+  photo_side_url?: string | null;
+  photo_label_url?: string | null;
+  photo_back_url?: string | null;
+};
+
+const photoLabels = [
+  ['photo_front_url', '앞면'],
+  ['photo_side_url', '옆면'],
+  ['photo_label_url', '라벨'],
+  ['photo_back_url', '뒷면'],
+] as const;
+
+export default function AdminConsultations() {
+  const [items, setItems] = useState<Consultation[]>([]);
+  const [selectedId, setSelectedId] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
+  const selected = useMemo(() => items.find((item) => item.id === selectedId) || items[0], [items, selectedId]);
+
+  async function loadData() {
+    const response = await fetch('/api/consultations', { cache: 'no-store' });
+    const result = await response.json();
+    const data = result.data ?? [];
+    setItems(data);
+    if (!selectedId && data[0]) setSelectedId(data[0].id);
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function updateSelected(formData: FormData) {
+    if (!selected) return;
+    setSaving(true);
+    const payload = {
+      status: formData.get('status'),
+      assignee: formData.get('assignee'),
+      memo: formData.get('memo'),
+      estimate_amount: formData.get('estimate_amount'),
+    };
+    await fetch(`/api/consultations/${selected.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    await loadData();
+    setSaving(false);
+  }
+
+  return (
+    <div className="admin-crm">
+      <aside className="consult-list">
+        <h2>상담 목록</h2>
+        {items.length === 0 && <p className="empty">아직 접수된 상담이 없습니다.</p>}
+        {items.map((item) => (
+          <button
+            className={`consult-item ${selected?.id === item.id ? 'active' : ''}`}
+            key={item.id}
+            onClick={() => setSelectedId(item.id)}
+          >
+            <strong>{item.customer_name || '이름 없음'}</strong>
+            <span>{item.phone}</span>
+            <small>{item.service_type || '상담'} · {item.status || '신규'}</small>
+          </button>
+        ))}
+      </aside>
+
+      <section className="consult-detail">
+        {!selected ? (
+          <div className="empty-panel">상담을 선택해 주세요.</div>
+        ) : (
+          <>
+            <div className="detail-head">
+              <div>
+                <p className="eyebrow">CONSULTATION DETAIL</p>
+                <h1>{selected.customer_name}</h1>
+                <p>{selected.phone} · {selected.region || '지역 미입력'}</p>
+              </div>
+              <span className="status-badge">{selected.status || '신규'}</span>
+            </div>
+
+            <div className="detail-grid">
+              <div><b>서비스</b><span>{selected.service_type || '-'}</span></div>
+              <div><b>브랜드</b><span>{selected.brand || '-'}</span></div>
+              <div><b>모델명</b><span>{selected.model_name || '-'}</span></div>
+              <div><b>접수일</b><span>{selected.created_at ? new Date(selected.created_at).toLocaleString('ko-KR') : '-'}</span></div>
+            </div>
+
+            <div className="message-box">{selected.message || '문의내용 없음'}</div>
+
+            <div className="admin-photo-grid">
+              {photoLabels.map(([key, label]) => {
+                const url = selected[key];
+                return (
+                  <button className="admin-photo-card" key={key} onClick={() => url && setLightbox(url)} disabled={!url}>
+                    {url ? <img src={url} alt={label} /> : <span>📷</span>}
+                    <b>{label}</b>
+                  </button>
+                );
+              })}
+            </div>
+
+            <form action={updateSelected} className="admin-edit-form">
+              <label>
+                <span>상태</span>
+                <select name="status" defaultValue={selected.status || '신규'}>
+                  <option>신규</option>
+                  <option>상담중</option>
+                  <option>견적발송</option>
+                  <option>예약완료</option>
+                  <option>방문완료</option>
+                  <option>판매완료</option>
+                  <option>종료</option>
+                </select>
+              </label>
+              <label>
+                <span>담당자</span>
+                <input name="assignee" defaultValue={selected.assignee || ''} />
+              </label>
+              <label>
+                <span>견적금액</span>
+                <input name="estimate_amount" type="number" defaultValue={selected.estimate_amount ?? ''} />
+              </label>
+              <label className="full">
+                <span>관리자 메모</span>
+                <textarea name="memo" defaultValue={selected.memo || ''} />
+              </label>
+              <button className="primary-btn" disabled={saving}>{saving ? '저장 중...' : '상담정보 저장'}</button>
+            </form>
+          </>
+        )}
+      </section>
+
+      {lightbox && (
+        <div className="lightbox" onClick={() => setLightbox(null)}>
+          <img src={lightbox} alt="상담 사진 확대" />
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,5 +1,39 @@
 import { NextResponse } from 'next/server';
-import { supabase, hasSupabase } from '@/lib/supabase';
-type Ctx={params:Promise<{id:string}>};
-export async function PATCH(req:Request,ctx:Ctx){const {id}=await ctx.params;if(!hasSupabase||!supabase)return NextResponse.json({ok:true});const body=await req.json();const {data,error}=await supabase.from('consultations').update(body).eq('id',id).select().single();if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json({ok:true,item:data});}
-export async function DELETE(req:Request,ctx:Ctx){const {id}=await ctx.params;if(!hasSupabase||!supabase)return NextResponse.json({ok:true});const {error}=await supabase.from('consultations').delete().eq('id',id);if(error)return NextResponse.json({error:error.message},{status:500});return NextResponse.json({ok:true});}
+import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
+
+export const dynamic = 'force-dynamic';
+
+type Context = {
+  params: Promise<{ id: string }>;
+};
+
+export async function PATCH(request: Request, context: Context) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 500 });
+  }
+
+  const { id } = await context.params;
+  const body = await request.json();
+  const supabase = getSupabaseClient();
+
+  const updatePayload = {
+    status: body.status,
+    assignee: body.assignee,
+    memo: body.memo,
+    estimate_amount: body.estimate_amount ? Number(body.estimate_amount) : null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from('consultations')
+    .update(updatePayload)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ data });
+}
