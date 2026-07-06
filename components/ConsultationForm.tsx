@@ -23,28 +23,35 @@ export default function ConsultationForm() {
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLoading(true);
-    setStatus('접수 중입니다...');
+  event.preventDefault();
 
-    const formData = new FormData(event.currentTarget);
+  const form = event.currentTarget;
+  const formData = new FormData(form);
 
-    try {
-      const response = await fetch('/api/consultations', {
-        method: 'POST',
-        body: formData,
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || '상담 접수에 실패했습니다.');
-      setStatus('상담 신청이 접수되었습니다. 빠르게 연락드리겠습니다.');
-      event.currentTarget.reset();
-      setPreviews({});
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : '상담 접수 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  setStatus('접수 중입니다...');
+
+  try {
+    const response = await fetch('/api/consultations', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || '상담 접수에 실패했습니다.');
     }
+
+    setStatus('상담 신청이 접수되었습니다. 빠르게 연락드리겠습니다.');
+    form.reset();
+    setPreviews({});
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : '상담 접수 중 오류가 발생했습니다.');
+  } finally {
+    setLoading(false);
   }
+}
 
   return (
     <section id="consult" className="consult-section">
