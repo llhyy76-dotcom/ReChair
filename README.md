@@ -1,21 +1,23 @@
-# ReChair v0.6 Product System
+# ReChair v0.7 Photo Storage Update
 
-## 적용 파일
-- app/products/page.tsx
-- app/products/[id]/page.tsx
-- app/api/products/route.ts
-- app/api/products/[id]/route.ts
-- app/admin/products/page.tsx
-- components/ProductAdmin.tsx
-- supabase/products_schema.sql
+목표: 고객이 업로드한 사진 4장(앞면/옆면/제품라벨/뒷면)을 Supabase Storage에 저장하고, 관리자 CRM에서 실제 이미지로 확인합니다.
 
-## 적용 후 확인 URL
-- 고객 상품목록: /products
-- 고객 상품상세: /products/demo-1 또는 등록상품 상세
-- 관리자 상품관리: /admin/products
+## 교체/추가 파일
+- components/ConsultationForm.tsx
+- components/AdminConsultations.tsx
+- app/api/consultations/route.ts
+- app/api/consultations/[id]/route.ts
+- supabase/v07_photo_storage_schema.sql
 
-## Supabase 작업
-Supabase SQL Editor에서 `supabase/products_schema.sql` 내용을 실행하세요.
+## 적용 순서
+1. GitHub에 파일 덮어 업로드
+2. Supabase SQL Editor에서 `supabase/v07_photo_storage_schema.sql` 실행
+3. Vercel Environment Variables 설정
+   - NEXT_PUBLIC_SUPABASE_URL
+   - NEXT_PUBLIC_SUPABASE_ANON_KEY
+   - SUPABASE_SERVICE_ROLE_KEY  ※ 서버 전용, 공개 금지
+4. Vercel 재배포
+5. 고객 화면에서 사진 첨부 후 `/admin` 확인
 
-## 주의
-현재 RLS 정책은 빠른 MVP 테스트용으로 공개 쓰기 허용 상태입니다. 정식 오픈 전에는 관리자 인증 기반 정책으로 강화해야 합니다.
+## Storage bucket
+SQL에서 `consultation-photos` 버킷을 생성합니다.
