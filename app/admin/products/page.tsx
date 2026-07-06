@@ -1,14 +1,2 @@
-import ProductAdmin from '@/components/ProductAdmin';
-
-export default function AdminProductsPage() {
-  return (
-    <main className="min-h-screen bg-slate-50 px-5 py-14">
-      <section className="mx-auto max-w-7xl">
-        <p className="font-bold tracking-[0.35em] text-blue-600">RECHAIR ADMIN</p>
-        <h1 className="mt-3 text-4xl font-black text-slate-950">상품관리 CMS</h1>
-        <p className="mt-3 text-slate-600">관리자가 상품을 등록하면 고객 상품목록과 상세 페이지에 노출됩니다.</p>
-        <div className="mt-10"><ProductAdmin /></div>
-      </section>
-    </main>
-  );
-}
+import Header from '@/components/Header';import Footer from '@/components/Footer';import AdminProducts from '@/components/AdminProducts';
+export default function AdminProductsPage(){return <><Header/><main className="admin-layout"><div className="container"><p style={{color:'#2769ff',fontWeight:900,letterSpacing:6}}>RECHAIR ADMIN</p><h1 style={{fontSize:42}}>상품 관리</h1><p style={{color:'#64748b'}}>중고상품을 등록하고 고객 화면에 노출합니다.</p><AdminProducts/></div></main><Footer/></>}

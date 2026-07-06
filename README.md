@@ -1,24 +1,31 @@
-# ReChair v0.8 Live Photo Storage
+# ReChair v1.0 RC1
 
-## 적용 파일
-- `components/ConsultationForm.tsx`
-- `components/AdminConsultations.tsx`
-- `app/admin/page.tsx`
-- `app/api/consultations/route.ts`
-- `app/api/consultations/[id]/route.ts`
-- `lib/supabase.ts`
-- `app/globals.css`
-- `supabase/v08_photo_storage_schema.sql`
+통합 안정화 버전입니다.
+
+## 포함 기능
+- 고객 메인 홈페이지
+- 상담 신청 + 사진 4장 업로드
+- Supabase Storage 저장
+- 관리자 상담 CRM 실데이터 조회
+- 상태/담당자/메모/견적 저장
+- 고객 중고상품 목록 `/products`
+- 상품 상세 `/products/[id]`
+- 관리자 상품관리 `/admin/products`
+- 통합 DB 스키마 `supabase/master_schema.sql`
 
 ## 적용 순서
 1. GitHub에 전체 덮어 업로드
-2. Supabase SQL Editor에서 `supabase/v08_photo_storage_schema.sql` 실행
-3. Vercel 환경변수 설정
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+2. Supabase SQL Editor에서 `supabase/master_schema.sql` 전체 실행
+3. Vercel Environment Variables 입력
+   - NEXT_PUBLIC_SUPABASE_URL
+   - NEXT_PUBLIC_SUPABASE_ANON_KEY
+   - NEXT_PUBLIC_SITE_URL=https://re-chair-9hdc.vercel.app
 4. Vercel 재배포
-5. 고객 화면에서 사진 4장 첨부 후 상담 접수
-6. `/admin`에서 실제 사진 표시 확인
+5. 고객 상담 접수 테스트
+6. `/admin`에서 실제 고객정보와 사진 확인
 
-## 주의
-Storage bucket 이름은 `consultation-photos` 입니다.
+## 주요 경로
+- 고객 메인 `/`
+- 중고상품 `/products`
+- 관리자 CRM `/admin`
+- 관리자 상품관리 `/admin/products`

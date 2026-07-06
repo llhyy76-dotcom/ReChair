@@ -1,37 +1,10 @@
-import { NextResponse } from 'next/server'
-import { getSupabaseClient } from '@/lib/supabase'
-
-export const dynamic = 'force-dynamic'
-
-export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params
-  const body = await request.json()
-  const supabase = getSupabaseClient()
-
-  if (!supabase) {
-    return NextResponse.json({ ok: true, mode: 'mock' })
-  }
-
-  const updatePayload: Record<string, any> = {}
-  for (const key of ['status', 'assignee', 'memo', 'quote_amount']) {
-    if (key in body) updatePayload[key] = body[key]
-  }
-  updatePayload.updated_at = new Date().toISOString()
-
-  const { data, error } = await supabase
-    .from('consultations')
-    .update(updatePayload)
-    .eq('id', id)
-    .select('*')
-    .single()
-
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
-
-  await supabase.from('consultation_events').insert({
-    consultation_id: id,
-    event_type: '상태변경',
-    memo: `상태: ${body.status || '-'} / 담당자: ${body.assignee || '-'}`
-  })
-
-  return NextResponse.json({ ok: true, data })
+import { NextRequest, NextResponse } from 'next/server';
+import { getSupabase } from '@/lib/supabase';
+export const dynamic='force-dynamic';
+export async function PATCH(req:NextRequest,{params}:{params:{id:string}}){
+ const supabase=getSupabase(); const body=await req.json();
+ if(!supabase) return NextResponse.json({ok:true,item:{id:params.id,...body}});
+ const {data,error}=await supabase.from('consultations').update(body).eq('id',params.id).select().single();
+ if(error) return NextResponse.json({error:error.message},{status:500});
+ return NextResponse.json({ok:true,item:data});
 }
