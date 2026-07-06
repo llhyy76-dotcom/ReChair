@@ -33,7 +33,7 @@ function formatDate(value?: string | null) {
 }
 
 function formatMoney(value?: number | null) {
-  if (!value) return '';
+  if (!value) return '미입력';
   return `${Number(value).toLocaleString('ko-KR')}원`;
 }
 
@@ -43,15 +43,14 @@ export default function AdminConsultations() {
   const [saving, setSaving] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
 
-  const selected = useMemo(
-    () => items.find((item) => item.id === selectedId) || items[0],
-    [items, selectedId]
-  );
+  const selected = useMemo(() => {
+    return items.find((item) => item.id === selectedId) || items[0];
+  }, [items, selectedId]);
 
   async function loadData() {
     const response = await fetch('/api/consultations', { cache: 'no-store' });
     const result = await response.json();
-    const data = result.data ?? [];
+    const data: Consultation[] = result.data ?? [];
     setItems(data);
     if (!selectedId && data[0]) setSelectedId(data[0].id);
   }
@@ -64,7 +63,6 @@ export default function AdminConsultations() {
     if (!selected) return;
 
     setSaving(true);
-
     const payload = {
       status: formData.get('status'),
       manager: formData.get('manager'),
@@ -126,22 +124,10 @@ export default function AdminConsultations() {
             </div>
 
             <div className="detail-grid">
-              <div>
-                <b>서비스</b>
-                <span>{selected.service_type || '-'}</span>
-              </div>
-              <div>
-                <b>모델명</b>
-                <span>{selected.model || '-'}</span>
-              </div>
-              <div>
-                <b>접수일</b>
-                <span>{formatDate(selected.created_at)}</span>
-              </div>
-              <div>
-                <b>견적금액</b>
-                <span>{formatMoney(selected.quote_amount) || '미입력'}</span>
-              </div>
+              <div><b>서비스</b><span>{selected.service_type || '-'}</span></div>
+              <div><b>모델</b><span>{selected.model || '-'}</span></div>
+              <div><b>접수일</b><span>{formatDate(selected.created_at)}</span></div>
+              <div><b>견적금액</b><span>{formatMoney(selected.quote_amount)}</span></div>
             </div>
 
             <div className="message-box">
@@ -173,7 +159,7 @@ export default function AdminConsultations() {
             <form action={updateSelected} className="admin-edit-form">
               <label>
                 <span>상태</span>
-                <select name="status" defaultValue={selected.status || '신규'}>
+                <select name="status" defaultValue={selected.status || '신규'} key={`status-${selected.id}`}>
                   <option>신규</option>
                   <option>상담중</option>
                   <option>견적발송</option>
@@ -186,17 +172,17 @@ export default function AdminConsultations() {
 
               <label>
                 <span>담당자</span>
-                <input name="manager" defaultValue={selected.manager || ''} />
+                <input name="manager" defaultValue={selected.manager || ''} key={`manager-${selected.id}`} />
               </label>
 
               <label>
                 <span>견적금액</span>
-                <input name="quote_amount" type="number" defaultValue={selected.quote_amount ?? ''} />
+                <input name="quote_amount" type="number" defaultValue={selected.quote_amount ?? ''} key={`quote-${selected.id}`} />
               </label>
 
               <label className="full">
                 <span>관리자 메모</span>
-                <textarea name="memo" defaultValue={selected.memo || ''} />
+                <textarea name="memo" defaultValue={selected.memo || ''} key={`memo-${selected.id}`} />
               </label>
 
               <button className="primary-btn" disabled={saving} type="submit">
