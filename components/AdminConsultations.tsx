@@ -41,6 +41,7 @@ export default function AdminConsultations() {
   const [items, setItems] = useState<Consultation[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   const selected = useMemo(
@@ -48,36 +49,60 @@ export default function AdminConsultations() {
     [items, selectedId]
   );
 
-  async function loadData() {
+  async function loadData(keepSelectedId?: string) {
     const response = await fetch('/api/consultations', { cache: 'no-store' });
     const result = await response.json();
     const data: Consultation[] = result.data ?? [];
     setItems(data);
-    if (!selectedId && data[0]) setSelectedId(data[0].id);
+
+    const nextSelectedId = keepSelectedId || selectedId;
+    if (nextSelectedId && data.some((item) => item.id === nextSelectedId)) {
+      setSelectedId(nextSelectedId);
+    } else if (data[0]) {
+      setSelectedId(data[0].id);
+    }
   }
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function updateSelected(formData: FormData) {
     if (!selected) return;
+
     setSaving(true);
+    setSaveMessage('');
+
+    const rawQuote = String(formData.get('quote_amount') ?? '').trim();
 
     const payload = {
-      status: formData.get('status'),
-      manager: formData.get('manager'),
-      memo: formData.get('memo'),
-      quote_amount: formData.get('quote_amount'),
+      status: String(formData.get('status') ?? '신규'),
+      manager: String(formData.get('manager') ?? '').trim(),
+      memo: String(formData.get('memo') ?? '').trim(),
+      quote_amount: rawQuote === '' ? null : Number(rawQuote),
     };
 
-    await fetch(`/api/consultations/${selected.id}`, {
+    const response = await fetch(`/api/consultations/${selected.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
 
-    await loadData();
+    const result = await response.json();
+
+    if (!response.ok) {
+      setSaveMessage(result.error || '저장 중 오류가 발생했습니다.');
+      setSaving(false);
+      return;
+    }
+
+    setItems((prev) =>
+      prev.map((item) => (item.id === selected.id ? { ...item, ...result.data } : item))
+    );
+
+    await loadData(selected.id);
+    setSaveMessage('저장되었습니다.');
     setSaving(false);
   }
 
@@ -97,7 +122,10 @@ export default function AdminConsultations() {
               key={item.id}
               type="button"
               className={`admin-list-card ${selected?.id === item.id ? 'is-active' : ''}`}
-              onClick={() => setSelectedId(item.id)}
+              onClick={() => {
+                setSelectedId(item.id);
+                setSaveMessage('');
+              }}
             >
               <div>
                 <strong>{item.name || '이름 없음'}</strong>
@@ -129,11 +157,18 @@ export default function AdminConsultations() {
               <div><span>모델</span><strong>{selected.model || '-'}</strong></div>
               <div><span>접수일</span><strong>{formatDate(selected.created_at)}</strong></div>
               <div><span>견적금액</span><strong>{formatMoney(selected.quote_amount)}</strong></div>
+              <div><span>담당자</span><strong>{selected.manager || '미배정'}</strong></div>
+              <div><span>상태</span><strong>{selected.status || '신규'}</strong></div>
             </div>
 
             <div className="admin-message">
               <span>문의 내용</span>
               <p>{selected.message || '문의내용 없음'}</p>
+            </div>
+
+            <div className="admin-message">
+              <span>관리자 메모</span>
+              <p>{selected.memo || '아직 메모가 없습니다.'}</p>
             </div>
 
             <div className="admin-photos">
@@ -146,10 +181,22 @@ export default function AdminConsultations() {
                       key={key}
                       type="button"
                       className="admin-photo"
-                      onClick={() => url && setLightbox(url)}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (url) setLightbox(url);
+                      }}
                       disabled={!url}
+                      title={url ? `${label} 확대보기` : `${label} 사진 없음`}
                     >
-                      {url ? <img src={url} alt={label} /> : <span>📷</span>}
+                      {url ? (
+                        <>
+                          <img src={url} alt={label} draggable={false} />
+                          <span className="admin-photo-zoom">확대보기</span>
+                        </>
+                      ) : (
+                        <span>📷</span>
+                      )}
                       <b>{label}</b>
                     </button>
                   );
@@ -186,6 +233,8 @@ export default function AdminConsultations() {
                 <textarea name="memo" defaultValue={selected.memo || ''} key={`memo-${selected.id}`} />
               </label>
 
+              {saveMessage && <p className="admin-save-message">{saveMessage}</p>}
+
               <button type="submit" disabled={saving}>
                 {saving ? '저장 중...' : '상담정보 저장'}
               </button>
@@ -195,8 +244,19 @@ export default function AdminConsultations() {
       </article>
 
       {lightbox && (
-        <div className="admin-lightbox" onClick={() => setLightbox(null)}>
-          <img src={lightbox} alt="상담 사진 확대" />
+        <div
+          className="admin-lightbox"
+          role="button"
+          tabIndex={0}
+          onClick={() => setLightbox(null)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' || event.key === 'Enter') setLightbox(null);
+          }}
+        >
+          <button className="admin-lightbox-close" type="button" onClick={() => setLightbox(null)}>
+            닫기
+          </button>
+          <img src={lightbox} alt="상담 사진 확대" draggable={false} />
         </div>
       )}
     </section>
