@@ -5,11 +5,21 @@ export const dynamic = 'force-dynamic';
 
 type PhotoSlot = 'front' | 'side' | 'label' | 'back';
 
+const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
+
 async function uploadPhoto(
   supabase: ReturnType<typeof getSupabaseClient>,
   file: File,
   slot: PhotoSlot
 ) {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('이미지 파일만 업로드할 수 있습니다.');
+  }
+
+  if (file.size > MAX_UPLOAD_SIZE) {
+    throw new Error('사진 용량이 너무 큽니다. 사진 1장당 5MB 이하로 올려주세요.');
+  }
+
   const ext = file.name.split('.').pop() || 'jpg';
   const safeName = `${Date.now()}-${slot}-${Math.random().toString(36).slice(2)}.${ext}`;
   const path = `consultations/${safeName}`;
@@ -78,9 +88,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Supabase consultations table column names confirmed in Table Editor:
-    // name, phone, service_type, model, message, status, manager, memo,
-    // quote_amount, photo_front, photo_side, photo_label, photo_back, extra_photos, timeline
     const payload = {
       name: getText('customer_name') || getText('name') || '이름 미입력',
       phone: getText('phone') || '연락처 미입력',
