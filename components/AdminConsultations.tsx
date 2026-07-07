@@ -39,13 +39,14 @@ function formatMoney(value?: number | null) {
 
 export default function AdminConsultations() {
   const [items, setItems] = useState<Consultation[]>([]);
-  const [selectedId, setSelectedId] = useState<string>('');
+  const [selectedId, setSelectedId] = useState('');
   const [saving, setSaving] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
 
-  const selected = useMemo(() => {
-    return items.find((item) => item.id === selectedId) || items[0];
-  }, [items, selectedId]);
+  const selected = useMemo(
+    () => items.find((item) => item.id === selectedId) || items[0],
+    [items, selectedId]
+  );
 
   async function loadData() {
     const response = await fetch('/api/consultations', { cache: 'no-store' });
@@ -61,8 +62,8 @@ export default function AdminConsultations() {
 
   async function updateSelected(formData: FormData) {
     if (!selected) return;
-
     setSaving(true);
+
     const payload = {
       status: formData.get('status'),
       manager: formData.get('manager'),
@@ -81,70 +82,70 @@ export default function AdminConsultations() {
   }
 
   return (
-    <div className="admin-crm">
-      <aside className="consult-list">
-        <div className="admin-panel-title">
+    <section className="admin-crm-final">
+      <aside className="admin-left">
+        <div className="admin-left-head">
           <h2>상담 목록</h2>
           <span>{items.length}건</span>
         </div>
 
-        {items.length === 0 && <p className="empty">아직 접수된 상담이 없습니다.</p>}
+        <div className="admin-list-scroll">
+          {items.length === 0 && <p className="admin-empty">아직 접수된 상담이 없습니다.</p>}
 
-        <div className="consult-list-items">
           {items.map((item) => (
             <button
-              className={`consult-item ${selected?.id === item.id ? 'active' : ''}`}
               key={item.id}
               type="button"
+              className={`admin-list-card ${selected?.id === item.id ? 'is-active' : ''}`}
               onClick={() => setSelectedId(item.id)}
             >
-              <div className="consult-item-top">
+              <div>
                 <strong>{item.name || '이름 없음'}</strong>
-                <em>{item.status || '신규'}</em>
+                <small>{item.phone || '연락처 없음'}</small>
+                <b>{item.service_type || '상담'} · {item.model || '모델 미입력'}</b>
               </div>
-              <span>{item.phone || '연락처 없음'}</span>
-              <small>{item.service_type || '상담'} · {item.model || '모델 미입력'}</small>
+              <em>{item.status || '신규'}</em>
             </button>
           ))}
         </div>
       </aside>
 
-      <section className="consult-detail">
+      <article className="admin-right">
         {!selected ? (
-          <div className="empty-panel">상담을 선택해 주세요.</div>
+          <div className="admin-empty">상담을 선택해 주세요.</div>
         ) : (
           <>
-            <div className="detail-head">
+            <div className="admin-detail-top">
               <div>
-                <p className="eyebrow">CONSULTATION DETAIL</p>
-                <h1>{selected.name || '이름 없음'}</h1>
-                <p>{selected.phone || '연락처 없음'}</p>
+                <p>CONSULTATION DETAIL</p>
+                <h2>{selected.name || '이름 없음'}</h2>
+                <span>{selected.phone || '연락처 없음'}</span>
               </div>
-              <span className="status-badge">{selected.status || '신규'}</span>
+              <em>{selected.status || '신규'}</em>
             </div>
 
-            <div className="detail-grid">
-              <div><b>서비스</b><span>{selected.service_type || '-'}</span></div>
-              <div><b>모델</b><span>{selected.model || '-'}</span></div>
-              <div><b>접수일</b><span>{formatDate(selected.created_at)}</span></div>
-              <div><b>견적금액</b><span>{formatMoney(selected.quote_amount)}</span></div>
+            <div className="admin-info-grid">
+              <div><span>서비스</span><strong>{selected.service_type || '-'}</strong></div>
+              <div><span>모델</span><strong>{selected.model || '-'}</strong></div>
+              <div><span>접수일</span><strong>{formatDate(selected.created_at)}</strong></div>
+              <div><span>견적금액</span><strong>{formatMoney(selected.quote_amount)}</strong></div>
             </div>
 
-            <div className="message-box">
-              <b>문의 내용</b>
+            <div className="admin-message">
+              <span>문의 내용</span>
               <p>{selected.message || '문의내용 없음'}</p>
             </div>
 
-            <div className="admin-photo-block">
+            <div className="admin-photos">
               <h3>첨부 사진</h3>
-              <div className="admin-photo-grid">
+              <div className="admin-photo-list">
                 {photoLabels.map(([key, label]) => {
                   const url = selected[key];
                   return (
                     <button
-                      className="admin-photo-card"
                       key={key}
                       type="button"
+                      className="admin-photo"
                       onClick={() => url && setLightbox(url)}
                       disabled={!url}
                     >
@@ -156,7 +157,7 @@ export default function AdminConsultations() {
               </div>
             </div>
 
-            <form action={updateSelected} className="admin-edit-form">
+            <form action={updateSelected} className="admin-form">
               <label>
                 <span>상태</span>
                 <select name="status" defaultValue={selected.status || '신규'} key={`status-${selected.id}`}>
@@ -180,24 +181,24 @@ export default function AdminConsultations() {
                 <input name="quote_amount" type="number" defaultValue={selected.quote_amount ?? ''} key={`quote-${selected.id}`} />
               </label>
 
-              <label className="full">
+              <label className="wide">
                 <span>관리자 메모</span>
                 <textarea name="memo" defaultValue={selected.memo || ''} key={`memo-${selected.id}`} />
               </label>
 
-              <button className="primary-btn" disabled={saving} type="submit">
+              <button type="submit" disabled={saving}>
                 {saving ? '저장 중...' : '상담정보 저장'}
               </button>
             </form>
           </>
         )}
-      </section>
+      </article>
 
       {lightbox && (
-        <div className="lightbox" onClick={() => setLightbox(null)}>
+        <div className="admin-lightbox" onClick={() => setLightbox(null)}>
           <img src={lightbox} alt="상담 사진 확대" />
         </div>
       )}
-    </div>
+    </section>
   );
 }
