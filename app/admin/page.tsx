@@ -1,6 +1,11 @@
+import { cookies } from 'next/headers';
 import AdminConsultations from '@/components/AdminConsultations';
+import AdminLogin from '@/components/AdminLogin';
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  const cookieStore = await cookies();
+  const isAuthed = cookieStore.get('rechair_admin_auth')?.value === 'ok';
+
   return (
     <main className="admin-only-page">
       <section className="admin-title-wrap">
@@ -9,7 +14,7 @@ export default function AdminPage() {
         <p>고객 상담, 제품 사진, 처리 상태, 담당자 메모를 한 화면에서 관리합니다.</p>
       </section>
 
-      <AdminConsultations />
+      {isAuthed ? <AdminConsultations /> : <AdminLogin />}
     </main>
   );
 }
