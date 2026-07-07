@@ -1,92 +1,78 @@
 
-/* ReChair Admin CRM UI v1 */
-.admin-page {
+/* ReChair Admin Final Fix */
+.admin-only-page {
   background: #f4f7fb;
-  min-height: calc(100vh - 84px);
-  padding: 48px 24px 80px;
+  min-height: calc(100vh - 82px);
+  padding: 56px 24px 90px;
   color: #071126;
 }
 
-.admin-hero,
-.admin-layout {
-  max-width: 1180px;
+.admin-title-wrap,
+.admin-crm-final {
+  max-width: 1120px;
   margin: 0 auto;
 }
 
-.admin-hero {
+.admin-title-wrap {
   margin-bottom: 28px;
 }
 
-.eyebrow {
-  color: #2478ff;
-  letter-spacing: 0.5em;
-  font-weight: 900;
+.admin-kicker {
+  display: inline-flex;
+  background: #0b2a55;
+  color: #fff !important;
+  padding: 9px 18px;
+  border-radius: 999px;
   font-size: 13px;
-  margin: 0 0 14px;
+  letter-spacing: .32em;
+  font-weight: 900;
+  margin: 0 0 18px;
 }
 
-.admin-hero-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-}
-
-.admin-hero h1 {
-  font-size: clamp(32px, 5vw, 52px);
+.admin-title-wrap h1 {
   margin: 0 0 12px;
-  letter-spacing: -0.05em;
+  font-size: clamp(36px, 5vw, 54px);
+  letter-spacing: -0.06em;
 }
 
-.admin-hero p {
+.admin-title-wrap p {
   margin: 0;
   color: #526070;
   font-size: 17px;
 }
 
-.admin-refresh {
-  background: #081126;
-  color: #fff;
-  padding: 14px 22px;
-  border-radius: 16px;
-  text-decoration: none;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.admin-layout {
+.admin-crm-final {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-columns: 340px minmax(0, 1fr);
   gap: 24px;
+  align-items: start;
 }
 
-.admin-list-panel,
-.admin-detail-panel,
-.detail-card {
+.admin-left,
+.admin-right {
   background: #fff;
   border: 1px solid #dfe7f2;
   border-radius: 28px;
-  box-shadow: 0 18px 50px rgba(8, 17, 38, 0.06);
+  box-shadow: 0 18px 50px rgba(8, 17, 38, .06);
 }
 
-.admin-list-panel {
+.admin-left {
   padding: 22px;
-  min-height: 620px;
 }
 
-.panel-title {
+.admin-left-head {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 18px;
 }
 
-.panel-title h2 {
+.admin-left-head h2 {
   margin: 0;
   font-size: 24px;
 }
 
-.panel-title span {
+.admin-left-head span {
   background: #eef5ff;
   color: #2478ff;
   padding: 8px 14px;
@@ -94,112 +80,120 @@
   font-weight: 900;
 }
 
-.consultation-list {
+.admin-list-scroll {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-height: 720px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
-.consultation-card {
-  display: block;
+.admin-list-card {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
   padding: 18px;
   border: 1px solid #e3ebf5;
   border-radius: 20px;
-  text-decoration: none;
-  color: inherit;
   background: #fff;
+  cursor: pointer;
+  color: #071126;
 }
 
-.consultation-card.active,
-.consultation-card:hover {
+.admin-list-card.is-active,
+.admin-list-card:hover {
   border-color: #2478ff;
   background: #eef5ff;
 }
 
-.consultation-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
+.admin-list-card strong,
+.admin-list-card small,
+.admin-list-card b {
+  display: block;
 }
 
-.consultation-card-top strong {
+.admin-list-card strong {
   font-size: 18px;
+  margin-bottom: 8px;
 }
 
-.consultation-card-top span,
-.status-pill {
+.admin-list-card small {
+  color: #526070;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.admin-list-card b {
+  font-size: 14px;
+}
+
+.admin-list-card em,
+.admin-detail-top em {
+  font-style: normal;
   background: #081126;
   color: #fff;
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 7px 12px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
+  height: fit-content;
+  white-space: nowrap;
 }
 
-.consultation-card p {
-  margin: 8px 0 6px;
-  color: #526070;
-}
-
-.consultation-card small {
-  font-weight: 800;
-  color: #071126;
-}
-
-.admin-detail-panel {
-  padding: 24px;
-}
-
-.detail-card {
-  border-radius: 24px;
-  box-shadow: none;
+.admin-right {
   padding: 28px;
 }
 
-.detail-head {
+.admin-detail-top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 18px;
+  gap: 20px;
   padding-bottom: 22px;
   border-bottom: 1px solid #e5ecf5;
 }
 
-.service-label {
-  color: #2478ff;
+.admin-detail-top p {
+  display: inline-flex;
+  background: #0b2a55;
+  color: #fff;
+  border-radius: 999px;
+  padding: 9px 18px;
+  margin: 0 0 14px;
+  font-size: 12px;
   font-weight: 900;
+  letter-spacing: .28em;
+}
+
+.admin-detail-top h2 {
   margin: 0 0 8px;
+  font-size: 42px;
+  letter-spacing: -0.05em;
 }
 
-.detail-head h2 {
-  font-size: 38px;
-  margin: 0 0 6px;
-}
-
-.detail-head p {
-  margin: 0;
+.admin-detail-top span {
   color: #526070;
 }
 
-.detail-grid {
+.admin-info-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin: 24px 0;
 }
 
-.info-box,
-.message-box,
-.memo-box {
+.admin-info-grid > div,
+.admin-message {
   background: #f6f9fd;
   border-radius: 18px;
   padding: 18px;
 }
 
-.info-box span,
-.message-box span,
-.memo-box span {
+.admin-info-grid span,
+.admin-message span,
+.admin-form span {
   display: block;
   color: #687789;
   font-weight: 800;
@@ -207,41 +201,49 @@
   margin-bottom: 8px;
 }
 
-.info-box strong {
+.admin-info-grid strong {
+  display: block;
   font-size: 18px;
+  line-height: 1.35;
+  word-break: keep-all;
 }
 
-.message-box p,
-.memo-box p {
+.admin-message p {
   margin: 0;
   line-height: 1.7;
+  white-space: pre-wrap;
 }
 
-.photo-section {
+.admin-photos {
   margin: 28px 0;
 }
 
-.photo-section h3 {
+.admin-photos h3 {
   margin: 0 0 14px;
   font-size: 24px;
 }
 
-.admin-photo-grid {
+.admin-photo-list {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
 }
 
-.admin-photo-card {
+.admin-photo {
   border: 1px solid #e3ebf5;
   border-radius: 18px;
   padding: 12px;
   text-align: center;
   background: #fff;
+  cursor: pointer;
 }
 
-.admin-photo-card img,
-.no-photo {
+.admin-photo:disabled {
+  cursor: default;
+}
+
+.admin-photo img,
+.admin-photo > span {
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: cover;
@@ -253,44 +255,112 @@
   margin-bottom: 10px;
 }
 
-.no-photo {
-  font-size: 36px;
+.admin-photo > span {
+  font-size: 34px;
 }
 
-.empty-box,
-.empty-detail {
+.admin-photo b {
+  font-size: 15px;
+}
+
+.admin-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-form label {
+  display: block;
+}
+
+.admin-form input,
+.admin-form select,
+.admin-form textarea {
+  width: 100%;
+  border: 1px solid #dfe7f2;
+  border-radius: 14px;
+  padding: 14px;
+  font: inherit;
+  background: #fff;
+  min-height: 48px;
+}
+
+.admin-form textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.admin-form .wide,
+.admin-form button {
+  grid-column: 1 / -1;
+}
+
+.admin-form button {
+  border: 0;
+  border-radius: 16px;
+  padding: 17px 22px;
+  background: linear-gradient(135deg, #2478ff, #13c0d7);
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.78);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 32px;
+  z-index: 9999;
+}
+
+.admin-lightbox img {
+  max-width: min(1100px, 95vw);
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 18px;
+}
+
+.admin-empty {
   background: #f6f9fd;
   border-radius: 18px;
   padding: 24px;
   color: #687789;
-  font-weight: 700;
+  font-weight: 800;
 }
 
-@media (max-width: 900px) {
-  .admin-layout {
+/* Prevent old admin CSS conflicts */
+.admin-only-page .admin-crm,
+.admin-only-page .admin-layout,
+.admin-only-page .consult-detail,
+.admin-only-page .detail-grid,
+.admin-only-page .admin-photo-grid,
+.admin-only-page .message-box,
+.admin-only-page .admin-edit-form {
+  all: unset;
+}
+
+@media (max-width: 920px) {
+  .admin-crm-final {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-only-page {
+    padding: 36px 14px 70px;
+  }
+
+  .admin-info-grid,
+  .admin-photo-list,
+  .admin-form {
     grid-template-columns: 1fr;
   }
 
-  .admin-hero-row {
-    flex-direction: column;
-  }
-
-  .detail-grid,
-  .admin-photo-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 520px) {
-  .admin-page {
-    padding: 32px 14px 60px;
-  }
-
-  .detail-card {
+  .admin-right,
+  .admin-left {
     padding: 20px;
-  }
-
-  .admin-photo-grid {
-    grid-template-columns: 1fr;
   }
 }
