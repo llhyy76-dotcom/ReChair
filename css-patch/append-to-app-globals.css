@@ -205,3 +205,108 @@
     width: 100%;
   }
 }
+/* ReChair Mobile Hero Menu Fix v2 */
+@media (max-width: 720px) {
+  .hero {
+    min-height: auto !important;
+    background: #eef4fb !important;
+  }
+
+  .hero-inner.hero-mobile-compact,
+  .hero-inner {
+    min-height: auto !important;
+    padding: 34px 22px 28px !important;
+    display: block !important;
+  }
+
+  .hero-copy {
+    width: 100% !important;
+  }
+
+  .hero-copy .eyebrow {
+    display: inline-flex !important;
+    margin: 0 0 22px !important;
+    padding: 12px 18px !important;
+    border-radius: 999px !important;
+    font-size: 15px !important;
+  }
+
+  .hero-copy h1 {
+    margin: 0 !important;
+    font-size: 42px !important;
+    line-height: 1.08 !important;
+    letter-spacing: -2.6px !important;
+  }
+
+  .hero-copy-text {
+    display: block !important;
+    margin: 22px 0 0 !important;
+    color: #526070 !important;
+    font-size: 17px !important;
+    line-height: 1.65 !important;
+    font-weight: 700 !important;
+  }
+
+  .hero-quick-menu {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin: 22px 0 18px !important;
+    width: 100% !important;
+  }
+
+  .hero-quick-menu a {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 44px !important;
+    padding: 0 4px !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    border: 1px solid #dce7f5 !important;
+    color: #071126 !important;
+    font-size: 14px !important;
+    font-weight: 900 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    box-shadow: 0 8px 20px rgba(8,17,38,.05) !important;
+  }
+
+  .hero-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    margin-top: 0 !important;
+  }
+
+  .primary-button,
+  .secondary-button {
+    width: 100% !important;
+    min-height: 58px !important;
+    font-size: 20px !important;
+    border-radius: 18px !important;
+  }
+
+  .hero-dashboard {
+    display: none !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .hero-inner.hero-mobile-compact,
+  .hero-inner {
+    padding: 28px 18px 24px !important;
+  }
+
+  .hero-copy h1 {
+    font-size: 38px !important;
+  }
+
+  .hero-copy-text {
+    font-size: 16px !important;
+  }
+
+  .hero-quick-menu a {
+    font-size: 13px !important;
+  }
+}
