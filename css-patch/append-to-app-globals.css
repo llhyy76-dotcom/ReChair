@@ -1,69 +1,88 @@
-
-/* ReChair Admin save/photo fix */
-.admin-info-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+/* ReChair Admin Search Filter v1 */
+.admin-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
-.admin-photo {
-  position: relative;
-  overflow: hidden;
+.admin-summary-row div {
+  background: #f4f8ff;
+  border-radius: 14px;
+  padding: 10px 8px;
+  text-align: center;
 }
 
-.admin-photo img {
+.admin-summary-row b,
+.admin-summary-row span {
   display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  pointer-events: none;
-  user-select: none;
 }
 
-.admin-photo-zoom {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 40px;
-  opacity: 0;
-  transform: translateY(6px);
-  transition: .18s ease;
-  background: rgba(8, 17, 38, .82);
-  color: #fff;
-  border-radius: 999px;
-  padding: 7px 10px;
+.admin-summary-row b {
+  color: #2478ff;
+  font-size: 20px;
+}
+
+.admin-summary-row span {
+  color: #687789;
   font-size: 12px;
   font-weight: 900;
+  margin-top: 2px;
 }
 
-.admin-photo:hover .admin-photo-zoom {
-  opacity: 1;
-  transform: translateY(0);
+.admin-filter-box {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
-.admin-save-message {
-  grid-column: 1 / -1;
-  margin: 0;
-  padding: 12px 14px;
+.admin-filter-box input,
+.admin-filter-box select {
+  width: 100%;
+  border: 1px solid #dfe7f2;
   border-radius: 14px;
-  background: #eef5ff;
-  color: #1764dc;
-  font-weight: 900;
+  padding: 13px 12px;
+  font: inherit;
+  background: #fff;
 }
 
-.admin-lightbox {
-  cursor: zoom-out;
-}
-
-.admin-lightbox-close {
-  position: fixed;
-  top: 24px;
-  right: 28px;
-  z-index: 10000;
-  border: 0;
+.status-chip {
+  font-style: normal;
+  background: #081126;
+  color: #fff;
   border-radius: 999px;
-  padding: 12px 18px;
-  background: #ffffff;
-  color: #071126;
+  padding: 7px 12px;
+  font-size: 13px;
   font-weight: 900;
-  cursor: pointer;
+  height: fit-content;
+  white-space: nowrap;
+}
+
+.status-상담중,
+.status-견적발송 {
+  background: #245bff !important;
+}
+
+.status-예약완료,
+.status-방문완료 {
+  background: #6f3cff !important;
+}
+
+.status-판매완료 {
+  background: #0ca678 !important;
+}
+
+.status-종료 {
+  background: #6b7280 !important;
+}
+
+@media (max-width: 640px) {
+  .admin-summary-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-filter-box {
+    grid-template-columns: 1fr;
+  }
 }
