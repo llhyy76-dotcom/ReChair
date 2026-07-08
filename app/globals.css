@@ -683,3 +683,110 @@ button, input, select, textarea { font: inherit; }
     grid-template-columns: 1fr;
   }
 }
+/* ReChair Mobile Hero Menu v1 */
+.hero-quick-menu {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 26px 0 22px;
+}
+
+.hero-quick-menu a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.18);
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 16px;
+  text-align: center;
+}
+
+.hero-copy-text {
+  color: rgba(255,255,255,.82);
+}
+
+@media (max-width: 720px) {
+  .hero {
+    min-height: auto;
+  }
+
+  .hero-inner.hero-mobile-compact {
+    padding: 46px 22px 38px;
+    gap: 24px;
+  }
+
+  .hero-copy .eyebrow {
+    font-size: 16px;
+    padding: 14px 20px;
+    margin-bottom: 24px;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(42px, 11.2vw, 56px);
+    line-height: 1.08;
+    letter-spacing: -3px;
+  }
+
+  .hero-copy-text {
+    margin-top: 24px;
+    font-size: 20px;
+    line-height: 1.75;
+  }
+
+  .hero-quick-menu {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 24px 0 20px;
+  }
+
+  .hero-quick-menu a {
+    min-height: 48px;
+    border-radius: 15px;
+    font-size: 15px;
+  }
+
+  .hero-actions {
+    gap: 12px;
+  }
+
+  .primary-button,
+  .secondary-button {
+    min-height: 64px;
+    font-size: 22px;
+  }
+
+  .hero-dashboard {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .hero-inner.hero-mobile-compact {
+    padding: 38px 18px 30px;
+  }
+
+  .hero-copy h1 {
+    font-size: 39px;
+    letter-spacing: -2.5px;
+  }
+
+  .hero-copy-text {
+    font-size: 18px;
+  }
+
+  .hero-quick-menu a {
+    min-height: 44px;
+    font-size: 14px;
+    border-radius: 13px;
+  }
+
+  .primary-button,
+  .secondary-button {
+    min-height: 58px;
+    font-size: 20px;
+  }
+}
