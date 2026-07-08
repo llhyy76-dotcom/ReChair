@@ -43,6 +43,20 @@ function normalize(value?: string | null) {
   return String(value ?? '').toLowerCase().replace(/\s/g, '');
 }
 
+function toCsvCell(value: unknown) {
+  const text = String(value ?? '').replace(/\r?\n/g, ' ');
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function dateKey(value?: string | null) {
+  if (!value) return '';
+  const date = new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function AdminConsultations() {
   const [items, setItems] = useState<Consultation[]>([]);
   const [selectedId, setSelectedId] = useState('');
@@ -51,12 +65,19 @@ export default function AdminConsultations() {
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('전체');
+  const [dateFilter, setDateFilter] = useState('전체');
+
+  const dateOptions = useMemo(() => {
+    const keys = Array.from(new Set(items.map((item) => dateKey(item.created_at)).filter(Boolean)));
+    return ['전체', ...keys.sort().reverse()];
+  }, [items]);
 
   const filteredItems = useMemo(() => {
     const keyword = normalize(query);
 
     return items.filter((item) => {
       const statusMatched = statusFilter === '전체' || (item.status || '신규') === statusFilter;
+      const dateMatched = dateFilter === '전체' || dateKey(item.created_at) === dateFilter;
 
       const keywordMatched =
         !keyword ||
@@ -65,11 +86,12 @@ export default function AdminConsultations() {
         normalize(item.model).includes(keyword) ||
         normalize(item.service_type).includes(keyword) ||
         normalize(item.message).includes(keyword) ||
-        normalize(item.manager).includes(keyword);
+        normalize(item.manager).includes(keyword) ||
+        normalize(item.memo).includes(keyword);
 
-      return statusMatched && keywordMatched;
+      return statusMatched && dateMatched && keywordMatched;
     });
-  }, [items, query, statusFilter]);
+  }, [items, query, statusFilter, dateFilter]);
 
   const selected = useMemo(() => {
     if (selectedId) {
@@ -79,14 +101,20 @@ export default function AdminConsultations() {
     return filteredItems[0] || items[0];
   }, [items, filteredItems, selectedId]);
 
-  const counts = useMemo(() => {
+  const summary = useMemo(() => {
+    const activeStatuses = ['신규', '상담중', '견적발송', '예약완료', '방문완료'];
+    const doneStatuses = ['판매완료', '종료'];
+    const quoteTotal = filteredItems.reduce((sum, item) => sum + Number(item.quote_amount || 0), 0);
+
     return {
       total: items.length,
+      filtered: filteredItems.length,
       newCount: items.filter((item) => (item.status || '신규') === '신규').length,
-      activeCount: items.filter((item) => !['판매완료', '종료'].includes(item.status || '신규')).length,
-      doneCount: items.filter((item) => ['판매완료', '종료'].includes(item.status || '')).length,
+      activeCount: items.filter((item) => activeStatuses.includes(item.status || '신규')).length,
+      doneCount: items.filter((item) => doneStatuses.includes(item.status || '')).length,
+      filteredQuoteTotal: quoteTotal,
     };
-  }, [items]);
+  }, [items, filteredItems]);
 
   async function loadData(keepSelectedId?: string) {
     const response = await fetch('/api/consultations', { cache: 'no-store' });
@@ -152,175 +180,211 @@ export default function AdminConsultations() {
     setSaving(false);
   }
 
+  function exportCsv() {
+    const header = ['접수일', '이름', '연락처', '서비스', '모델', '상태', '담당자', '견적금액', '문의내용', '관리자메모'];
+    const rows = filteredItems.map((item) => [
+      formatDate(item.created_at),
+      item.name || '',
+      item.phone || '',
+      item.service_type || '',
+      item.model || '',
+      item.status || '신규',
+      item.manager || '',
+      item.quote_amount ?? '',
+      item.message || '',
+      item.memo || '',
+    ]);
+
+    const csv = [header, ...rows].map((row) => row.map(toCsvCell).join(',')).join('\\n');
+    const blob = new Blob(['\\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const today = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `rechair-consultations-${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function logout() {
+    await fetch('/api/admin/logout', { method: 'POST' });
+    window.location.reload();
+  }
+
   return (
-    <section className="admin-crm-final">
-      <aside className="admin-left">
-        <div className="admin-left-head">
-          <h2>상담 목록</h2>
-          <span>{filteredItems.length}건</span>
-        </div>
+    <>
+      <section className="admin-dashboard-row">
+        <div><span>현재 목록</span><b>{summary.filtered}</b><small>건</small></div>
+        <div><span>전체 접수</span><b>{summary.total}</b><small>건</small></div>
+        <div><span>신규</span><b>{summary.newCount}</b><small>건</small></div>
+        <div><span>진행</span><b>{summary.activeCount}</b><small>건</small></div>
+        <div><span>완료</span><b>{summary.doneCount}</b><small>건</small></div>
+        <div><span>목록 견적합계</span><b>{summary.filteredQuoteTotal.toLocaleString('ko-KR')}</b><small>원</small></div>
+      </section>
 
-        <div className="admin-summary-row">
-          <div><b>{counts.total}</b><span>전체</span></div>
-          <div><b>{counts.newCount}</b><span>신규</span></div>
-          <div><b>{counts.activeCount}</b><span>진행</span></div>
-          <div><b>{counts.doneCount}</b><span>완료</span></div>
-        </div>
+      <div className="admin-toolbar">
+        <button type="button" onClick={() => loadData(selected?.id)}>새로고침</button>
+        <button type="button" onClick={exportCsv}>CSV 다운로드</button>
+        <button type="button" onClick={logout}>로그아웃</button>
+      </div>
 
-        <div className="admin-filter-box">
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="이름, 연락처, 모델명 검색"
-          />
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-            {statusOptions.map((status) => (
-              <option key={status}>{status}</option>
-            ))}
-          </select>
-        </div>
+      <section className="admin-crm-final">
+        <aside className="admin-left">
+          <div className="admin-left-head">
+            <h2>상담 목록</h2>
+            <span>{filteredItems.length}건</span>
+          </div>
 
-        <div className="admin-list-scroll">
-          {filteredItems.length === 0 && <p className="admin-empty">검색 결과가 없습니다.</p>}
+          <div className="admin-filter-box admin-filter-box-v2">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="이름, 연락처, 모델명 검색"
+            />
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              {statusOptions.map((status) => (
+                <option key={status}>{status}</option>
+              ))}
+            </select>
+            <select value={dateFilter} onChange={(event) => setDateFilter(event.target.value)}>
+              {dateOptions.map((date) => (
+                <option key={date}>{date}</option>
+              ))}
+            </select>
+          </div>
 
-          {filteredItems.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`admin-list-card ${selected?.id === item.id ? 'is-active' : ''}`}
-              onClick={() => {
-                setSelectedId(item.id);
-                setSaveMessage('');
-              }}
-            >
-              <div>
-                <strong>{item.name || '이름 없음'}</strong>
-                <small>{item.phone || '연락처 없음'}</small>
-                <b>{item.service_type || '상담'} · {item.model || '모델 미입력'}</b>
-              </div>
-              <em className={`status-chip status-${item.status || '신규'}`}>{item.status || '신규'}</em>
-            </button>
-          ))}
-        </div>
-      </aside>
+          <div className="admin-list-scroll">
+            {filteredItems.length === 0 && <p className="admin-empty">검색 결과가 없습니다.</p>}
 
-      <article className="admin-right">
-        {!selected ? (
-          <div className="admin-empty">상담을 선택해 주세요.</div>
-        ) : (
-          <>
-            <div className="admin-detail-top">
-              <div>
-                <p>CONSULTATION DETAIL</p>
-                <h2>{selected.name || '이름 없음'}</h2>
-                <span>{selected.phone || '연락처 없음'}</span>
-              </div>
-              <em className={`status-chip status-${selected.status || '신규'}`}>{selected.status || '신규'}</em>
-            </div>
-
-            <div className="admin-info-grid">
-              <div><span>서비스</span><strong>{selected.service_type || '-'}</strong></div>
-              <div><span>모델</span><strong>{selected.model || '-'}</strong></div>
-              <div><span>접수일</span><strong>{formatDate(selected.created_at)}</strong></div>
-              <div><span>견적금액</span><strong>{formatMoney(selected.quote_amount)}</strong></div>
-              <div><span>담당자</span><strong>{selected.manager || '미배정'}</strong></div>
-              <div><span>상태</span><strong>{selected.status || '신규'}</strong></div>
-            </div>
-
-            <div className="admin-message">
-              <span>문의 내용</span>
-              <p>{selected.message || '문의내용 없음'}</p>
-            </div>
-
-            <div className="admin-message">
-              <span>관리자 메모</span>
-              <p>{selected.memo || '아직 메모가 없습니다.'}</p>
-            </div>
-
-            <div className="admin-photos">
-              <h3>첨부 사진</h3>
-              <div className="admin-photo-list">
-                {photoLabels.map(([key, label]) => {
-                  const url = selected[key];
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      className="admin-photo"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        if (url) setLightbox(url);
-                      }}
-                      disabled={!url}
-                      title={url ? `${label} 확대보기` : `${label} 사진 없음`}
-                    >
-                      {url ? (
-                        <>
-                          <img src={url} alt={label} draggable={false} />
-                          <span className="admin-photo-zoom">확대보기</span>
-                        </>
-                      ) : (
-                        <span>📷</span>
-                      )}
-                      <b>{label}</b>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <form action={updateSelected} className="admin-form">
-              <label>
-                <span>상태</span>
-                <select name="status" defaultValue={selected.status || '신규'} key={`status-${selected.id}`}>
-                  {statusOptions.filter((status) => status !== '전체').map((status) => (
-                    <option key={status}>{status}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                <span>담당자</span>
-                <input name="manager" defaultValue={selected.manager || ''} key={`manager-${selected.id}`} />
-              </label>
-
-              <label>
-                <span>견적금액</span>
-                <input name="quote_amount" type="number" defaultValue={selected.quote_amount ?? ''} key={`quote-${selected.id}`} />
-              </label>
-
-              <label className="wide">
-                <span>관리자 메모</span>
-                <textarea name="memo" defaultValue={selected.memo || ''} key={`memo-${selected.id}`} />
-              </label>
-
-              {saveMessage && <p className="admin-save-message">{saveMessage}</p>}
-
-              <button type="submit" disabled={saving}>
-                {saving ? '저장 중...' : '상담정보 저장'}
+            {filteredItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`admin-list-card ${selected?.id === item.id ? 'is-active' : ''}`}
+                onClick={() => {
+                  setSelectedId(item.id);
+                  setSaveMessage('');
+                }}
+              >
+                <div>
+                  <strong>{item.name || '이름 없음'}</strong>
+                  <small>{item.phone || '연락처 없음'}</small>
+                  <b>{item.service_type || '상담'} · {item.model || '모델 미입력'}</b>
+                </div>
+                <em className={`status-chip status-${item.status || '신규'}`}>{item.status || '신규'}</em>
               </button>
-            </form>
-          </>
-        )}
-      </article>
+            ))}
+          </div>
+        </aside>
 
-      {lightbox && (
-        <div
-          className="admin-lightbox"
-          role="button"
-          tabIndex={0}
-          onClick={() => setLightbox(null)}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape' || event.key === 'Enter') setLightbox(null);
-          }}
-        >
-          <button className="admin-lightbox-close" type="button" onClick={() => setLightbox(null)}>
-            닫기
-          </button>
-          <img src={lightbox} alt="상담 사진 확대" draggable={false} />
-        </div>
-      )}
-    </section>
+        <article className="admin-right">
+          {!selected ? (
+            <div className="admin-empty">상담을 선택해 주세요.</div>
+          ) : (
+            <>
+              <div className="admin-detail-top">
+                <div>
+                  <p>CONSULTATION DETAIL</p>
+                  <h2>{selected.name || '이름 없음'}</h2>
+                  <span>{selected.phone || '연락처 없음'}</span>
+                </div>
+                <em className={`status-chip status-${selected.status || '신규'}`}>{selected.status || '신규'}</em>
+              </div>
+
+              <div className="admin-info-grid">
+                <div><span>서비스</span><strong>{selected.service_type || '-'}</strong></div>
+                <div><span>모델</span><strong>{selected.model || '-'}</strong></div>
+                <div><span>접수일</span><strong>{formatDate(selected.created_at)}</strong></div>
+                <div><span>견적금액</span><strong>{formatMoney(selected.quote_amount)}</strong></div>
+                <div><span>담당자</span><strong>{selected.manager || '미배정'}</strong></div>
+                <div><span>상태</span><strong>{selected.status || '신규'}</strong></div>
+              </div>
+
+              <div className="admin-message">
+                <span>문의 내용</span>
+                <p>{selected.message || '문의내용 없음'}</p>
+              </div>
+
+              <div className="admin-message">
+                <span>관리자 메모</span>
+                <p>{selected.memo || '아직 메모가 없습니다.'}</p>
+              </div>
+
+              <div className="admin-photos">
+                <h3>첨부 사진</h3>
+                <div className="admin-photo-list">
+                  {photoLabels.map(([key, label]) => {
+                    const url = selected[key];
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        className="admin-photo"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          if (url) setLightbox(url);
+                        }}
+                        disabled={!url}
+                        title={url ? `${label} 확대보기` : `${label} 사진 없음`}
+                      >
+                        {url ? (
+                          <>
+                            <img src={url} alt={label} draggable={false} />
+                            <span className="admin-photo-zoom">확대보기</span>
+                          </>
+                        ) : (
+                          <span>📷</span>
+                        )}
+                        <b>{label}</b>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <form action={updateSelected} className="admin-form">
+                <label>
+                  <span>상태</span>
+                  <select name="status" defaultValue={selected.status || '신규'} key={`status-${selected.id}`}>
+                    {statusOptions.filter((status) => status !== '전체').map((status) => (
+                      <option key={status}>{status}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  <span>담당자</span>
+                  <input name="manager" defaultValue={selected.manager || ''} key={`manager-${selected.id}`} />
+                </label>
+
+                <label>
+                  <span>견적금액</span>
+                  <input name="quote_amount" type="number" defaultValue={selected.quote_amount ?? ''} key={`quote-${selected.id}`} />
+                </label>
+
+                <label className="wide">
+                  <span>관리자 메모</span>
+                  <textarea name="memo" defaultValue={selected.memo || ''} key={`memo-${selected.id}`} />
+                </label>
+
+                {saveMessage && <p className="admin-save-message">{saveMessage}</p>}
+
+                <button type="submit" disabled={saving}>
+                  {saving ? '저장 중...' : '상담정보 저장'}
+                </button>
+              </form>
+            </>
+          )}
+        </article>
+
+        {lightbox && (
+          <div className="admin-lightbox" role="button" tabIndex={0} onClick={() => setLightbox(null)}>
+            <button className="admin-lightbox-close" type="button" onClick={() => setLightbox(null)}>닫기</button>
+            <img src={lightbox} alt="상담 사진 확대" draggable={false} />
+          </div>
+        )}
+      </section>
+    </>
   );
 }
