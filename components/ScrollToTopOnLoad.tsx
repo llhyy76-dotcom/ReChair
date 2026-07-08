@@ -8,16 +8,24 @@ export default function ScrollToTopOnLoad() {
       window.history.scrollRestoration = 'manual';
     }
 
-    const scrollTop = () => {
-      if (!window.location.hash) {
-        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-      }
+    const forceTop = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
     };
 
-    scrollTop();
-    const timer = window.setTimeout(scrollTop, 120);
+    forceTop();
 
-    return () => window.clearTimeout(timer);
+    const timers = [
+      window.setTimeout(forceTop, 50),
+      window.setTimeout(forceTop, 150),
+      window.setTimeout(forceTop, 400),
+      window.setTimeout(forceTop, 800),
+    ];
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
   }, []);
 
   return null;
