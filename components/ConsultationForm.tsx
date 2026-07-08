@@ -93,10 +93,12 @@ export default function ConsultationForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
     setLoading(true);
     setStatus('접수 중입니다...');
-
-    const formData = new FormData(event.currentTarget);
 
     for (const field of photoFields) {
       formData.delete(field.name);
@@ -114,7 +116,7 @@ export default function ConsultationForm() {
       if (!response.ok) throw new Error(result.error || '상담 접수에 실패했습니다.');
 
       setStatus('상담 신청이 접수되었습니다. 빠르게 연락드리겠습니다.');
-      event.currentTarget.reset();
+      form.reset();
 
       Object.values(previews).forEach((url) => URL.revokeObjectURL(url));
       setPreviews({});
