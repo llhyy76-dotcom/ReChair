@@ -790,3 +790,315 @@ button, input, select, textarea { font: inherit; }
     font-size: 20px;
   }
 }
+/* ReChair Admin Search Filter v1 */
+.admin-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.admin-summary-row div {
+  background: #f4f8ff;
+  border-radius: 14px;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.admin-summary-row b,
+.admin-summary-row span {
+  display: block;
+}
+
+.admin-summary-row b {
+  color: #2478ff;
+  font-size: 20px;
+}
+
+.admin-summary-row span {
+  color: #687789;
+  font-size: 12px;
+  font-weight: 900;
+  margin-top: 2px;
+}
+
+.admin-filter-box {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.admin-filter-box input,
+.admin-filter-box select {
+  width: 100%;
+  border: 1px solid #dfe7f2;
+  border-radius: 14px;
+  padding: 13px 12px;
+  font: inherit;
+  background: #fff;
+}
+
+.status-chip {
+  font-style: normal;
+  background: #081126;
+  color: #fff;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 900;
+  height: fit-content;
+  white-space: nowrap;
+}
+
+.status-상담중,
+.status-견적발송 {
+  background: #245bff !important;
+}
+
+.status-예약완료,
+.status-방문완료 {
+  background: #6f3cff !important;
+}
+
+.status-판매완료 {
+  background: #0ca678 !important;
+}
+
+.status-종료 {
+  background: #6b7280 !important;
+}
+
+@media (max-width: 640px) {
+  .admin-summary-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-filter-box {
+    grid-template-columns: 1fr;
+  }
+}
+/* ReChair Admin Dashboard Export v1 */
+.admin-dashboard-row {
+  max-width: 1120px;
+  margin: 0 auto 16px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-dashboard-row div {
+  background: #fff;
+  border: 1px solid #dfe7f2;
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 14px 36px rgba(8,17,38,.05);
+}
+
+.admin-dashboard-row span,
+.admin-dashboard-row small {
+  display: block;
+  color: #687789;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.admin-dashboard-row b {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 28px;
+  letter-spacing: -0.04em;
+  color: #071126;
+}
+
+.admin-dashboard-row small {
+  display: inline-block;
+  margin-left: 4px;
+}
+
+.admin-toolbar {
+  max-width: 1120px;
+  margin: 0 auto 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.admin-toolbar button {
+  border: 1px solid #dfe7f2;
+  background: #fff;
+  color: #071126;
+  border-radius: 999px;
+  padding: 11px 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-toolbar button:hover {
+  background: #eef5ff;
+  border-color: #2478ff;
+}
+
+.admin-filter-box-v2 {
+  grid-template-columns: 1fr 105px 118px;
+}
+
+.status-chip {
+  font-style: normal;
+  background: #081126;
+  color: #fff;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 900;
+  height: fit-content;
+  white-space: nowrap;
+}
+
+.status-상담중,
+.status-견적발송 {
+  background: #245bff !important;
+}
+
+.status-예약완료,
+.status-방문완료 {
+  background: #6f3cff !important;
+}
+
+.status-판매완료 {
+  background: #0ca678 !important;
+}
+
+.status-종료 {
+  background: #6b7280 !important;
+}
+
+@media (max-width: 980px) {
+  .admin-dashboard-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-dashboard-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-filter-box-v2 {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-toolbar {
+    justify-content: stretch;
+    flex-direction: column;
+  }
+
+  .admin-toolbar button {
+    width: 100%;
+  }
+}
+/* ReChair Mobile Hero Menu Fix v2 */
+@media (max-width: 720px) {
+  .hero {
+    min-height: auto !important;
+    background: #eef4fb !important;
+  }
+
+  .hero-inner.hero-mobile-compact,
+  .hero-inner {
+    min-height: auto !important;
+    padding: 34px 22px 28px !important;
+    display: block !important;
+  }
+
+  .hero-copy {
+    width: 100% !important;
+  }
+
+  .hero-copy .eyebrow {
+    display: inline-flex !important;
+    margin: 0 0 22px !important;
+    padding: 12px 18px !important;
+    border-radius: 999px !important;
+    font-size: 15px !important;
+  }
+
+  .hero-copy h1 {
+    margin: 0 !important;
+    font-size: 42px !important;
+    line-height: 1.08 !important;
+    letter-spacing: -2.6px !important;
+  }
+
+  .hero-copy-text {
+    display: block !important;
+    margin: 22px 0 0 !important;
+    color: #526070 !important;
+    font-size: 17px !important;
+    line-height: 1.65 !important;
+    font-weight: 700 !important;
+  }
+
+  .hero-quick-menu {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin: 22px 0 18px !important;
+    width: 100% !important;
+  }
+
+  .hero-quick-menu a {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 44px !important;
+    padding: 0 4px !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    border: 1px solid #dce7f5 !important;
+    color: #071126 !important;
+    font-size: 14px !important;
+    font-weight: 900 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    box-shadow: 0 8px 20px rgba(8,17,38,.05) !important;
+  }
+
+  .hero-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    margin-top: 0 !important;
+  }
+
+  .primary-button,
+  .secondary-button {
+    width: 100% !important;
+    min-height: 58px !important;
+    font-size: 20px !important;
+    border-radius: 18px !important;
+  }
+
+  .hero-dashboard {
+    display: none !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .hero-inner.hero-mobile-compact,
+  .hero-inner {
+    padding: 28px 18px 24px !important;
+  }
+
+  .hero-copy h1 {
+    font-size: 38px !important;
+  }
+
+  .hero-copy-text {
+    font-size: 16px !important;
+  }
+
+  .hero-quick-menu a {
+    font-size: 13px !important;
+  }
+}
