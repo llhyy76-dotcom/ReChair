@@ -595,3 +595,91 @@ button, input, select, textarea { font: inherit; }
     padding: 20px;
   }
 }
+/* ReChair Admin Search Filter v1 */
+.admin-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.admin-summary-row div {
+  background: #f4f8ff;
+  border-radius: 14px;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.admin-summary-row b,
+.admin-summary-row span {
+  display: block;
+}
+
+.admin-summary-row b {
+  color: #2478ff;
+  font-size: 20px;
+}
+
+.admin-summary-row span {
+  color: #687789;
+  font-size: 12px;
+  font-weight: 900;
+  margin-top: 2px;
+}
+
+.admin-filter-box {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.admin-filter-box input,
+.admin-filter-box select {
+  width: 100%;
+  border: 1px solid #dfe7f2;
+  border-radius: 14px;
+  padding: 13px 12px;
+  font: inherit;
+  background: #fff;
+}
+
+.status-chip {
+  font-style: normal;
+  background: #081126;
+  color: #fff;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 900;
+  height: fit-content;
+  white-space: nowrap;
+}
+
+.status-상담중,
+.status-견적발송 {
+  background: #245bff !important;
+}
+
+.status-예약완료,
+.status-방문완료 {
+  background: #6f3cff !important;
+}
+
+.status-판매완료 {
+  background: #0ca678 !important;
+}
+
+.status-종료 {
+  background: #6b7280 !important;
+}
+
+@media (max-width: 640px) {
+  .admin-summary-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-filter-box {
+    grid-template-columns: 1fr;
+  }
+}
