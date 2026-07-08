@@ -27,6 +27,8 @@ const photoLabels = [
   ['photo_back', '뒷면'],
 ] as const;
 
+const statusOptions = ['전체', '신규', '상담중', '견적발송', '예약완료', '방문완료', '판매완료', '종료'];
+
 function formatDate(value?: string | null) {
   if (!value) return '-';
   return new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
@@ -37,17 +39,54 @@ function formatMoney(value?: number | null) {
   return `${Number(value).toLocaleString('ko-KR')}원`;
 }
 
+function normalize(value?: string | null) {
+  return String(value ?? '').toLowerCase().replace(/\s/g, '');
+}
+
 export default function AdminConsultations() {
   const [items, setItems] = useState<Consultation[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('전체');
 
-  const selected = useMemo(
-    () => items.find((item) => item.id === selectedId) || items[0],
-    [items, selectedId]
-  );
+  const filteredItems = useMemo(() => {
+    const keyword = normalize(query);
+
+    return items.filter((item) => {
+      const statusMatched = statusFilter === '전체' || (item.status || '신규') === statusFilter;
+
+      const keywordMatched =
+        !keyword ||
+        normalize(item.name).includes(keyword) ||
+        normalize(item.phone).includes(keyword) ||
+        normalize(item.model).includes(keyword) ||
+        normalize(item.service_type).includes(keyword) ||
+        normalize(item.message).includes(keyword) ||
+        normalize(item.manager).includes(keyword);
+
+      return statusMatched && keywordMatched;
+    });
+  }, [items, query, statusFilter]);
+
+  const selected = useMemo(() => {
+    if (selectedId) {
+      const current = items.find((item) => item.id === selectedId);
+      if (current) return current;
+    }
+    return filteredItems[0] || items[0];
+  }, [items, filteredItems, selectedId]);
+
+  const counts = useMemo(() => {
+    return {
+      total: items.length,
+      newCount: items.filter((item) => (item.status || '신규') === '신규').length,
+      activeCount: items.filter((item) => !['판매완료', '종료'].includes(item.status || '신규')).length,
+      doneCount: items.filter((item) => ['판매완료', '종료'].includes(item.status || '')).length,
+    };
+  }, [items]);
 
   async function loadData(keepSelectedId?: string) {
     const response = await fetch('/api/consultations', { cache: 'no-store' });
@@ -67,6 +106,13 @@ export default function AdminConsultations() {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!selectedId && filteredItems[0]) setSelectedId(filteredItems[0].id);
+    if (selectedId && filteredItems.length > 0 && !filteredItems.some((item) => item.id === selectedId)) {
+      setSelectedId(filteredItems[0].id);
+    }
+  }, [filteredItems, selectedId]);
 
   async function updateSelected(formData: FormData) {
     if (!selected) return;
@@ -111,13 +157,33 @@ export default function AdminConsultations() {
       <aside className="admin-left">
         <div className="admin-left-head">
           <h2>상담 목록</h2>
-          <span>{items.length}건</span>
+          <span>{filteredItems.length}건</span>
+        </div>
+
+        <div className="admin-summary-row">
+          <div><b>{counts.total}</b><span>전체</span></div>
+          <div><b>{counts.newCount}</b><span>신규</span></div>
+          <div><b>{counts.activeCount}</b><span>진행</span></div>
+          <div><b>{counts.doneCount}</b><span>완료</span></div>
+        </div>
+
+        <div className="admin-filter-box">
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="이름, 연락처, 모델명 검색"
+          />
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            {statusOptions.map((status) => (
+              <option key={status}>{status}</option>
+            ))}
+          </select>
         </div>
 
         <div className="admin-list-scroll">
-          {items.length === 0 && <p className="admin-empty">아직 접수된 상담이 없습니다.</p>}
+          {filteredItems.length === 0 && <p className="admin-empty">검색 결과가 없습니다.</p>}
 
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -132,7 +198,7 @@ export default function AdminConsultations() {
                 <small>{item.phone || '연락처 없음'}</small>
                 <b>{item.service_type || '상담'} · {item.model || '모델 미입력'}</b>
               </div>
-              <em>{item.status || '신규'}</em>
+              <em className={`status-chip status-${item.status || '신규'}`}>{item.status || '신규'}</em>
             </button>
           ))}
         </div>
@@ -149,7 +215,7 @@ export default function AdminConsultations() {
                 <h2>{selected.name || '이름 없음'}</h2>
                 <span>{selected.phone || '연락처 없음'}</span>
               </div>
-              <em>{selected.status || '신규'}</em>
+              <em className={`status-chip status-${selected.status || '신규'}`}>{selected.status || '신규'}</em>
             </div>
 
             <div className="admin-info-grid">
@@ -208,13 +274,9 @@ export default function AdminConsultations() {
               <label>
                 <span>상태</span>
                 <select name="status" defaultValue={selected.status || '신규'} key={`status-${selected.id}`}>
-                  <option>신규</option>
-                  <option>상담중</option>
-                  <option>견적발송</option>
-                  <option>예약완료</option>
-                  <option>방문완료</option>
-                  <option>판매완료</option>
-                  <option>종료</option>
+                  {statusOptions.filter((status) => status !== '전체').map((status) => (
+                    <option key={status}>{status}</option>
+                  ))}
                 </select>
               </label>
 
