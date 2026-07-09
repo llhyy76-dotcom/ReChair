@@ -1869,3 +1869,113 @@ button, input, select, textarea { font: inherit; }
     display: none !important;
   }
 }
+/* ReChair Gear Logo Fix v1 */
+/* 기존 꽃처럼 보이는 CSS 기어를 SVG 구동기어로 교체 */
+
+.rc-logo-gears.rc-mechanical-gears {
+  position: relative !important;
+  width: 66px !important;
+  height: 54px !important;
+  margin-left: -7px !important;
+  transform: translateY(12px) !important;
+  display: inline-block !important;
+}
+
+.rc-logo-gears.rc-mechanical-gears .rc-gear,
+.rc-logo-gears.rc-mechanical-gears .gear,
+.rc-logo-gears.rc-mechanical-gears .rc-gear-blue,
+.rc-logo-gears.rc-mechanical-gears .rc-gear-navy {
+  display: none !important;
+}
+
+.rc-gear-svg {
+  position: absolute;
+  overflow: visible;
+}
+
+.rc-gear-svg path {
+  stroke-width: 6;
+  stroke-linejoin: round;
+}
+
+.rc-gear-svg circle {
+  fill: #ffffff;
+  stroke-width: 7;
+}
+
+.rc-gear-main {
+  width: 44px;
+  height: 44px;
+  left: 0;
+  top: 0;
+}
+
+.rc-gear-main path {
+  fill: #1465ff;
+  stroke: #1465ff;
+}
+
+.rc-gear-main circle:first-of-type {
+  stroke: #1465ff;
+}
+
+.rc-gear-main circle:last-of-type {
+  fill: #1465ff;
+  stroke: #1465ff;
+}
+
+.rc-gear-sub {
+  width: 39px;
+  height: 39px;
+  right: 0;
+  bottom: 1px;
+}
+
+.rc-gear-sub path {
+  fill: #071126;
+  stroke: #071126;
+}
+
+.rc-gear-sub circle:first-of-type {
+  stroke: #071126;
+}
+
+.rc-gear-sub circle:last-of-type {
+  fill: #071126;
+  stroke: #071126;
+}
+
+@media (max-width: 900px) {
+  .rc-logo-gears.rc-mechanical-gears {
+    width: 66px !important;
+    height: 54px !important;
+    transform: translateY(11px) !important;
+  }
+
+  .rc-gear-main {
+    width: 46px;
+    height: 46px;
+  }
+
+  .rc-gear-sub {
+    width: 41px;
+    height: 41px;
+  }
+}
+
+@media (max-width: 390px) {
+  .rc-logo-gears.rc-mechanical-gears {
+    width: 56px !important;
+    height: 46px !important;
+  }
+
+  .rc-gear-main {
+    width: 39px;
+    height: 39px;
+  }
+
+  .rc-gear-sub {
+    width: 35px;
+    height: 35px;
+  }
+}
