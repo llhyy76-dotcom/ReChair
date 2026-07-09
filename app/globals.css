@@ -2727,3 +2727,169 @@ section:has(.service-grid),section:has(.service-card),section:has(.service-numbe
     grid-template-columns: 1fr;
   }
 }
+/* ReChair PC Chair Hero Add v1 */
+/* PC 우측 여백에 안마의자 비주얼 추가, 모바일에서는 숨김 */
+
+.rc-final-hero-main {
+  display: grid;
+  grid-template-columns: 1fr minmax(380px, 520px);
+  gap: 48px;
+  align-items: center;
+}
+
+.rc-final-copy {
+  min-width: 0;
+}
+
+.rc-pc-chair-visual {
+  position: relative;
+  min-height: 470px;
+  display: block;
+}
+
+.rc-pc-chair-glow {
+  position: absolute;
+  inset: 20px -20px auto auto;
+  width: 520px;
+  height: 390px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(36, 129, 255, .46), transparent 62%),
+    radial-gradient(circle at 70% 20%, rgba(0, 198, 255, .28), transparent 40%);
+  filter: blur(2px);
+}
+
+.rc-pc-chair {
+  position: absolute;
+  right: 8px;
+  bottom: 26px;
+  width: 500px;
+  height: 390px;
+  filter: drop-shadow(0 34px 42px rgba(0, 0, 0, .48));
+}
+
+.rc-pc-chair-back {
+  position: absolute;
+  right: 30px;
+  bottom: 64px;
+  width: 242px;
+  height: 310px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.12), transparent 20%),
+    linear-gradient(135deg, #283444 0%, #111925 42%, #040811 100%);
+  border-radius: 46% 38% 30% 26%;
+  transform: skewY(-6deg);
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+.rc-pc-chair-head {
+  position: absolute;
+  right: 130px;
+  top: 24px;
+  width: 122px;
+  height: 88px;
+  border-radius: 30px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.14), transparent 25%),
+    linear-gradient(135deg, #3d4857, #0b111c);
+  z-index: 4;
+  transform: rotate(-7deg);
+}
+
+.rc-pc-chair-seat {
+  position: absolute;
+  left: 72px;
+  bottom: 78px;
+  width: 315px;
+  height: 124px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.1), transparent 30%),
+    linear-gradient(135deg, #1d2939, #050913);
+  border-radius: 48px 78px 34px 34px;
+  border: 1px solid rgba(255,255,255,.12);
+  transform: skewX(-10deg);
+  z-index: 2;
+}
+
+.rc-pc-chair-arm {
+  position: absolute;
+  left: 112px;
+  bottom: 186px;
+  width: 270px;
+  height: 52px;
+  border-radius: 999px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.18), transparent 30%),
+    linear-gradient(135deg, #4b5664, #0b1018);
+  transform: rotate(-19deg);
+  z-index: 5;
+}
+
+.rc-pc-chair-line {
+  position: absolute;
+  left: 174px;
+  bottom: 209px;
+  width: 204px;
+  height: 8px;
+  background: linear-gradient(90deg, #f1f4f8, #a77a50);
+  border-radius: 999px;
+  transform: rotate(-19deg);
+  z-index: 6;
+  opacity: .88;
+}
+
+.rc-pc-chair-calf {
+  position: absolute;
+  left: 36px;
+  bottom: 52px;
+  width: 170px;
+  height: 92px;
+  border-radius: 36px 30px 28px 34px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.1), transparent 28%),
+    linear-gradient(135deg, #172232, #04070d);
+  transform: rotate(-8deg);
+  z-index: 1;
+}
+
+.rc-pc-chair-base {
+  position: absolute;
+  left: 68px;
+  right: 20px;
+  bottom: 18px;
+  height: 38px;
+  background: #02060b;
+  border-radius: 50%;
+  opacity: .92;
+}
+
+@media (max-width: 1200px) {
+  .rc-final-hero-main {
+    grid-template-columns: 1fr 420px;
+    gap: 30px;
+  }
+
+  .rc-pc-chair {
+    transform: scale(.88);
+    transform-origin: right bottom;
+  }
+}
+
+@media (max-width: 900px) {
+  .rc-final-hero-main {
+    display: block !important;
+  }
+
+  .rc-pc-chair-visual,
+  .rc-pc-chair-glow,
+  .rc-pc-chair,
+  .rc-pc-chair-head,
+  .rc-pc-chair-back,
+  .rc-pc-chair-seat,
+  .rc-pc-chair-arm,
+  .rc-pc-chair-calf,
+  .rc-pc-chair-base,
+  .rc-pc-chair-line {
+    display: none !important;
+  }
+}
