@@ -1,35 +1,40 @@
-const products = [
-  { id: 1, grade: 'A급', area: '경기 고양', name: '코지마 CMC-A100', desc: '외관 양호 · 기본 작동 점검', price: '상담가' },
-  { id: 2, grade: 'B+급', area: '서울', name: '바디프랜드 팬텀', desc: '프리미엄급 중고상품', price: '상담가' },
-  { id: 3, grade: 'A+급', area: '전국', name: '세라젬 V7', desc: '상태 확인 후 판매 가능', price: '상담문의' },
-];
+import { formatPrice, products } from '@/components/productData';
 
 export default function ProductList() {
   return (
-    <section className="section market-section">
-      <div className="market-header">
-        <div>
-          <span>ReMarket</span>
-          <h2>판매 중인 중고상품</h2>
-        </div>
-        <a href="/#consult">상품 문의하기 →</a>
-      </div>
-      <div className="product-grid">
-        {products.map((product) => (
-          <article className="product-card" key={product.id}>
-            <div className="product-image"><span>🛋️</span></div>
-            <div className="product-body">
-              <div className="product-badge">{product.grade}</div>
-              <h3>{product.name}</h3>
-              <p>{product.desc}</p>
-              <div className="product-meta">{product.area}</div>
-              <div className="product-bottom">
-                <strong>{product.price}</strong>
-                <a href={`/#consult?product=${product.id}`}>상담</a>
+    <section className="product-section rc-products" id="products">
+      <div className="container rc-products-container">
+        <p className="eyebrow">ReChair Products</p>
+        <h2>판매 가능 상품</h2>
+        <p className="rc-products-lead">
+          현재 상담 가능한 중고·리퍼 안마의자입니다. 상품 상태와 가격은 상담 시점에 따라 변동될 수 있습니다.
+        </p>
+
+        <div className="rc-product-grid">
+          {products.map((product) => (
+            <a className="rc-product-card" href={`/products/${product.id}`} key={product.id}>
+              <div className="rc-product-image">
+                <span>{product.image}</span>
+                <b>{product.grade}</b>
               </div>
-            </div>
-          </article>
-        ))}
+              <div className="rc-product-body">
+                <small>{product.brand} · {product.status}</small>
+                <h3>{product.name}</h3>
+                <p>{product.summary}</p>
+                <div className="rc-product-meta">
+                  <span>{product.year}</span>
+                  <span>{product.region}</span>
+                </div>
+                <strong>{formatPrice(product.price)}</strong>
+                <em>상세보기 ›</em>
+              </div>
+            </a>
+          ))}
+        </div>
+
+        <div className="rc-products-more">
+          <a href="/products">전체 상품 보기</a>
+        </div>
       </div>
     </section>
   );
