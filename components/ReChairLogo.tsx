@@ -1,13 +1,13 @@
 export default function ReChairLogo() {
   return (
-    <span className="rechair-logo" aria-label="ReChair">
-      <span className="logo-text">
-        <span className="logo-re">Re</span>
-        <span className="logo-chair">Chair</span>
+    <span className="rc-logo" aria-label="ReChair">
+      <span className="rc-logo-words">
+        <span className="rc-logo-re">Re</span>
+        <span className="rc-logo-chair">Chair</span>
       </span>
-      <span className="logo-gears" aria-hidden="true">
-        <span className="gear gear-blue" />
-        <span className="gear gear-navy" />
+      <span className="rc-logo-gears" aria-hidden="true">
+        <span className="rc-gear rc-gear-blue" />
+        <span className="rc-gear rc-gear-navy" />
       </span>
     </span>
   );
