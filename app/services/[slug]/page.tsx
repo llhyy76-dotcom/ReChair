@@ -47,8 +47,15 @@ const serviceData = {
 
 type ServiceSlug = keyof typeof serviceData;
 
-export default function ServiceDetailPage({ params }: { params: { slug: string } }) {
-  const service = serviceData[params.slug as ServiceSlug] || serviceData.buy;
+type ServicePageProps = {
+  params: Promise<{
+    slug: string;
+  }>;
+};
+
+export default async function ServiceDetailPage({ params }: ServicePageProps) {
+  const { slug } = await params;
+  const service = serviceData[slug as ServiceSlug] || serviceData.buy;
 
   return (
     <main>
