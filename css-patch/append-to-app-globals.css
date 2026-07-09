@@ -310,3 +310,220 @@
     font-size: 13px !important;
   }
 }
+/* ReChair Mobile Service Fix v2 */
+
+/* 기존 중복 서비스 섹션 숨김 */
+section:has(.service-grid),
+section:has(.service-card),
+section:has(.service-number) {
+  display: none !important;
+}
+
+/* 모바일에서는 안마의자 이미지를 제거해 메뉴가 첫 화면에 보이도록 조정 */
+@media (max-width: 900px) {
+  .rc-desktop-chair,
+  .rc-chair-wrap,
+  .rc-chair,
+  .rc-chair-glow {
+    display: none !important;
+  }
+
+  .rc-hero {
+    padding: 0 0 22px !important;
+  }
+
+  .rc-hero-shell {
+    padding: 26px 24px 0 !important;
+  }
+
+  .rc-hero-top {
+    display: block !important;
+  }
+
+  .rc-eyebrow {
+    margin-bottom: 14px !important;
+  }
+
+  .rc-hero-copy h1 {
+    font-size: 31px !important;
+    line-height: 1.12 !important;
+    letter-spacing: -1.8px !important;
+  }
+
+  .rc-hero-desc {
+    font-size: 14px !important;
+    line-height: 1.55 !important;
+    margin-top: 14px !important;
+  }
+
+  .rc-service-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 9px !important;
+    margin-top: 18px !important;
+  }
+
+  .rc-service-card {
+    min-height: 96px !important;
+    border-radius: 14px !important;
+    padding: 10px 6px !important;
+  }
+
+  .rc-service-icon {
+    font-size: 28px !important;
+  }
+
+  .rc-service-card strong {
+    font-size: 16px !important;
+  }
+
+  .rc-cta-row {
+    margin-top: 14px !important;
+  }
+
+  .rc-quote-btn,
+  .rc-product-btn {
+    min-height: 54px !important;
+  }
+
+  .rc-trust-bar {
+    display: none !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .rc-hero-shell {
+    padding: 22px 20px 0 !important;
+  }
+
+  .rc-hero-copy h1 {
+    font-size: 28px !important;
+  }
+
+  .rc-hero-desc {
+    font-size: 13px !important;
+  }
+
+  .rc-service-card {
+    min-height: 88px !important;
+  }
+
+  .rc-service-card strong {
+    font-size: 15px !important;
+  }
+}
+
+/* 서비스 상세 화면 */
+.service-detail-hero {
+  min-height: calc(100vh - 96px);
+  padding: 80px 24px;
+  background:
+    radial-gradient(circle at 78% 15%, rgba(20, 118, 255, .32), transparent 30%),
+    linear-gradient(135deg, #031026 0%, #07224a 52%, #020b18 100%);
+  display: grid;
+  place-items: center;
+}
+
+.service-detail-card {
+  width: min(960px, 100%);
+  background: rgba(255,255,255,.96);
+  border-radius: 36px;
+  padding: 54px;
+  box-shadow: 0 34px 80px rgba(0,0,0,.28);
+  position: relative;
+}
+
+.service-back-link {
+  display: inline-flex;
+  margin-bottom: 28px;
+  color: #1264ff;
+  font-weight: 900;
+}
+
+.service-detail-icon {
+  font-size: 62px;
+  margin-bottom: 12px;
+}
+
+.service-detail-card h1 {
+  font-size: clamp(46px, 6vw, 72px);
+  letter-spacing: -4px;
+  margin: 0 0 18px;
+  color: #071126;
+}
+
+.service-detail-subtitle {
+  color: #526070;
+  font-size: 23px;
+  line-height: 1.65;
+  font-weight: 700;
+  margin: 0 0 34px;
+}
+
+.service-detail-points {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 34px;
+}
+
+.service-detail-points div {
+  background: #f3f7fc;
+  border: 1px solid #e0e9f5;
+  border-radius: 18px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.service-detail-points span {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #1264ff;
+  color: #fff;
+  display: inline-grid;
+  place-items: center;
+  font-weight: 1000;
+}
+
+.service-detail-points strong {
+  font-size: 19px;
+  color: #071126;
+}
+
+.service-detail-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.service-detail-actions .secondary-button {
+  background: #fff !important;
+  color: #1264ff !important;
+  border: 2px solid #1264ff !important;
+}
+
+@media (max-width: 720px) {
+  .service-detail-hero {
+    min-height: auto;
+    padding: 34px 18px;
+  }
+
+  .service-detail-card {
+    border-radius: 26px;
+    padding: 32px 22px;
+  }
+
+  .service-detail-card h1 {
+    font-size: 44px;
+    letter-spacing: -2px;
+  }
+
+  .service-detail-subtitle {
+    font-size: 18px;
+  }
+
+  .service-detail-actions {
+    grid-template-columns: 1fr;
+  }
+}
