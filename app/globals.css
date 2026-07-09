@@ -2893,3 +2893,115 @@ section:has(.service-grid),section:has(.service-card),section:has(.service-numbe
     display: none !important;
   }
 }
+/* ReChair PC Wide Hero With Chair v2 */
+@media (min-width: 901px) {
+  .rc-pc-wide-hero {
+    padding: 72px 0 56px !important;
+    min-height: calc(100vh - 118px);
+    background:
+      radial-gradient(circle at 77% 28%, rgba(0, 110, 255, .38), transparent 32%),
+      radial-gradient(circle at 62% 52%, rgba(0, 179, 255, .14), transparent 36%),
+      linear-gradient(135deg, #031026 0%, #052755 50%, #020b18 100%) !important;
+    overflow: hidden;
+  }
+  .rc-pc-wide-shell { width: min(1760px, calc(100% - 80px)) !important; margin: 0 auto !important; }
+  .rc-pc-wide-main {
+    display: grid;
+    grid-template-columns: minmax(600px, .9fr) minmax(620px, 1.1fr);
+    gap: 42px;
+    align-items: center;
+  }
+  .rc-pc-wide-copy { position: relative; z-index: 3; }
+  .rc-wide-chair-stage { min-height: 520px; position: relative; z-index: 2; }
+  .rc-wide-blue-lines {
+    position: absolute;
+    inset: 0 -120px 0 -80px;
+    background:
+      linear-gradient(153deg, transparent 15%, rgba(0, 122, 255, .22) 16%, transparent 17%),
+      linear-gradient(160deg, transparent 24%, rgba(0, 211, 255, .38) 25%, transparent 26%),
+      linear-gradient(166deg, transparent 34%, rgba(65, 154, 255, .2) 35%, transparent 36%),
+      radial-gradient(circle at 64% 42%, rgba(16, 102, 255, .46), transparent 42%);
+    opacity: .95;
+  }
+  .rc-wide-chair-real {
+    position: absolute;
+    right: 24px;
+    bottom: 18px;
+    width: 680px;
+    height: 500px;
+    filter: drop-shadow(0 44px 46px rgba(0, 0, 0, .52));
+  }
+  .rc-wide-chair-back {
+    position: absolute; right: 48px; bottom: 80px; width: 310px; height: 394px;
+    border-radius: 42% 39% 28% 27%;
+    background: linear-gradient(130deg, rgba(255,255,255,.18), transparent 18%), linear-gradient(145deg, #3a414d 0%, #171d27 42%, #050811 100%);
+    transform: skewY(-5deg); border: 1px solid rgba(255,255,255,.16);
+    box-shadow: inset -20px -16px 34px rgba(0,0,0,.42);
+  }
+  .rc-wide-chair-pillow {
+    position: absolute; right: 160px; top: 30px; width: 170px; height: 104px;
+    border-radius: 34px 34px 28px 28px;
+    background: linear-gradient(145deg, rgba(255,255,255,.2), transparent 24%), linear-gradient(145deg, #555c68, #121823 75%);
+    transform: rotate(-7deg); z-index: 5; border: 1px solid rgba(255,255,255,.18);
+  }
+  .rc-wide-chair-inner {
+    position: absolute; right: 170px; top: 150px; width: 160px; height: 205px;
+    background: repeating-linear-gradient(45deg, rgba(255,255,255,.09) 0 2px, transparent 2px 18px), repeating-linear-gradient(-45deg, rgba(255,255,255,.07) 0 2px, transparent 2px 18px), linear-gradient(145deg, #242b37, #070b13);
+    border-radius: 42px; z-index: 4; opacity: .9;
+  }
+  .rc-wide-chair-seat {
+    position: absolute; left: 145px; bottom: 108px; width: 410px; height: 150px;
+    border-radius: 58px 92px 34px 34px;
+    background: linear-gradient(145deg, rgba(255,255,255,.12), transparent 30%), linear-gradient(135deg, #202a38, #070b14 76%);
+    transform: skewX(-10deg); z-index: 4; border: 1px solid rgba(255,255,255,.13);
+  }
+  .rc-wide-chair-arm-left {
+    position: absolute; left: 130px; bottom: 210px; width: 260px; height: 76px;
+    border-radius: 35px; background: linear-gradient(145deg, rgba(255,255,255,.16), transparent 25%), linear-gradient(135deg, #454d59, #070b13);
+    transform: rotate(-17deg); z-index: 7;
+  }
+  .rc-wide-chair-arm-right {
+    position: absolute; right: 70px; bottom: 205px; width: 210px; height: 82px;
+    border-radius: 36px; background: linear-gradient(145deg, rgba(255,255,255,.14), transparent 25%), linear-gradient(135deg, #4b535f, #080c13);
+    transform: rotate(-19deg); z-index: 8;
+  }
+  .rc-wide-chair-legrest {
+    position: absolute; left: 54px; bottom: 72px; width: 210px; height: 146px;
+    border-radius: 40px 38px 26px 32px;
+    background: linear-gradient(145deg, rgba(255,255,255,.1), transparent 26%), linear-gradient(135deg, #1d2735, #050810);
+    transform: rotate(-7deg); z-index: 3; border: 1px solid rgba(255,255,255,.1);
+  }
+  .rc-wide-chair-gold-line {
+    position: absolute; right: 115px; bottom: 227px; width: 245px; height: 10px;
+    border-radius: 999px; background: linear-gradient(90deg, #eef4ff, #be8d62);
+    transform: rotate(-18deg); z-index: 9; opacity: .94;
+  }
+  .rc-wide-chair-base {
+    position: absolute; left: 90px; right: 40px; bottom: 30px; height: 48px;
+    border-radius: 50%; background: #02050a; opacity: .95;
+  }
+  .rc-pc-wide-service-grid { grid-template-columns: repeat(6, 1fr) !important; gap: 12px !important; margin-top: 34px !important; }
+  .rc-pc-wide-service-card {
+    min-height: 168px !important;
+    grid-template-columns: 72px 1fr 18px !important;
+    padding: 22px 24px !important;
+    border-radius: 16px !important;
+  }
+  .rc-pc-wide-service-card .rc-final-icon { font-size: 50px !important; }
+  .rc-pc-wide-service-card strong { font-size: 22px !important; }
+  .rc-pc-wide-service-card small { font-size: 14px !important; }
+  .rc-pc-wide-cta-row { grid-template-columns: 1fr 1fr !important; gap: 24px !important; margin-top: 26px !important; }
+  .rc-final-trust { display: none !important; }
+}
+@media (min-width: 901px) and (max-width: 1280px) {
+  .rc-pc-wide-main { grid-template-columns: minmax(520px, 1fr) 470px; }
+  .rc-wide-chair-real { transform: scale(.72); transform-origin: right bottom; }
+  .rc-wide-chair-stage { min-height: 420px; }
+  .rc-pc-wide-service-card { grid-template-columns: 1fr !important; place-items: center !important; text-align: center !important; }
+  .rc-pc-wide-service-card small, .rc-pc-wide-service-card b { display: none !important; }
+}
+@media (max-width: 900px) {
+  .rc-wide-chair-stage, .rc-wide-blue-lines, .rc-wide-chair-real, .rc-wide-chair-back, .rc-wide-chair-pillow,
+  .rc-wide-chair-inner, .rc-wide-chair-seat, .rc-wide-chair-arm-left, .rc-wide-chair-arm-right,
+  .rc-wide-chair-legrest, .rc-wide-chair-base, .rc-wide-chair-gold-line { display: none !important; }
+}
