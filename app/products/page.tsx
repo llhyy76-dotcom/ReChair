@@ -1,2 +1,18 @@
-const products=[['1','코지마 CMC-A100','A급 · 경기 고양','외관 양호, 리모컨 정상, 기본 점검 완료 제품입니다.','890,000원'],['2','바디프랜드 팬텀','B+급 · 서울','프리미엄급 중고상품, 이전설치 상담 가능 제품입니다.','1,280,000원'],['3','세라젬 V7','A+급 · 전국','상태 확인 후 판매 가능 여부를 안내드립니다.','상담문의']];
-export default function Products(){return <main className="section"><h2>판매 중인 중고상품</h2><div className="product-grid">{products.map(p=><a className="product" href={`/products/${p[0]}`} key={p[0]}><div className="product-img">🪑</div><b>{p[2]}</b><h3>{p[1]}</h3><p>{p[3]}</p><div className="price">{p[4]}</div></a>)}</div></main>}
+import Footer from '@/components/Footer';
+import ProductList from '@/components/ProductList';
+
+export default function ProductsPage() {
+  return (
+    <main>
+      <section className="rc-sub-hero">
+        <div className="container">
+          <p className="eyebrow">ReChair Products</p>
+          <h1>중고·리퍼 판매상품</h1>
+          <p>상담 가능한 상품을 확인하고 상세 정보를 살펴보세요.</p>
+        </div>
+      </section>
+      <ProductList />
+      <Footer />
+    </main>
+  );
+}
