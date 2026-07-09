@@ -25,7 +25,7 @@ export default function Hero() {
             </p>
           </div>
 
-          <div className="rc-chair-wrap" aria-hidden="true">
+          <div className="rc-chair-wrap rc-desktop-chair" aria-hidden="true">
             <div className="rc-chair-glow" />
             <div className="rc-chair">
               <div className="rc-chair-head" />
