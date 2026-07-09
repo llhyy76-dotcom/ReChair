@@ -1,11 +1,11 @@
 export default function Hero() {
   const services = [
-    { label: '중고 구매', desc: '검증된 중고 안마의자 구매', icon: '🛒', href: '#products' },
-    { label: '중고 판매', desc: '간편하게 판매 상담', icon: '🏷️', href: '#consult' },
-    { label: '이전 설치', desc: '안전하고 신속한 설치', icon: '🚚', href: '#consult' },
-    { label: '폐기 수거', desc: '안마의자 회수·폐기', icon: '♻️', href: '#consult' },
-    { label: '출장 수리', desc: '전문 기사 방문 수리', icon: '🔧', href: '#consult' },
-    { label: '부품 구매', desc: '정품 부품 빠른 발송', icon: '⚙️', href: '#consult' },
+    { label: '중고 구매', desc: '검증된 중고 안마의자 구매', icon: '🛒', href: '/services/buy' },
+    { label: '중고 판매', desc: '간편하게 판매 상담', icon: '🏷️', href: '/services/sell' },
+    { label: '이전 설치', desc: '안전하고 신속한 설치', icon: '🚚', href: '/services/move' },
+    { label: '폐기 수거', desc: '안마의자 회수·폐기', icon: '♻️', href: '/services/dispose' },
+    { label: '출장 수리', desc: '전문 기사 방문 수리', icon: '🔧', href: '/services/repair' },
+    { label: '부품 구매', desc: '정품 부품 빠른 발송', icon: '⚙️', href: '/services/parts' },
   ];
 
   return (
@@ -38,7 +38,7 @@ export default function Hero() {
           </div>
         </div>
 
-        <div className="rc-service-grid" id="services">
+        <div className="rc-service-grid" id="service-menu">
           {services.map((service) => (
             <a className="rc-service-card" href={service.href} key={service.label}>
               <span className="rc-service-icon">{service.icon}</span>
