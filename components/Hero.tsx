@@ -9,10 +9,10 @@ export default function Hero() {
   ];
 
   return (
-    <section className="rc-final-hero rc-pc-wide-hero">
-      <div className="rc-final-shell rc-pc-wide-shell">
-        <div className="rc-pc-wide-main">
-          <div className="rc-pc-wide-copy">
+    <section className="rc-final-hero rc-realchair-hero">
+      <div className="rc-final-shell rc-realchair-shell">
+        <div className="rc-realchair-main">
+          <div className="rc-realchair-copy">
             <p className="rc-final-eyebrow">중고 안마의자 전문 고객센터</p>
             <h1>
               중고 안마의자,<br />
@@ -26,25 +26,15 @@ export default function Hero() {
             </p>
           </div>
 
-          <div className="rc-wide-chair-stage" aria-hidden="true">
-            <div className="rc-wide-blue-lines" />
-            <div className="rc-wide-chair-real">
-              <div className="rc-wide-chair-back" />
-              <div className="rc-wide-chair-pillow" />
-              <div className="rc-wide-chair-inner" />
-              <div className="rc-wide-chair-seat" />
-              <div className="rc-wide-chair-arm-left" />
-              <div className="rc-wide-chair-arm-right" />
-              <div className="rc-wide-chair-legrest" />
-              <div className="rc-wide-chair-base" />
-              <div className="rc-wide-chair-gold-line" />
-            </div>
+          <div className="rc-realchair-visual" aria-hidden="true">
+            <div className="rc-realchair-light" />
+            <img src="/rechair-chair-hero.png" alt="" />
           </div>
         </div>
 
-        <div className="rc-final-service-grid rc-pc-wide-service-grid" id="service-menu">
+        <div className="rc-final-service-grid rc-realchair-service-grid" id="service-menu">
           {services.map((service) => (
-            <a className="rc-final-service-card rc-pc-wide-service-card" href={service.href} key={service.label}>
+            <a className="rc-final-service-card rc-realchair-service-card" href={service.href} key={service.label}>
               <span className="rc-final-icon">{service.icon}</span>
               <strong>{service.label}</strong>
               <small>{service.desc}</small>
@@ -53,7 +43,7 @@ export default function Hero() {
           ))}
         </div>
 
-        <div className="rc-final-cta-row rc-pc-wide-cta-row">
+        <div className="rc-final-cta-row rc-realchair-cta-row">
           <a className="rc-final-quote" href="#consult">
             <span>📝</span>
             <div><strong>무료 견적 신청</strong><small>간편하게 견적을 받아보세요</small></div>
