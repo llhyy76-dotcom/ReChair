@@ -3138,3 +3138,63 @@ section:has(.service-grid),section:has(.service-card),section:has(.service-numbe
     display: none !important;
   }
 }
+/* ReChair PC Chair Image Force Fix v2 */
+/* Hero.tsx가 이전 버전이어도 PC 우측에 public 이미지를 강제로 표시 */
+
+@media (min-width: 901px) {
+  .rc-final-hero {
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  .rc-final-hero::before {
+    content: '' !important;
+    position: absolute !important;
+    right: 4vw !important;
+    top: 110px !important;
+    width: min(620px, 42vw) !important;
+    height: 470px !important;
+    background-image:
+      radial-gradient(circle at 55% 48%, rgba(0, 126, 255, .32), transparent 55%),
+      url('/rechair-chair-hero.png') !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: contain !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+    filter: drop-shadow(0 34px 42px rgba(0, 0, 0, .42)) !important;
+  }
+
+  .rc-final-shell {
+    position: relative !important;
+    z-index: 2 !important;
+  }
+
+  .rc-final-eyebrow,
+  .rc-final-hero h1,
+  .rc-final-desc {
+    max-width: 760px !important;
+  }
+
+  .rc-final-service-grid,
+  .rc-final-cta-row {
+    position: relative !important;
+    z-index: 3 !important;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1280px) {
+  .rc-final-hero::before {
+    right: 1vw !important;
+    width: 460px !important;
+    height: 370px !important;
+    top: 130px !important;
+    opacity: .9 !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .rc-final-hero::before {
+    display: none !important;
+  }
+}
