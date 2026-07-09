@@ -1979,3 +1979,284 @@ button, input, select, textarea { font: inherit; }
     height: 35px;
   }
 }
+/* ReChair Left Mockup Logo/UI v1 */
+/* 좌측 시안 기준: 로고 작게, 톱니기어 2개, 모바일 첫 화면 메뉴 노출 */
+
+.rc-logo-leftmock {
+  display: inline-flex !important;
+  align-items: flex-start !important;
+  gap: 3px !important;
+}
+
+.rc-logo-leftmock .rc-logo-words {
+  display: grid !important;
+  line-height: .77 !important;
+  font-style: italic !important;
+  font-weight: 1000 !important;
+  letter-spacing: -2px !important;
+}
+
+.rc-logo-leftmock .rc-logo-re {
+  font-size: 34px !important;
+  color: #1465ff !important;
+}
+
+.rc-logo-leftmock .rc-logo-chair {
+  font-size: 30px !important;
+  color: #071126 !important;
+}
+
+.rc-logo-leftmock .rc-logo-gears.rc-true-gears {
+  position: relative !important;
+  display: inline-block !important;
+  width: 48px !important;
+  height: 42px !important;
+  margin-left: -1px !important;
+  transform: translateY(15px) !important;
+}
+
+.rc-logo-leftmock .rc-gear,
+.rc-logo-leftmock .gear,
+.rc-logo-leftmock .rc-gear-blue,
+.rc-logo-leftmock .rc-gear-navy {
+  display: none !important;
+}
+
+.rc-logo-leftmock .rc-gear-svg {
+  position: absolute !important;
+  overflow: visible !important;
+}
+
+.rc-logo-leftmock .rc-gear-svg path {
+  stroke-linejoin: miter !important;
+  stroke-width: 4 !important;
+}
+
+.rc-logo-leftmock .rc-gear-svg circle {
+  fill: #fff !important;
+  stroke-width: 8 !important;
+}
+
+.rc-logo-leftmock .rc-blue-gear {
+  width: 34px !important;
+  height: 34px !important;
+  left: 0 !important;
+  top: 0 !important;
+  transform: rotate(8deg);
+}
+
+.rc-logo-leftmock .rc-blue-gear path {
+  fill: #1465ff !important;
+  stroke: #1465ff !important;
+}
+
+.rc-logo-leftmock .rc-blue-gear circle {
+  stroke: #1465ff !important;
+}
+
+.rc-logo-leftmock .rc-navy-gear {
+  width: 30px !important;
+  height: 30px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  transform: rotate(-10deg);
+}
+
+.rc-logo-leftmock .rc-navy-gear path {
+  fill: #071126 !important;
+  stroke: #071126 !important;
+}
+
+.rc-logo-leftmock .rc-navy-gear circle {
+  stroke: #071126 !important;
+}
+
+.rc-leftmock-hero {
+  background:
+    radial-gradient(circle at 86% 12%, rgba(28, 112, 255, .42), transparent 28%),
+    radial-gradient(circle at 18% 72%, rgba(0, 145, 255, .18), transparent 34%),
+    linear-gradient(135deg, #031126 0%, #062b59 48%, #020b18 100%) !important;
+}
+
+.rc-leftmock-shell {
+  width: min(1040px, calc(100% - 48px)) !important;
+  padding-top: 48px !important;
+  padding-bottom: 42px !important;
+}
+
+.rc-leftmock-hero .rc-chair-wrap,
+.rc-leftmock-hero .rc-chair,
+.rc-leftmock-hero .rc-chair-glow {
+  display: none !important;
+}
+
+.rc-leftmock-hero .rc-hero-top {
+  display: block !important;
+}
+
+.rc-leftmock-hero .rc-hero-copy h1 {
+  max-width: 720px !important;
+}
+
+.rc-leftmock-service-grid {
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 12px !important;
+  margin-top: 28px !important;
+}
+
+.rc-leftmock-service-card {
+  min-height: 148px !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.07) !important;
+}
+
+.rc-leftmock-cta-row {
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+  margin-top: 16px !important;
+}
+
+.rc-leftmock-trust {
+  margin-top: 14px !important;
+}
+
+@media (max-width: 900px) {
+  .rc-header-inner {
+    min-height: 94px !important;
+    padding: 14px 24px !important;
+  }
+
+  .rc-logo-leftmock {
+    transform: none !important;
+  }
+
+  .rc-logo-leftmock .rc-logo-re {
+    font-size: 40px !important;
+  }
+
+  .rc-logo-leftmock .rc-logo-chair {
+    font-size: 36px !important;
+  }
+
+  .rc-logo-leftmock .rc-logo-gears.rc-true-gears {
+    width: 52px !important;
+    height: 45px !important;
+    transform: translateY(18px) !important;
+  }
+
+  .rc-logo-leftmock .rc-blue-gear {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .rc-logo-leftmock .rc-navy-gear {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .rc-leftmock-shell {
+    width: 100% !important;
+    padding: 26px 24px 22px !important;
+  }
+
+  .rc-leftmock-hero .rc-eyebrow {
+    font-size: 15px !important;
+    padding: 10px 16px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .rc-leftmock-hero .rc-hero-copy h1 {
+    font-size: 31px !important;
+    line-height: 1.16 !important;
+    letter-spacing: -1.8px !important;
+  }
+
+  .rc-leftmock-hero .rc-hero-desc {
+    font-size: 14px !important;
+    line-height: 1.62 !important;
+    margin-top: 14px !important;
+  }
+
+  .rc-leftmock-service-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    margin-top: 18px !important;
+  }
+
+  .rc-leftmock-service-card {
+    min-height: 96px !important;
+    border-radius: 13px !important;
+    padding: 10px 5px !important;
+  }
+
+  .rc-leftmock-service-card .rc-service-icon {
+    font-size: 29px !important;
+  }
+
+  .rc-leftmock-service-card strong {
+    font-size: 15px !important;
+    letter-spacing: -1px !important;
+  }
+
+  .rc-leftmock-service-card small,
+  .rc-leftmock-service-card b {
+    display: none !important;
+  }
+
+  .rc-leftmock-cta-row {
+    margin-top: 12px !important;
+  }
+
+  .rc-leftmock-cta-row .rc-quote-btn,
+  .rc-leftmock-cta-row .rc-product-btn {
+    min-height: 55px !important;
+    border-radius: 13px !important;
+  }
+
+  .rc-leftmock-trust {
+    display: grid !important;
+    margin-top: 12px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .rc-logo-leftmock .rc-logo-re {
+    font-size: 34px !important;
+  }
+
+  .rc-logo-leftmock .rc-logo-chair {
+    font-size: 30px !important;
+  }
+
+  .rc-logo-leftmock .rc-logo-gears.rc-true-gears {
+    width: 45px !important;
+    height: 39px !important;
+    transform: translateY(15px) !important;
+  }
+
+  .rc-logo-leftmock .rc-blue-gear {
+    width: 31px !important;
+    height: 31px !important;
+  }
+
+  .rc-logo-leftmock .rc-navy-gear {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  .rc-leftmock-shell {
+    padding: 22px 20px 18px !important;
+  }
+
+  .rc-leftmock-hero .rc-hero-copy h1 {
+    font-size: 28px !important;
+  }
+
+  .rc-leftmock-service-card {
+    min-height: 88px !important;
+  }
+
+  .rc-leftmock-service-card strong {
+    font-size: 14px !important;
+  }
+}
