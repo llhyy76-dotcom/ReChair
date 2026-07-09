@@ -1814,3 +1814,58 @@ button, input, select, textarea { font: inherit; }
     grid-template-columns: 1fr;
   }
 }
+/* ReChair Mobile Chair Remove Fix v3 */
+/* 반드시 app/globals.css 맨 마지막 줄 아래에 추가하세요. */
+
+@media (max-width: 900px) {
+  /* 모바일 첫 화면에서 안마의자 그래픽 완전 제거 */
+  .rc-chair-wrap,
+  .rc-desktop-chair,
+  .rc-chair-glow,
+  .rc-chair,
+  .rc-chair-head,
+  .rc-chair-back,
+  .rc-chair-body,
+  .rc-chair-arm,
+  .rc-chair-base,
+  .rc-chair-line,
+  .hero-chair,
+  .chair-shape,
+  .chair-head,
+  .chair-back,
+  .chair-seat,
+  .chair-arm,
+  .chair-leg {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .rc-hero-top {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .rc-hero-shell {
+    padding-top: 24px !important;
+  }
+
+  .rc-service-grid {
+    margin-top: 18px !important;
+  }
+
+  .rc-service-card {
+    min-height: 92px !important;
+  }
+
+  .rc-trust-bar {
+    display: none !important;
+  }
+}
