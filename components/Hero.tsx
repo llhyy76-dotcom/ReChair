@@ -9,25 +9,43 @@ export default function Hero() {
   ];
 
   return (
-    <section className="rc-hero rc-leftmock-hero">
-      <div className="rc-hero-shell rc-leftmock-shell">
-        <div className="rc-hero-copy">
-          <p className="rc-eyebrow">중고 안마의자 전문 고객센터</p>
-          <h1>
-            중고 안마의자,<br />
-            구매<span>·</span>판매<span>·</span>수리까지<br />
-            한 번에 <em>해결</em>하세요.
-          </h1>
-          <p className="rc-hero-desc">
-            사진과 모델명만 남겨주시면 중고 구매, 판매, 이전설치, 폐기수거,
-            출장수리, 부품구매까지 빠르게 상담해드립니다.
-          </p>
+    <section className="rc-final-hero rc-pc-wide-hero">
+      <div className="rc-final-shell rc-pc-wide-shell">
+        <div className="rc-pc-wide-main">
+          <div className="rc-pc-wide-copy">
+            <p className="rc-final-eyebrow">중고 안마의자 전문 고객센터</p>
+            <h1>
+              중고 안마의자,<br />
+              구매 <span>·</span> 판매 <span>·</span> 수리까지<br />
+              한 번에 <em>해결</em>하세요.
+            </h1>
+            <p className="rc-final-desc">
+              사진과 모델명만 남겨주시면 중고 구매, 판매,<br />
+              이전설치, 폐기수거, 출장수리, 부품구매까지<br />
+              빠르게 상담해드립니다.
+            </p>
+          </div>
+
+          <div className="rc-wide-chair-stage" aria-hidden="true">
+            <div className="rc-wide-blue-lines" />
+            <div className="rc-wide-chair-real">
+              <div className="rc-wide-chair-back" />
+              <div className="rc-wide-chair-pillow" />
+              <div className="rc-wide-chair-inner" />
+              <div className="rc-wide-chair-seat" />
+              <div className="rc-wide-chair-arm-left" />
+              <div className="rc-wide-chair-arm-right" />
+              <div className="rc-wide-chair-legrest" />
+              <div className="rc-wide-chair-base" />
+              <div className="rc-wide-chair-gold-line" />
+            </div>
+          </div>
         </div>
 
-        <div className="rc-service-grid rc-leftmock-service-grid" id="service-menu">
+        <div className="rc-final-service-grid rc-pc-wide-service-grid" id="service-menu">
           {services.map((service) => (
-            <a className="rc-service-card rc-leftmock-service-card" href={service.href} key={service.label}>
-              <span className="rc-service-icon">{service.icon}</span>
+            <a className="rc-final-service-card rc-pc-wide-service-card" href={service.href} key={service.label}>
+              <span className="rc-final-icon">{service.icon}</span>
               <strong>{service.label}</strong>
               <small>{service.desc}</small>
               <b>›</b>
@@ -35,19 +53,17 @@ export default function Hero() {
           ))}
         </div>
 
-        <div className="rc-cta-row rc-leftmock-cta-row">
-          <a className="rc-quote-btn" href="#consult">
-            <span>📝</span><strong>무료 견적 신청</strong><em>간편하게 견적을 받아보세요</em><b>›</b>
+        <div className="rc-final-cta-row rc-pc-wide-cta-row">
+          <a className="rc-final-quote" href="#consult">
+            <span>📝</span>
+            <div><strong>무료 견적 신청</strong><small>간편하게 견적을 받아보세요</small></div>
+            <b>›</b>
           </a>
-          <a className="rc-product-btn" href="#products">
-            <span>🛍️</span><strong>판매상품 보기</strong><em>다양한 중고 안마의자를 확인하세요</em><b>›</b>
+          <a className="rc-final-product" href="#products">
+            <span>🛍️</span>
+            <div><strong>판매상품 보기</strong><small>다양한 중고 안마의자를 확인하세요</small></div>
+            <b>›</b>
           </a>
-        </div>
-
-        <div className="rc-trust-bar rc-leftmock-trust">
-          <div><span>🛡️</span><strong>신뢰</strong><small>정품 부품 사용<br />투명한 서비스</small></div>
-          <div><span>🔄</span><strong>순환</strong><small>자원 재활용을 통한<br />가치 있는 순환</small></div>
-          <div><span>🤝</span><strong>연결</strong><small>전문가와 고객을<br />연결하는 플랫폼</small></div>
         </div>
       </div>
     </section>
