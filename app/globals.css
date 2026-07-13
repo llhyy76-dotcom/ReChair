@@ -3784,3 +3784,128 @@ body {
     margin-bottom: 12px !important;
   }
 }
+/* ReChair PC Hero Final Balanced v2 */
+
+@media (min-width: 901px) {
+  .rc-balanced-hero {
+    position: relative !important;
+    overflow: hidden !important;
+    padding: 48px 0 52px !important;
+    background:
+      radial-gradient(circle at 71% 32%, rgba(16, 103, 255, .28), transparent 33%),
+      linear-gradient(135deg, #031026 0%, #052755 50%, #020b18 100%) !important;
+  }
+
+  .rc-balanced-shell {
+    width: min(1380px, calc(100% - 64px)) !important;
+    margin: 0 auto !important;
+  }
+
+  .rc-balanced-main {
+    display: grid !important;
+    grid-template-columns: minmax(560px, .98fr) minmax(470px, .82fr) !important;
+    gap: 6px !important;
+    align-items: center !important;
+  }
+
+  .rc-balanced-copy {
+    position: relative !important;
+    z-index: 3 !important;
+  }
+
+  .rc-balanced-copy .rc-final-desc {
+    max-width: 610px !important;
+  }
+
+  .rc-balanced-chair {
+    position: relative !important;
+    min-height: 430px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    margin-left: -88px !important;
+    overflow: visible !important;
+  }
+
+  .rc-balanced-chair img {
+    width: 560px !important;
+    height: 430px !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    display: block !important;
+    border-radius: 28px !important;
+    opacity: .98 !important;
+    filter:
+      saturate(.94)
+      contrast(1.02)
+      drop-shadow(0 20px 28px rgba(0,0,0,.22)) !important;
+
+    -webkit-mask-image:
+      radial-gradient(ellipse 78% 72% at 56% 50%, #000 58%, rgba(0,0,0,.92) 72%, transparent 100%),
+      linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      radial-gradient(ellipse 78% 72% at 56% 50%, #000 58%, rgba(0,0,0,.92) 72%, transparent 100%);
+  }
+
+  .rc-balanced-service-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 14px !important;
+    margin-top: 12px !important;
+  }
+
+  .rc-balanced-service-card {
+    min-height: 118px !important;
+    border-radius: 16px !important;
+  }
+
+  .rc-balanced-cta-row {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 18px !important;
+    margin-top: 16px !important;
+  }
+
+  /* 이전 강제 삽입 이미지/의자 요소 제거 */
+  .rc-final-hero::before,
+  .rc-realchair-visual,
+  .rc-wide-chair-stage,
+  .rc-pc-chair-visual,
+  .rc-pc-final-visual {
+    display: none !important;
+    content: none !important;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1180px) {
+  .rc-balanced-main {
+    grid-template-columns: minmax(500px, 1fr) 430px !important;
+  }
+
+  .rc-balanced-chair {
+    margin-left: -54px !important;
+  }
+
+  .rc-balanced-chair img {
+    width: 470px !important;
+    height: 370px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .rc-balanced-main {
+    display: block !important;
+  }
+
+  .rc-balanced-chair {
+    display: none !important;
+  }
+
+  /* 기존보다 약 3mm 위 여유 추가 */
+  .rc-final-hero {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .rc-final-cta-row {
+    margin-bottom: 16px !important;
+  }
+}
