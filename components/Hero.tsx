@@ -9,25 +9,31 @@ export default function Hero() {
   ];
 
   return (
-    <section className="rc-final-hero rc-consult-entry-hero">
-      <div className="rc-final-shell">
-        <p className="rc-final-eyebrow">중고 안마의자 전문 고객센터</p>
+    <section className="rc-final-hero rc-pc-final-hero">
+      <div className="rc-final-shell rc-pc-final-shell">
+        <div className="rc-pc-final-main">
+          <div className="rc-pc-final-copy">
+            <p className="rc-final-eyebrow">중고 안마의자 전문 고객센터</p>
+            <h1>
+              중고 안마의자,<br />
+              구매 <span>·</span> 판매 <span>·</span> 수리까지<br />
+              한 번에 <em>해결</em>하세요.
+            </h1>
+            <p className="rc-final-desc">
+              사진과 모델명만 남겨주시면 중고 구매, 판매, 이전설치,
+              폐기수거, 출장수리, 부품구매까지 빠르게 상담해드립니다.
+            </p>
+          </div>
 
-        <h1>
-          중고 안마의자,<br />
-          구매 <span>·</span> 판매 <span>·</span> 수리까지<br />
-          한 번에 <em>해결</em>하세요.
-        </h1>
+          <div className="rc-pc-final-visual" aria-hidden="true">
+            <img src="/rechair-pc-hero-final.png" alt="" />
+          </div>
+        </div>
 
-        <p className="rc-final-desc">
-          사진과 모델명만 남겨주시면 중고 구매, 판매, 이전설치, 폐기수거,
-          출장수리, 부품구매까지 빠르게 상담해드립니다.
-        </p>
-
-        <div className="rc-final-service-grid" id="service-menu">
+        <div className="rc-final-service-grid rc-pc-final-service-grid" id="service-menu">
           {services.map((service) => (
             <a
-              className="rc-final-service-card"
+              className="rc-final-service-card rc-pc-final-service-card"
               href={`/consult?service=${service.key}`}
               key={service.key}
             >
@@ -39,7 +45,7 @@ export default function Hero() {
           ))}
         </div>
 
-        <div className="rc-final-cta-row">
+        <div className="rc-final-cta-row rc-pc-final-cta-row">
           <a className="rc-final-quote" href="/consult">
             <span>📝</span>
             <div>
