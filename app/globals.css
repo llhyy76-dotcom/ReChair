@@ -3198,3 +3198,11 @@ section:has(.service-grid),section:has(.service-card),section:has(.service-numbe
     display: none !important;
   }
 }
+/* PC 안마의자 이미지 중복 제거 */
+@media (min-width: 901px) {
+  .rc-realchair-visual,
+  .rc-wide-chair-stage,
+  .rc-pc-chair-visual {
+    display: none !important;
+  }
+}
