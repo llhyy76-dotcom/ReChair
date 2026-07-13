@@ -14,13 +14,11 @@ export default function Hero() {
         <div className="rc-balanced-main">
           <div className="rc-balanced-copy">
             <p className="rc-final-eyebrow">중고 안마의자 전문 고객센터</p>
-
             <h1>
               중고 안마의자,<br />
               구매 <span>·</span> 판매 <span>·</span> 수리까지<br />
               한 번에 <em>해결</em>하세요.
             </h1>
-
             <p className="rc-final-desc">
               사진과 모델명만 남겨주시면 중고 구매, 판매, 이전설치,
               폐기수거, 출장수리, 부품구매까지 빠르게 상담해드립니다.
@@ -28,7 +26,7 @@ export default function Hero() {
           </div>
 
           <div className="rc-balanced-chair" aria-hidden="true">
-            <img src="/rechair-chair-balanced.png" alt="" />
+            <img src="/rechair-chair-sharp.png" alt="" />
           </div>
         </div>
 
@@ -56,7 +54,6 @@ export default function Hero() {
             </div>
             <b>›</b>
           </a>
-
           <a className="rc-final-product" href="/#products">
             <span>🛍️</span>
             <div>
