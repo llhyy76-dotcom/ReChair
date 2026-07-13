@@ -14,14 +14,19 @@ const SERVICE_OPTIONS = [
 type ServiceKey = (typeof SERVICE_OPTIONS)[number]['key'];
 type PhotoKey = 'photo_front' | 'photo_side' | 'photo_label' | 'photo_back';
 
+type ProductSummary = {
+  id: string;
+  title: string;
+  brand: string;
+  model_name: string;
+  price: number;
+  thumbnail_url?: string | null;
+};
+
 type PreviewMap = Partial<Record<PhotoKey, string>>;
 type FileMap = Partial<Record<PhotoKey, File>>;
 
-const PHOTO_ITEMS: Array<{
-  key: PhotoKey;
-  title: string;
-  guide: string;
-}> = [
+const PHOTO_ITEMS: Array<{ key: PhotoKey; title: string; guide: string }> = [
   { key: 'photo_front', title: '앞면 사진', guide: '안마의자 전체 앞모습' },
   { key: 'photo_side', title: '옆면 사진', guide: '좌·우 측면 상태 확인' },
   { key: 'photo_label', title: '모델명/제품라벨', guide: '모델명과 제조번호가 보이게' },
@@ -30,6 +35,10 @@ const PHOTO_ITEMS: Array<{
 
 function serviceLabel(key: string | null): string {
   return SERVICE_OPTIONS.find((item) => item.key === key)?.label ?? '';
+}
+
+function formatPrice(value: number) {
+  return `${Number(value || 0).toLocaleString('ko-KR')}원`;
 }
 
 async function compressImage(file: File, maxDimension = 1600, quality = 0.82): Promise<File> {
@@ -69,6 +78,8 @@ async function compressImage(file: File, maxDimension = 1600, quality = 0.82): P
 export default function ConsultationForm() {
   const formRef = useRef<HTMLFormElement | null>(null);
   const [fixedService, setFixedService] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<ProductSummary | null>(null);
+  const [productLoading, setProductLoading] = useState(false);
   const [files, setFiles] = useState<FileMap>({});
   const [previews, setPreviews] = useState<PreviewMap>({});
   const [submitting, setSubmitting] = useState(false);
@@ -77,7 +88,24 @@ export default function ConsultationForm() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setFixedService(serviceLabel(params.get('service')));
+    const service = params.get('service');
+    const productId = params.get('product');
+
+    setFixedService(serviceLabel(service));
+
+    if (productId) {
+      setProductLoading(true);
+      fetch(`/api/products/${productId}`)
+        .then(async (response) => {
+          const result = await response.json();
+          if (!response.ok) throw new Error(result?.error || '상품 정보를 불러오지 못했습니다.');
+          setSelectedProduct(result.data || null);
+        })
+        .catch((error) => {
+          setErrorMessage(error instanceof Error ? error.message : '상품 정보 조회 오류');
+        })
+        .finally(() => setProductLoading(false));
+    }
   }, []);
 
   useEffect(() => {
@@ -121,10 +149,14 @@ export default function ConsultationForm() {
         payload.set('service_type', fixedService);
       }
 
+      if (selectedProduct) {
+        payload.set('product_id', selectedProduct.id);
+        payload.set('product_title', selectedProduct.title);
+      }
+
       for (const item of PHOTO_ITEMS) {
         const original = files[item.key];
         if (!original) continue;
-
         const compressed = await compressImage(original);
         payload.set(item.key, compressed);
       }
@@ -146,12 +178,12 @@ export default function ConsultationForm() {
         `RC-${new Date().toISOString().slice(0, 10).replaceAll('-', '')}-${String(Date.now()).slice(-5)}`;
 
       setReceiptNumber(receipt);
-
       formRef.current?.reset();
 
       Object.values(previews).forEach((url) => {
         if (url) URL.revokeObjectURL(url);
       });
+
       setFiles({});
       setPreviews({});
     } catch (error) {
@@ -192,6 +224,26 @@ export default function ConsultationForm() {
           <p>필요한 정보를 남겨주시면 담당자가 확인 후 연락드립니다.</p>
         </div>
 
+        {productLoading && <div className="rc-selected-product loading">상품 정보를 불러오는 중입니다.</div>}
+
+        {selectedProduct && (
+          <div className="rc-selected-product">
+            <div className="rc-selected-product-image">
+              {selectedProduct.thumbnail_url ? (
+                <img src={selectedProduct.thumbnail_url} alt={selectedProduct.title} />
+              ) : (
+                <span>💺</span>
+              )}
+            </div>
+            <div>
+              <small>선택한 구매상담 상품</small>
+              <strong>{selectedProduct.title}</strong>
+              <p>{selectedProduct.brand} · {selectedProduct.model_name}</p>
+              <b>{formatPrice(selectedProduct.price)}</b>
+            </div>
+          </div>
+        )}
+
         <form ref={formRef} className="rc-consult-form" onSubmit={handleSubmit}>
           <div className="rc-form-grid">
             <label>
@@ -201,12 +253,7 @@ export default function ConsultationForm() {
 
             <label>
               <span>연락처</span>
-              <input
-                name="phone"
-                required
-                inputMode="tel"
-                placeholder="010-0000-0000"
-              />
+              <input name="phone" required inputMode="tel" placeholder="010-0000-0000" />
             </label>
 
             <label>
@@ -226,13 +273,9 @@ export default function ConsultationForm() {
                 </>
               ) : (
                 <select name="service_type" required defaultValue="">
-                  <option value="" disabled>
-                    원하는 서비스를 선택해 주세요
-                  </option>
+                  <option value="" disabled>원하는 서비스를 선택해 주세요</option>
                   {SERVICE_OPTIONS.map((item) => (
-                    <option value={item.label} key={item.key}>
-                      {item.label}
-                    </option>
+                    <option value={item.label} key={item.key}>{item.label}</option>
                   ))}
                 </select>
               )}
@@ -240,12 +283,20 @@ export default function ConsultationForm() {
 
             <label>
               <span>브랜드</span>
-              <input name="brand" placeholder="코지마, 세라젬, 바디프랜드 등" />
+              <input
+                name="brand"
+                defaultValue={selectedProduct?.brand || ''}
+                placeholder="코지마, 세라젬, 바디프랜드 등"
+              />
             </label>
 
             <label>
               <span>모델명</span>
-              <input name="model_name" placeholder="제품 라벨에 적힌 모델명" />
+              <input
+                name="model_name"
+                defaultValue={selectedProduct?.model_name || ''}
+                placeholder="제품 라벨에 적힌 모델명"
+              />
             </label>
 
             <label className="rc-full">
@@ -253,6 +304,7 @@ export default function ConsultationForm() {
               <textarea
                 name="message"
                 rows={6}
+                defaultValue={selectedProduct ? `${selectedProduct.title} 구매 상담을 신청합니다.` : ''}
                 placeholder="자세한 문의 내용을 적어 주세요"
               />
             </label>
@@ -261,7 +313,7 @@ export default function ConsultationForm() {
           <div className="rc-photo-section">
             <div className="rc-photo-title">
               <h3>제품 사진 업로드</h3>
-              <p>사진은 장당 최대 1600px로 자동 압축해 저장합니다.</p>
+              <p>중고 판매·수리·부품 문의 시 사진을 올려주시면 더욱 빠르게 확인할 수 있습니다.</p>
             </div>
 
             <div className="rc-upload-grid">
