@@ -1,1 +1,2 @@
-export default function AdminProducts(){return <main className="admin"><h1>상품 관리</h1><p className="muted">다음 단계에서 Supabase 상품 DB와 연결됩니다.</p><table className="table"><thead><tr><th>상품명</th><th>가격</th><th>상태</th></tr></thead><tbody><tr><td>코지마 CMC-A100</td><td>890,000원</td><td>판매중</td></tr></tbody></table></main>}
+import AdminProducts from '@/components/AdminProducts';
+export default function AdminProductsPage(){return <main className="rc-admin-products-page"><AdminProducts/></main>}
