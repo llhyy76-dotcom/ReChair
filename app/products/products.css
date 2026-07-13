@@ -1,0 +1,64 @@
+/* ReChair products dedicated stylesheet - imported directly by products pages */
+
+.rc-store-hero{
+  padding:84px 24px 60px;text-align:center;color:#fff;
+  background:radial-gradient(circle at 72% 20%,rgba(19,105,255,.34),transparent 34%),linear-gradient(135deg,#031026,#052755)
+}
+.rc-store-hero p{color:#56baff;font-weight:1000;letter-spacing:1px}
+.rc-store-hero h1{margin:8px 0 10px;font-size:clamp(42px,5vw,68px);letter-spacing:-3px}
+.rc-store-hero span{font-size:18px;color:rgba(255,255,255,.85)}
+.rc-store-section{padding:58px 24px 100px;background:#f3f7fc}
+.rc-store-container{width:min(1280px,100%);margin:auto}
+.rc-store-toolbar{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px}
+.rc-store-toolbar input,.rc-store-toolbar select{
+  min-height:54px;border:1px solid #d9e4f0;border-radius:14px;padding:0 16px;background:#fff;font:inherit
+}
+.rc-store-result-head{display:flex;justify-content:space-between;gap:20px;margin:22px 2px;color:#64748b}
+.rc-store-result-head strong{color:#071126}
+.rc-store-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.rc-store-card{
+  overflow:hidden;border:1px solid #dce7f3;border-radius:24px;background:#fff;color:#071126;
+  box-shadow:0 20px 50px rgba(14,37,70,.08);transition:transform .2s ease,box-shadow .2s ease
+}
+.rc-store-card:hover{transform:translateY(-6px);box-shadow:0 28px 64px rgba(14,37,70,.14)}
+.rc-store-image{position:relative;height:250px;display:grid;place-items:center;background:linear-gradient(145deg,#071b39,#0753a8)}
+.rc-store-image img{width:100%;height:100%;object-fit:cover}
+.rc-store-image>span{font-size:88px}
+.rc-store-image b,.rc-store-image i{
+  position:absolute;top:16px;border-radius:999px;padding:8px 13px;color:#fff;font-style:normal;font-weight:900
+}
+.rc-store-image b{right:16px;background:#0e5bff}.rc-store-image i{left:16px;background:#0bb67c}
+.rc-store-body{padding:24px}
+.rc-store-body small{color:#0e5bff;font-weight:900}
+.rc-store-body h2{margin:8px 0;font-size:26px}
+.rc-store-body p{color:#526070}
+.rc-store-tags{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.rc-store-tags span{border-radius:999px;padding:7px 10px;background:#eef5ff;font-size:13px;font-weight:800}
+.rc-store-body>strong{display:block;margin-bottom:14px;font-size:27px}
+.rc-store-body em{color:#0e5bff;font-style:normal;font-weight:1000}
+.rc-store-empty{margin-top:26px;padding:70px;border-radius:24px;background:#fff;text-align:center}
+
+.rc-product-page{min-height:100dvh;padding:70px 24px 100px;background:#f3f7fc}
+.rc-product-card{width:min(1200px,100%);margin:auto;border-radius:30px;padding:38px;background:#fff;box-shadow:0 24px 70px rgba(15,39,75,.1)}
+.rc-product-back{color:#0e5bff;font-weight:900}
+.rc-product-grid{display:grid;grid-template-columns:1fr 1fr;gap:42px;margin-top:28px}
+.rc-product-main-image{min-height:480px;overflow:hidden;border-radius:24px;display:grid;place-items:center;background:#061832}
+.rc-product-main-image img{width:100%;height:100%;object-fit:cover}
+.rc-product-main-image span{font-size:140px}
+.rc-product-thumbnails{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.rc-product-thumbnails img{width:100%;aspect-ratio:1;border-radius:10px;object-fit:cover}
+.rc-product-info>p{color:#0e5bff;font-weight:900}.rc-product-info h1{margin:8px 0;font-size:48px;letter-spacing:-2px}
+.rc-product-info>span{color:#64748b}.rc-product-price{margin:22px 0;color:#0e5bff;font-size:36px;font-weight:1000}
+.rc-product-specs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rc-product-specs div{border-radius:14px;padding:15px;background:#f3f7fc}.rc-product-specs small,.rc-product-specs strong{display:block}
+.rc-product-description{margin-top:22px;border-radius:16px;padding:20px;background:#f8fafc;line-height:1.7}
+.rc-product-buttons{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}
+.rc-product-buttons a{border-radius:14px;padding:17px;background:#0e5bff;color:#fff;text-align:center;font-weight:1000}
+.rc-product-buttons a:last-child{background:#eef5ff;color:#0e5bff}
+
+@media(max-width:900px){
+  .rc-store-toolbar,.rc-store-grid,.rc-product-grid{grid-template-columns:1fr}
+  .rc-store-result-head{display:block}.rc-store-result-head span{display:block;margin-top:6px}
+  .rc-product-main-image{min-height:300px}.rc-product-info h1{font-size:36px}
+  .rc-product-specs{grid-template-columns:1fr 1fr}.rc-product-buttons{grid-template-columns:1fr}
+}
