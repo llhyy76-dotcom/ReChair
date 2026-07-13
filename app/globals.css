@@ -3909,3 +3909,136 @@ body {
     margin-bottom: 16px !important;
   }
 }
+/* ReChair PC Chair Sharp Fix v3
+   - 저해상도 확대 제거
+   - PC 안마의자를 우측 상단에 선명하게 고정
+   - 메인 배경과 자연스럽게 블렌딩
+*/
+
+@media (min-width: 901px) {
+  .rc-final-hero,
+  .rc-balanced-hero {
+    position: relative !important;
+    overflow: hidden !important;
+    padding: 48px 0 52px !important;
+    background:
+      radial-gradient(circle at 72% 31%, rgba(14, 100, 255, .28), transparent 33%),
+      linear-gradient(135deg, #031026 0%, #052755 52%, #020b18 100%) !important;
+  }
+
+  .rc-final-shell,
+  .rc-balanced-shell {
+    position: relative !important;
+    width: min(1380px, calc(100% - 64px)) !important;
+    margin: 0 auto !important;
+    z-index: 2 !important;
+  }
+
+  /* 기존 grid 충돌을 피하고 PC에서 절대 위치로 고정 */
+  .rc-balanced-main {
+    position: relative !important;
+    display: block !important;
+    min-height: 455px !important;
+  }
+
+  .rc-balanced-copy {
+    position: relative !important;
+    z-index: 5 !important;
+    width: min(690px, 52%) !important;
+  }
+
+  .rc-balanced-copy .rc-final-desc {
+    max-width: 620px !important;
+  }
+
+  .rc-balanced-chair {
+    position: absolute !important;
+    display: block !important;
+    width: 650px !important;
+    height: 460px !important;
+    right: 22px !important;
+    top: -2px !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+  }
+
+  .rc-balanced-chair img {
+    display: block !important;
+    width: 650px !important;
+    height: 460px !important;
+    max-width: none !important;
+    max-height: none !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    border-radius: 0 !important;
+    opacity: 1 !important;
+    mix-blend-mode: normal !important;
+    filter: drop-shadow(0 22px 28px rgba(0, 0, 0, .22)) !important;
+    transform: none !important;
+    image-rendering: auto !important;
+  }
+
+  .rc-balanced-service-grid,
+  .rc-final-service-grid {
+    position: relative !important;
+    z-index: 6 !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 14px !important;
+    margin-top: 14px !important;
+  }
+
+  .rc-balanced-cta-row,
+  .rc-final-cta-row {
+    position: relative !important;
+    z-index: 6 !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 18px !important;
+    margin-top: 16px !important;
+  }
+
+  /* 과거 패치의 중복 의자 및 강제 이미지 제거 */
+  .rc-final-hero::before,
+  .rc-pc-final-visual,
+  .rc-realchair-visual,
+  .rc-wide-chair-stage,
+  .rc-pc-chair-visual {
+    display: none !important;
+    content: none !important;
+    background-image: none !important;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1180px) {
+  .rc-balanced-copy {
+    width: 57% !important;
+  }
+
+  .rc-balanced-chair {
+    width: 520px !important;
+    height: 390px !important;
+    right: -8px !important;
+    top: 40px !important;
+  }
+
+  .rc-balanced-chair img {
+    width: 520px !important;
+    height: 390px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .rc-balanced-chair {
+    display: none !important;
+  }
+
+  .rc-final-hero {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .rc-final-cta-row {
+    margin-bottom: 16px !important;
+  }
+}
