@@ -3206,3 +3206,384 @@ section:has(.service-grid),section:has(.service-card),section:has(.service-numbe
     display: none !important;
   }
 }
+/* ReChair Consultation UX v1 */
+
+/* 모바일 브라우저 하단 툴바와 안전영역 대응 */
+html {
+  scroll-padding-top: 110px;
+}
+
+body {
+  min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.rc-final-hero,
+.rc-consult-section {
+  min-height: auto !important;
+}
+
+.rc-final-hero {
+  padding-bottom: calc(34px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* 서비스 선택 고정 표시 */
+.rc-fixed-service {
+  min-height: 64px;
+  border: 1px solid #dbe5f0;
+  border-radius: 16px;
+  padding: 12px 18px;
+  background: #eef5ff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.rc-fixed-service b {
+  color: #0e5bff;
+  font-size: 18px;
+}
+
+.rc-fixed-service small {
+  color: #64748b;
+  margin-top: 3px;
+}
+
+/* 상담 신청 */
+.rc-consult-section {
+  padding: 90px 0 calc(100px + env(safe-area-inset-bottom, 0px));
+  background: #f3f7fc;
+}
+
+.rc-consult-container {
+  max-width: 1120px;
+}
+
+.rc-consult-heading {
+  text-align: center;
+  margin-bottom: 34px;
+}
+
+.rc-consult-heading h2 {
+  margin: 8px 0 10px;
+  color: #071126;
+  font-size: clamp(38px, 4vw, 56px);
+  letter-spacing: -2.5px;
+}
+
+.rc-consult-heading > p:last-child {
+  color: #64748b;
+  font-weight: 650;
+}
+
+.rc-consult-form {
+  background: #fff;
+  border: 1px solid #dfe8f2;
+  border-radius: 30px;
+  padding: 38px;
+  box-shadow: 0 26px 70px rgba(15, 39, 75, .1);
+}
+
+.rc-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+
+.rc-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rc-form-grid label > span {
+  color: #142033;
+  font-weight: 900;
+}
+
+.rc-form-grid input,
+.rc-form-grid select,
+.rc-form-grid textarea {
+  width: 100%;
+  border: 1px solid #dbe5f0;
+  border-radius: 16px;
+  background: #fff;
+  color: #142033;
+  font: inherit;
+  padding: 17px 18px;
+  outline: none;
+}
+
+.rc-form-grid input,
+.rc-form-grid select {
+  min-height: 62px;
+}
+
+.rc-form-grid textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.rc-form-grid input:focus,
+.rc-form-grid select:focus,
+.rc-form-grid textarea:focus {
+  border-color: #1465ff;
+  box-shadow: 0 0 0 4px rgba(20, 101, 255, .1);
+}
+
+.rc-full {
+  grid-column: 1 / -1;
+}
+
+.rc-photo-section {
+  margin-top: 34px;
+}
+
+.rc-photo-title h3 {
+  margin: 0 0 6px;
+  color: #071126;
+  font-size: 25px;
+}
+
+.rc-photo-title p {
+  margin: 0;
+  color: #64748b;
+}
+
+.rc-upload-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.rc-upload-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid #dbe5f0;
+  border-radius: 20px;
+  padding: 12px;
+  background: #fff;
+  cursor: pointer;
+  text-align: center;
+  overflow: hidden;
+}
+
+.rc-upload-card input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rc-upload-preview {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-height: 190px;
+  border-radius: 14px;
+  background: #eef3f9;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.rc-upload-preview img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 190px !important;
+  display: block;
+  object-fit: cover !important;
+}
+
+.rc-upload-preview > span {
+  color: #1465ff;
+  font-size: 46px;
+  font-weight: 300;
+}
+
+.rc-upload-card strong {
+  margin-top: 12px;
+  color: #142033;
+}
+
+.rc-upload-card small {
+  min-height: 38px;
+  margin-top: 4px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.rc-upload-card em {
+  margin-top: 10px;
+  color: #1465ff;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.rc-submit-button {
+  width: 100%;
+  min-height: 66px;
+  margin-top: 28px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #1766ff, #12bdd4);
+  color: #fff;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 1000;
+  cursor: pointer;
+}
+
+.rc-submit-button:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+
+.rc-form-error {
+  margin: 20px 0 0;
+  border-radius: 12px;
+  background: #fff1f2;
+  color: #be123c;
+  padding: 13px 16px;
+  font-weight: 800;
+}
+
+.rc-consult-success {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 58px 34px;
+  border-radius: 30px;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 26px 70px rgba(15, 39, 75, .1);
+}
+
+.rc-success-icon {
+  display: inline-grid;
+  width: 74px;
+  height: 74px;
+  place-items: center;
+  border-radius: 50%;
+  background: #0e5bff;
+  color: #fff;
+  font-size: 38px;
+  font-weight: 1000;
+}
+
+.rc-consult-success h2 {
+  margin: 18px 0 10px;
+  color: #071126;
+  font-size: 38px;
+}
+
+.rc-consult-success > p {
+  color: #64748b;
+}
+
+.rc-receipt-number {
+  margin: 26px auto;
+  border-radius: 16px;
+  background: #eef5ff;
+  padding: 18px;
+}
+
+.rc-receipt-number small,
+.rc-receipt-number strong {
+  display: block;
+}
+
+.rc-receipt-number strong {
+  margin-top: 5px;
+  color: #0e5bff;
+  word-break: break-all;
+}
+
+.rc-consult-success button {
+  border: 0;
+  border-radius: 999px;
+  background: #0e5bff;
+  color: #fff;
+  padding: 15px 25px;
+  font-weight: 900;
+}
+
+@media (max-width: 900px) {
+  html {
+    scroll-padding-top: 96px;
+  }
+
+  .rc-final-hero {
+    padding-bottom: calc(44px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .rc-consult-section {
+    padding: 54px 14px calc(120px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .rc-consult-form {
+    border-radius: 24px;
+    padding: 22px 18px;
+  }
+
+  .rc-form-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .rc-full {
+    grid-column: auto;
+  }
+
+  .rc-upload-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .rc-upload-preview {
+    max-height: 150px;
+  }
+
+  .rc-upload-preview img {
+    max-height: 150px !important;
+  }
+
+  .rc-upload-card {
+    padding: 8px;
+    border-radius: 16px;
+  }
+
+  .rc-upload-card strong {
+    font-size: 14px;
+  }
+
+  .rc-upload-card small {
+    display: none;
+  }
+
+  .rc-upload-card em {
+    font-size: 13px;
+  }
+
+  .rc-submit-button {
+    min-height: 60px;
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .rc-final-service-grid {
+    padding-bottom: 4px;
+  }
+}
+
+@media (max-width: 390px) {
+  .rc-upload-preview {
+    max-height: 132px;
+  }
+
+  .rc-upload-preview img {
+    max-height: 132px !important;
+  }
+}
