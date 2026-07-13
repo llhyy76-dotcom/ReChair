@@ -4062,3 +4062,148 @@ body {
 .rc-admin-product-title p{margin:0;color:#0e5bff;font-weight:1000}.rc-admin-product-title h1,.rc-admin-product-title h2{margin:6px 0 24px}.rc-admin-product-fields{display:grid;grid-template-columns:1fr 1fr;gap:15px}.rc-admin-product-fields label{display:flex;flex-direction:column;gap:6px;font-weight:900}.rc-admin-product-fields input,.rc-admin-product-fields select,.rc-admin-product-fields textarea{border:1px solid #dbe5f0;border-radius:12px;padding:13px;font:inherit}.rc-admin-product-full{grid-column:1/-1}.rc-admin-product-options{display:flex;gap:22px;margin:20px 0}.rc-admin-product-submit{border:0;border-radius:13px;padding:15px 28px;background:#0e5bff;color:#fff;font-weight:1000}
 .rc-admin-product-row{display:grid;grid-template-columns:2fr 1fr .7fr 1.4fr;gap:12px;align-items:center;border-bottom:1px solid #edf2f7;padding:14px 0}.rc-admin-product-row small{display:block;margin-top:4px;color:#64748b}.rc-admin-product-actions{display:flex;gap:6px;flex-wrap:wrap}.rc-admin-product-actions button{border:0;border-radius:999px;padding:8px 11px;background:#eef5ff;color:#0e5bff;font-weight:900}.rc-admin-product-actions button.danger{background:#fff1f2;color:#be123c}
 @media(max-width:900px){.rc-store-toolbar,.rc-store-grid,.rc-product-grid,.rc-admin-product-fields{grid-template-columns:1fr}.rc-store-result-head{display:block}.rc-product-main-image{min-height:300px}.rc-product-info h1{font-size:36px}.rc-product-specs{grid-template-columns:1fr 1fr}.rc-product-buttons{grid-template-columns:1fr}.rc-admin-product-full{grid-column:auto}.rc-admin-product-row{grid-template-columns:1fr}}
+/* ReChair Product Consult Link v2.4 */
+
+.rc-selected-product {
+  max-width: 900px;
+  margin: 0 auto 22px;
+  border: 1px solid #cfe0f5;
+  border-radius: 20px;
+  padding: 16px;
+  background: #fff;
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 18px;
+  align-items: center;
+  box-shadow: 0 14px 35px rgba(15, 39, 75, .07);
+}
+
+.rc-selected-product.loading {
+  display: block;
+  color: #64748b;
+  text-align: center;
+}
+
+.rc-selected-product-image {
+  width: 110px;
+  height: 90px;
+  overflow: hidden;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: #061832;
+}
+
+.rc-selected-product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rc-selected-product-image span {
+  font-size: 48px;
+}
+
+.rc-selected-product small,
+.rc-selected-product strong,
+.rc-selected-product p,
+.rc-selected-product b {
+  display: block;
+}
+
+.rc-selected-product small {
+  color: #0e5bff;
+  font-weight: 900;
+}
+
+.rc-selected-product strong {
+  margin-top: 4px;
+  color: #071126;
+  font-size: 21px;
+}
+
+.rc-selected-product p {
+  margin: 4px 0;
+  color: #64748b;
+}
+
+.rc-selected-product b {
+  color: #0e5bff;
+  font-size: 19px;
+}
+
+.rc-consult-filter {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.rc-consult-filter select {
+  width: 100%;
+  border: 1px solid #dbe5f0;
+  border-radius: 11px;
+  padding: 10px;
+  background: #fff;
+}
+
+.rc-consult-filter label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #526070;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.consult-item em {
+  display: block;
+  margin-top: 6px;
+  color: #0e5bff;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.rc-admin-product-inquiry {
+  margin-bottom: 18px;
+  border: 1px solid #cfe0f5;
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: #eef5ff;
+}
+
+.rc-admin-product-inquiry small,
+.rc-admin-product-inquiry strong,
+.rc-admin-product-inquiry a {
+  display: block;
+}
+
+.rc-admin-product-inquiry small {
+  color: #64748b;
+}
+
+.rc-admin-product-inquiry strong {
+  margin: 5px 0 8px;
+  color: #071126;
+  font-size: 19px;
+}
+
+.rc-admin-product-inquiry a {
+  color: #0e5bff;
+  font-weight: 900;
+}
+
+@media (max-width: 700px) {
+  .rc-selected-product {
+    grid-template-columns: 84px 1fr;
+  }
+
+  .rc-selected-product-image {
+    width: 84px;
+    height: 76px;
+  }
+
+  .rc-selected-product strong {
+    font-size: 17px;
+  }
+}
