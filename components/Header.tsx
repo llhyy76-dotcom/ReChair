@@ -11,11 +11,11 @@ export default function Header() {
         <nav className="desktop-nav rc-final-nav" aria-label="주요 메뉴">
           <a href="/#service-menu">서비스</a>
           <a href="/#products">중고상품</a>
-          <a href="/#consult">무료상담</a>
+          <a href="/consult">무료상담</a>
           <a href="/admin">관리자</a>
         </nav>
 
-        <a className="header-cta rc-final-header-cta" href="/#consult">
+        <a className="header-cta rc-final-header-cta" href="/consult">
           상담 신청
         </a>
 
