@@ -3587,3 +3587,65 @@ body {
     max-height: 132px !important;
   }
 }
+/* ReChair Separate Consult Page v1 */
+
+.rc-consult-page {
+  min-height: 100dvh;
+  background: #f3f7fc;
+}
+
+.rc-consult-page-hero {
+  padding: 76px 24px 50px;
+  text-align: center;
+  color: #fff;
+  background:
+    radial-gradient(circle at 72% 20%, rgba(32, 124, 255, .34), transparent 34%),
+    linear-gradient(135deg, #031026, #072b5f);
+}
+
+.rc-consult-page-hero h1 {
+  margin: 10px 0 12px;
+  font-size: clamp(42px, 5vw, 66px);
+  letter-spacing: -3px;
+}
+
+.rc-consult-page-hero > .container > p:last-child {
+  margin: 0;
+  color: rgba(255,255,255,.86);
+  font-size: 19px;
+  line-height: 1.6;
+}
+
+/* 전용 페이지에서는 상담 폼의 중복 제목 영역을 제거 */
+.rc-consult-page .rc-consult-heading {
+  display: none !important;
+}
+
+.rc-consult-page .rc-consult-section {
+  padding-top: 46px !important;
+}
+
+/* 상담 페이지 진입 시 항상 상단에서 시작 */
+.rc-consult-page {
+  scroll-margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .rc-consult-page-hero {
+    padding: 42px 18px 30px;
+  }
+
+  .rc-consult-page-hero h1 {
+    font-size: 38px;
+    letter-spacing: -2px;
+  }
+
+  .rc-consult-page-hero > .container > p:last-child {
+    font-size: 15px;
+  }
+
+  .rc-consult-page .rc-consult-section {
+    padding-top: 26px !important;
+    padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
