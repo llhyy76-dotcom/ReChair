@@ -3649,3 +3649,138 @@ body {
     padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
+/* ReChair PC Homepage Apply v1 */
+
+@media (min-width: 901px) {
+  .rc-pc-final-hero {
+    position: relative !important;
+    padding: 52px 0 54px !important;
+    overflow: hidden !important;
+    background:
+      radial-gradient(circle at 68% 32%, rgba(18, 101, 255, .34), transparent 34%),
+      linear-gradient(135deg, #031026 0%, #052755 52%, #020b18 100%) !important;
+  }
+
+  .rc-pc-final-shell {
+    width: min(1460px, calc(100% - 64px)) !important;
+    margin: 0 auto !important;
+  }
+
+  .rc-pc-final-main {
+    display: grid !important;
+    grid-template-columns: minmax(540px, .92fr) minmax(560px, 1.08fr) !important;
+    gap: 24px !important;
+    align-items: center !important;
+  }
+
+  .rc-pc-final-copy {
+    position: relative !important;
+    z-index: 3 !important;
+    padding-left: 8px !important;
+  }
+
+  .rc-pc-final-copy .rc-final-desc {
+    max-width: 650px !important;
+  }
+
+  .rc-pc-final-visual {
+    position: relative !important;
+    min-height: 520px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    margin-left: -46px !important;
+    overflow: hidden !important;
+  }
+
+  .rc-pc-final-visual img {
+    width: 100% !important;
+    max-width: 720px !important;
+    height: 520px !important;
+    object-fit: cover !important;
+    object-position: 64% center !important;
+    border-radius: 28px !important;
+    mix-blend-mode: screen !important;
+    opacity: .96 !important;
+    filter:
+      saturate(.92)
+      contrast(1.04)
+      drop-shadow(0 34px 42px rgba(0,0,0,.34)) !important;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0,0,0,.55) 10%,
+      #000 24%,
+      #000 84%,
+      rgba(0,0,0,.65) 94%,
+      transparent 100%
+    ) !important;
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0,0,0,.55) 10%,
+      #000 24%,
+      #000 84%,
+      rgba(0,0,0,.65) 94%,
+      transparent 100%
+    ) !important;
+  }
+
+  .rc-pc-final-service-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 14px !important;
+    margin-top: 24px !important;
+  }
+
+  .rc-pc-final-service-card {
+    min-height: 124px !important;
+    border-radius: 16px !important;
+  }
+
+  .rc-pc-final-cta-row {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 18px !important;
+    margin-top: 18px !important;
+  }
+
+  /* 이전 의자 이미지/강제 배경 제거 */
+  .rc-final-hero::before,
+  .rc-realchair-visual,
+  .rc-wide-chair-stage,
+  .rc-pc-chair-visual {
+    display: none !important;
+    content: none !important;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1200px) {
+  .rc-pc-final-main {
+    grid-template-columns: minmax(500px, 1fr) 470px !important;
+  }
+
+  .rc-pc-final-visual {
+    margin-left: -20px !important;
+  }
+
+  .rc-pc-final-visual img {
+    height: 430px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .rc-pc-final-main {
+    display: block !important;
+  }
+
+  .rc-pc-final-visual {
+    display: none !important;
+  }
+
+  .rc-final-hero {
+    padding-bottom: calc(52px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .rc-final-cta-row {
+    margin-bottom: 12px !important;
+  }
+}
