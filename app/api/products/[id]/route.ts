@@ -5,6 +5,28 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+export async function GET(_: NextRequest, context: RouteContext) {
+  try {
+    const { id } = await context.params;
+    const supabase = getSupabaseServer();
+
+    const { data, error } = await supabase
+      .from('products')
+      .select('id,title,brand,model_name,price,thumbnail_url,is_visible')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({ data });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : '상품 조회 오류' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
