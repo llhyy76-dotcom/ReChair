@@ -1,116 +1,89 @@
-import { NextResponse } from 'next/server';
-import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
-
-export const dynamic = 'force-dynamic';
-
-type PhotoSlot = 'front' | 'side' | 'label' | 'back';
-
-const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
+import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseServer } from '@/lib/supabaseServer';
 
 async function uploadPhoto(
-  supabase: ReturnType<typeof getSupabaseClient>,
-  file: File,
-  slot: PhotoSlot
+  supabase: ReturnType<typeof getSupabaseServer>,
+  file: File | null,
+  prefix: string
 ) {
-  if (!file.type.startsWith('image/')) {
-    throw new Error('이미지 파일만 업로드할 수 있습니다.');
-  }
+  if (!file || file.size === 0) return null;
 
-  if (file.size > MAX_UPLOAD_SIZE) {
-    throw new Error('사진 용량이 너무 큽니다. 사진 1장당 5MB 이하로 올려주세요.');
-  }
-
-  const ext = file.name.split('.').pop() || 'jpg';
-  const safeName = `${Date.now()}-${slot}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const path = `consultations/${safeName}`;
-  const arrayBuffer = await file.arrayBuffer();
+  const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const path = `consultations/${Date.now()}-${prefix}-${crypto.randomUUID()}.${extension}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error } = await supabase.storage
     .from('consultation-photos')
-    .upload(path, arrayBuffer, {
+    .upload(path, buffer, {
       contentType: file.type || 'image/jpeg',
       upsert: false,
     });
 
   if (error) throw error;
 
-  const { data } = supabase.storage.from('consultation-photos').getPublicUrl(path);
-  return data.publicUrl;
+  return supabase.storage.from('consultation-photos').getPublicUrl(path).data.publicUrl;
 }
 
 export async function GET() {
-  if (!isSupabaseConfigured()) {
-    return NextResponse.json({ data: [], message: 'Supabase is not configured.' });
+  try {
+    const supabase = getSupabaseServer();
+
+    const { data, error } = await supabase
+      .from('consultations')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return NextResponse.json({ data });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : '상담 조회 오류' },
+      { status: 500 }
+    );
   }
-
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from('consultations')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ data: data ?? [] });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    if (!isSupabaseConfigured()) {
-      return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 500 });
-    }
+    const supabase = getSupabaseServer();
+    const form = await request.formData();
 
-    const formData = await request.formData();
-    const supabase = getSupabaseClient();
-
-    const getText = (key: string) => String(formData.get(key) ?? '').trim();
-
-    const files: Record<PhotoSlot, File | null> = {
-      front: formData.get('photo_front') as File | null,
-      side: formData.get('photo_side') as File | null,
-      label: formData.get('photo_label') as File | null,
-      back: formData.get('photo_back') as File | null,
-    };
-
-    const urls: Record<PhotoSlot, string | null> = {
-      front: null,
-      side: null,
-      label: null,
-      back: null,
-    };
-
-    for (const slot of Object.keys(files) as PhotoSlot[]) {
-      const file = files[slot];
-      if (file && file.size > 0) {
-        urls[slot] = await uploadPhoto(supabase, file, slot);
-      }
-    }
+    const [
+      photoFrontUrl,
+      photoSideUrl,
+      photoLabelUrl,
+      photoBackUrl,
+    ] = await Promise.all([
+      uploadPhoto(supabase, form.get('photo_front') as File | null, 'front'),
+      uploadPhoto(supabase, form.get('photo_side') as File | null, 'side'),
+      uploadPhoto(supabase, form.get('photo_label') as File | null, 'label'),
+      uploadPhoto(supabase, form.get('photo_back') as File | null, 'back'),
+    ]);
 
     const payload = {
-      name: getText('customer_name') || getText('name') || '이름 미입력',
-      phone: getText('phone') || '연락처 미입력',
-      service_type: getText('service_type') || getText('service') || '상담',
-      model: getText('model_name') || getText('model'),
-      message: getText('message'),
+      customer_name: String(form.get('customer_name') || '').trim(),
+      phone: String(form.get('phone') || '').trim(),
+      region: String(form.get('region') || '').trim(),
+      service_type: String(form.get('service_type') || '').trim(),
+      brand: String(form.get('brand') || '').trim() || null,
+      model_name: String(form.get('model_name') || '').trim() || null,
+      product_id: String(form.get('product_id') || '').trim() || null,
+      product_title: String(form.get('product_title') || '').trim() || null,
+      message: String(form.get('message') || '').trim() || null,
+      photo_front_url: photoFrontUrl,
+      photo_side_url: photoSideUrl,
+      photo_label_url: photoLabelUrl,
+      photo_back_url: photoBackUrl,
       status: '신규',
-      manager: '',
-      memo: '',
-      quote_amount: null,
-      photo_front: urls.front,
-      photo_side: urls.side,
-      photo_label: urls.label,
-      photo_back: urls.back,
-      extra_photos: [],
-      timeline: [
-        {
-          type: 'created',
-          label: '상담 접수',
-          at: new Date().toISOString(),
-        },
-      ],
     };
+
+    if (!payload.customer_name || !payload.phone || !payload.region || !payload.service_type) {
+      return NextResponse.json(
+        { error: '이름, 연락처, 지역, 서비스는 필수입니다.' },
+        { status: 400 }
+      );
+    }
 
     const { data, error } = await supabase
       .from('consultations')
@@ -118,13 +91,13 @@ export async function POST(request: Request) {
       .select()
       .single();
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) throw error;
 
-    return NextResponse.json({ data });
+    return NextResponse.json({ data }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown server error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : '상담 등록 오류' },
+      { status: 500 }
+    );
   }
 }
