@@ -103,27 +103,48 @@ export async function GET() {
       0
     );
 
-    const normalizedConsultations = consultations.map((item) => ({
-      ...item,
-      customer_name:
-        item.customer_name ??
-        item.name ??
-        '이름 없음',
+   const normalizedConsultations = consultations.map((item) => ({
+  ...item,
 
-      service_type:
-        item.service_type ??
-        item.service ??
-        '미분류',
+  id: String(item.id ?? ''),
 
-      product_title:
-        item.product_title ??
-        null,
+  customer_name:
+    item.customer_name ??
+    item.name ??
+    '이름 없음',
 
-      estimate_amount:
-        item.estimate_amount ??
-        item.quote ??
-        0,
-    }));
+  phone:
+    item.phone ??
+    '',
+
+  service_type:
+    item.service_type ??
+    item.service ??
+    '미분류',
+
+  product_id:
+    item.product_id ??
+    null,
+
+  product_title:
+    item.product_title ??
+    null,
+
+  status:
+    item.status ??
+    '신규',
+
+  estimate_amount:
+    Number(
+      item.estimate_amount ??
+      item.quote ??
+      0
+    ),
+
+  created_at:
+    item.created_at ??
+    null,
+}));
 
     const normalizedProducts = products.map((item) => ({
       ...item,
