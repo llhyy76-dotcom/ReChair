@@ -1,0 +1,1 @@
+import TechnicianMobileApp from '@/components/TechnicianMobileApp';import './technician.css';export default function Page(){return <main className='technician-page'><TechnicianMobileApp/></main>}
