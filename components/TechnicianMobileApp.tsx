@@ -18,13 +18,25 @@ type Assignment={
   memo?:string|null;
   completion_note?:string|null;
   completion_photo_urls?:string[]|null;
+  departed_at?:string|null;
+  arrival_at?:string|null;
+  work_started_at?:string|null;
+  completed_at?:string|null;
+};
+
+type LocationPayload={
+  latitude:number|null;
+  longitude:number|null;
+  accuracy:number|null;
 };
 
 const iso=(d=new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
-const time=(value:string) =>
-  new Date(value).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+const time=(value?:string|null) =>
+  value
+    ? new Date(value).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})
+    : '-';
 
 export default function TechnicianMobileApp(){
   const router=useRouter();
@@ -37,6 +49,7 @@ export default function TechnicianMobileApp(){
   const [files,setFiles]=useState<File[]>([]);
   const [saving,setSaving]=useState(false);
   const [checking,setChecking]=useState(true);
+  const [workingId,setWorkingId]=useState<string|null>(null);
 
   async function checkSession(){
     const r=await fetch('/api/technician/me',{cache:'no-store'});
@@ -58,10 +71,12 @@ export default function TechnicianMobileApp(){
   }
 
   async function loadAssignments(){
-    if(!technician)return;
+    if(!technician?.name)return;
 
     const p=new URLSearchParams({date});
-    const r=await fetch('/api/technician/assignments?'+p.toString(),{cache:'no-store'});
+    const r=await fetch('/api/technician/assignments?'+p.toString(),{
+      cache:'no-store'
+    });
     const j=await r.json();
 
     if(r.status===401){
@@ -78,14 +93,14 @@ export default function TechnicianMobileApp(){
   }
 
   useEffect(()=>{checkSession()},[]);
-  useEffect(() => {
-  if (technician?.name) loadAssignments();
-}, [date, technician?.name]);
+  useEffect(()=>{
+    if(technician?.name)loadAssignments();
+  },[date,technician?.name]);
 
   const summary=useMemo(()=>({
     total:items.length,
     waiting:items.filter(i=>['배정대기','배정완료'].includes(i.status)).length,
-    active:items.filter(i=>['이동중','방문중'].includes(i.status)).length,
+    active:items.filter(i=>['이동중','방문중','작업중'].includes(i.status)).length,
     done:items.filter(i=>i.status==='완료').length,
   }),[items]);
 
@@ -95,26 +110,72 @@ export default function TechnicianMobileApp(){
     router.refresh();
   }
 
-  async function updateStatus(item:Assignment,status:string){
+  function getLocation():Promise<LocationPayload>{
+    return new Promise(resolve=>{
+      if(!navigator.geolocation){
+        resolve({latitude:null,longitude:null,accuracy:null});
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        position=>resolve({
+          latitude:position.coords.latitude,
+          longitude:position.coords.longitude,
+          accuracy:position.coords.accuracy,
+        }),
+        ()=>resolve({
+          latitude:null,
+          longitude:null,
+          accuracy:null,
+        }),
+        {
+          enableHighAccuracy:true,
+          timeout:8000,
+          maximumAge:30000,
+        }
+      );
+    });
+  }
+
+  async function updateStatus(
+    item:Assignment,
+    status:string,
+    extra:Record<string,unknown>={}
+  ){
+    setWorkingId(item.id);
+    setMessage('현재 위치를 확인하고 있습니다.');
+
+    const location=await getLocation();
+
     const r=await fetch('/api/technician/assignments/'+item.id,{
       method:'PATCH',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({status}),
+      body:JSON.stringify({
+        status,
+        ...location,
+        ...extra,
+      }),
     });
     const j=await r.json();
+    setWorkingId(null);
 
     if(r.status===401){
       router.replace('/technician/login');
-      return;
+      return false;
     }
 
     if(!r.ok){
       setMessage(j.error||'상태 변경 오류');
-      return;
+      return false;
     }
 
-    setMessage(`${item.customer_name} 일정이 '${status}' 상태로 변경되었습니다.`);
+    const locationText=location.latitude===null
+      ? ' 위치정보 없이 저장되었습니다.'
+      : ' GPS 위치도 함께 기록되었습니다.';
+
+    setMessage(`${item.customer_name} 일정이 '${status}' 상태로 변경되었습니다.${locationText}`);
     await loadAssignments();
+    return true;
   }
 
   function openComplete(item:Assignment){
@@ -148,36 +209,29 @@ export default function TechnicianMobileApp(){
       urls=uploadJson.data||[];
     }
 
-    const r=await fetch('/api/technician/assignments/'+selected.id,{
-      method:'PATCH',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        status:'완료',
-        completion_note:note,
-        completion_photo_urls:[
-          ...(selected.completion_photo_urls||[]),
-          ...urls,
-        ],
-      }),
+    const ok=await updateStatus(selected,'완료',{
+      completion_note:note,
+      completion_photo_urls:[
+        ...(selected.completion_photo_urls||[]),
+        ...urls,
+      ],
     });
-    const j=await r.json();
+
     setSaving(false);
 
-    if(!r.ok){
-      setMessage(j.error||'완료 처리 오류');
-      return;
+    if(ok){
+      setMessage('현장 완료보고와 위치정보가 저장되었습니다.');
+      setSelected(null);
     }
-
-    setMessage('현장 완료보고가 저장되었습니다.');
-    setSelected(null);
-    await loadAssignments();
   }
 
   const mapUrl=(address?:string|null) =>
     `https://map.kakao.com/link/search/${encodeURIComponent(address||'')}`;
 
   if(checking){
-    return <div className="tech-mobile-loading">로그인 상태를 확인하고 있습니다.</div>;
+    return <div className="tech-mobile-loading">
+      로그인 상태를 확인하고 있습니다.
+    </div>;
   }
 
   return <div className="tech-mobile">
@@ -230,24 +284,59 @@ export default function TechnicianMobileApp(){
           <address>{item.address||item.region||'주소 미입력'}</address>
           {item.memo&&<blockquote>{item.memo}</blockquote>}
 
+          <div className="workflow-times">
+            <span>출발 <b>{time(item.departed_at)}</b></span>
+            <span>도착 <b>{time(item.arrival_at)}</b></span>
+            <span>작업 <b>{time(item.work_started_at)}</b></span>
+            <span>완료 <b>{time(item.completed_at)}</b></span>
+          </div>
+
           <div className="quick-links">
             <a href={'tel:'+(item.phone||'')}>고객 전화</a>
             <a href={mapUrl(item.address||item.region)} target="_blank">지도 열기</a>
           </div>
         </div>
 
-        <div className="status-actions">
+        <div className="status-actions workflow-actions">
           {['배정대기','배정완료'].includes(item.status)&&
-            <button onClick={()=>updateStatus(item,'이동중')}>이동 시작</button>}
+            <button
+              disabled={workingId===item.id}
+              onClick={()=>updateStatus(item,'이동중')}
+            >
+              {workingId===item.id?'처리 중':'출발'}
+            </button>}
 
           {item.status==='이동중'&&
-            <button onClick={()=>updateStatus(item,'방문중')}>현장 도착</button>}
+            <button
+              disabled={workingId===item.id}
+              onClick={()=>updateStatus(item,'방문중')}
+            >
+              {workingId===item.id?'처리 중':'도착'}
+            </button>}
 
           {item.status==='방문중'&&
-            <button className="complete" onClick={()=>openComplete(item)}>완료 보고</button>}
+            <button
+              disabled={workingId===item.id}
+              onClick={()=>updateStatus(item,'작업중')}
+            >
+              {workingId===item.id?'처리 중':'작업 시작'}
+            </button>}
+
+          {item.status==='작업중'&&
+            <button
+              className="complete"
+              onClick={()=>openComplete(item)}
+            >
+              완료 보고
+            </button>}
 
           {item.status==='완료'&&
-            <button className="done" onClick={()=>openComplete(item)}>완료 내용 보기</button>}
+            <button
+              className="done"
+              onClick={()=>openComplete(item)}
+            >
+              완료 내용 보기
+            </button>}
         </div>
       </article>)}
     </section>
