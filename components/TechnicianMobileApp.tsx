@@ -78,7 +78,9 @@ export default function TechnicianMobileApp(){
   }
 
   useEffect(()=>{checkSession()},[]);
-  useEffect(()=>{if(technician)loadAssignments()},[date,technician]);
+  useEffect(() => {
+  if (technician?.name) loadAssignments();
+}, [date, technician?.name]);
 
   const summary=useMemo(()=>({
     total:items.length,
