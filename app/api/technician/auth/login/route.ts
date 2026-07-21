@@ -49,21 +49,45 @@ export async function POST(req:NextRequest){
       );
     }
 
+    const technicianId=
+      technician.technician_id ??
+      technician.id ??
+      null;
+
+    if(!technicianId){
+      console.error('기사 ID 누락:',technician);
+
+      return NextResponse.json(
+        {error:'기사 ID를 확인할 수 없습니다. PIN 검증 함수를 확인해주세요.'},
+        {status:500}
+      );
+    }
+
+    const technicianName=
+      technician.technician_name ??
+      technician.name ??
+      name;
+
     const rawToken=createSessionToken();
     const tokenHash=hashSessionToken(rawToken);
+
     const expiresAt=new Date(
       Date.now()+technicianCookie.options.maxAge*1000
     ).toISOString();
 
-    await supabase
+    const {error:deleteError}=await supabase
       .from('technician_sessions')
       .delete()
-      .eq('technician_id',technician.technician_id);
+      .eq('technician_id',technicianId);
+
+    if(deleteError){
+      throw deleteError;
+    }
 
     const {error:sessionError}=await supabase
       .from('technician_sessions')
       .insert({
-        technician_id:technician.technician_id,
+        technician_id:technicianId,
         token_hash:tokenHash,
         expires_at:expiresAt,
       });
@@ -75,11 +99,11 @@ export async function POST(req:NextRequest){
     const response=NextResponse.json({
       success:true,
       data:{
-        id:technician.technician_id,
-        name:technician.technician_name,
-        phone:technician.phone,
-        region:technician.region,
-        team_name:technician.team_name,
+        id:technicianId,
+        name:technicianName,
+        phone:technician.phone??null,
+        region:technician.region??null,
+        team_name:technician.team_name??null,
         expires_at:expiresAt,
       },
     });
@@ -95,7 +119,10 @@ export async function POST(req:NextRequest){
     console.error('technician login error',e);
 
     return NextResponse.json(
-      {error:e?.message||'기사 로그인 처리 중 오류가 발생했습니다.'},
+      {
+        error:e?.message||
+          '기사 로그인 처리 중 오류가 발생했습니다.',
+      },
       {status:500}
     );
   }
