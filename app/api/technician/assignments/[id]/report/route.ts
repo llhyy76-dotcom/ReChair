@@ -1,0 +1,69 @@
+import {NextRequest,NextResponse} from 'next/server';
+import {requireTechnicianSession} from '@/lib/technicianAuth';
+import {getSupabaseServer} from '@/lib/supabaseServer';
+
+export async function GET(_req:NextRequest,{params}:{params:Promise<{id:string}>}){
+  try{
+    const session=await requireTechnicianSession();
+    const {id}=await params;
+    const supabase=getSupabaseServer();
+    const {data,error}=await supabase.from('service_schedules').select(`*,service_schedule_photos(id,photo_type,photo_url,created_at)`).eq('id',id).eq('assignee',session.technician.name).single();
+    if(error||!data)return NextResponse.json({error:'본인에게 배정된 일정을 찾을 수 없습니다.'},{status:404});
+    return NextResponse.json({data});
+  }catch(e:any){
+    if(e?.message==='TECHNICIAN_UNAUTHORIZED')return NextResponse.json({error:'기사 로그인이 필요합니다.'},{status:401});
+    return NextResponse.json({error:e?.message||'작업보고 조회 오류'},{status:500});
+  }
+}
+
+export async function PATCH(req:NextRequest,{params}:{params:Promise<{id:string}>}){
+  try{
+    const session=await requireTechnicianSession();
+    const {id}=await params;
+    const body=await req.json();
+    const supabase=getSupabaseServer();
+    const payload={
+      symptom_text:String(body.symptom_text||'').trim()||null,
+      action_text:String(body.action_text||'').trim()||null,
+      replaced_parts:String(body.replaced_parts||'').trim()||null,
+      customer_confirmation:String(body.customer_confirmation||'').trim()||null,
+      completed_by_technician_id:session.technician_id,
+      field_report_updated_at:new Date().toISOString(),
+    };
+    const {data,error}=await supabase.from('service_schedules').update(payload).eq('id',id).eq('assignee',session.technician.name).select('*').single();
+    if(error)throw error;
+    return NextResponse.json({success:true,data});
+  }catch(e:any){
+    if(e?.message==='TECHNICIAN_UNAUTHORIZED')return NextResponse.json({error:'기사 로그인이 필요합니다.'},{status:401});
+    return NextResponse.json({error:e?.message||'작업보고 저장 오류'},{status:500});
+  }
+}
+
+export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>}){
+  try{
+    const session=await requireTechnicianSession();
+    const {id}=await params;
+    const form=await req.formData();
+    const photoType=String(form.get('photo_type')||'other');
+    const file=form.get('file');
+    if(!(file instanceof File))return NextResponse.json({error:'사진 파일이 필요합니다.'},{status:400});
+    const allowed=['front','side','label','after','part','receipt','other'];
+    if(!allowed.includes(photoType))return NextResponse.json({error:'허용되지 않은 사진 구분입니다.'},{status:400});
+    if(file.size>10*1024*1024)return NextResponse.json({error:'사진은 10MB 이하만 등록할 수 있습니다.'},{status:400});
+    const supabase=getSupabaseServer();
+    const {data:schedule,error:scheduleError}=await supabase.from('service_schedules').select('id,assignee').eq('id',id).eq('assignee',session.technician.name).single();
+    if(scheduleError||!schedule)return NextResponse.json({error:'본인 일정만 사진을 등록할 수 있습니다.'},{status:403});
+    const ext=(file.name.split('.').pop()||'jpg').replace(/[^a-zA-Z0-9]/g,'');
+    const objectPath=[session.technician_id,id,`${photoType}-${Date.now()}.${ext}`].join('/');
+    const bytes=await file.arrayBuffer();
+    const {error:uploadError}=await supabase.storage.from('service-report-photos').upload(objectPath,bytes,{contentType:file.type||'image/jpeg',upsert:false});
+    if(uploadError)throw uploadError;
+    const {data:publicUrlData}=supabase.storage.from('service-report-photos').getPublicUrl(objectPath);
+    const {data,error}=await supabase.from('service_schedule_photos').insert({schedule_id:id,technician_id:session.technician_id,photo_type:photoType,photo_url:publicUrlData.publicUrl}).select('*').single();
+    if(error)throw error;
+    return NextResponse.json({success:true,data});
+  }catch(e:any){
+    if(e?.message==='TECHNICIAN_UNAUTHORIZED')return NextResponse.json({error:'기사 로그인이 필요합니다.'},{status:401});
+    return NextResponse.json({error:e?.message||'사진 업로드 오류'},{status:500});
+  }
+}
