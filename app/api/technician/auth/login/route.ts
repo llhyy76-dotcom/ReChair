@@ -1,87 +1,101 @@
-
-import {cookies} from 'next/headers';
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
 import {
-  TECHNICIAN_COOKIE_NAME,
-  technicianCookieOptions,
-  createTechnicianToken,
+  createSessionToken,
+  hashSessionToken,
+  technicianCookie,
 } from '@/lib/technicianAuth';
 
 export async function POST(req:NextRequest){
   try{
     const body=await req.json();
-    const name=String(body.name||body.technician_name||'').trim();
+
+    const name=String(
+      body.name||
+      body.technician_name||
+      body.assignee||
+      ''
+    ).trim();
+
     const pin=String(body.pin||'').trim();
 
     if(!name||!pin){
       return NextResponse.json(
-        {error:'기사명과 PIN을 입력하세요.'},
+        {error:'기사·팀 이름과 PIN을 입력하세요.'},
         {status:400}
       );
     }
 
     const supabase=getSupabaseServer();
 
-    const {data:technician,error}=await supabase
-      .from('technicians')
-      .select('id,name,team,region,is_active,pin_hash')
-      .eq('name',name)
-      .eq('is_active',true)
-      .single();
-
-    if(error||!technician){
-      return NextResponse.json(
-        {error:'기사 정보를 찾을 수 없습니다.'},
-        {status:401}
-      );
-    }
-
-    const {data:pinMatched,error:pinError}=await supabase.rpc(
-      'verify_technician_pin',
-      {
-        p_technician_id:technician.id,
+    const {data:verified,error:verifyError}=await supabase
+      .rpc('verify_technician_pin',{
+        p_name:name,
         p_pin:pin,
-      }
-    );
+      });
 
-    if(pinError){
-      throw pinError;
+    if(verifyError){
+      throw verifyError;
     }
 
-    if(!pinMatched){
+    const technician=Array.isArray(verified)
+      ? verified[0]
+      : verified;
+
+    if(!technician){
       return NextResponse.json(
-        {error:'PIN이 올바르지 않습니다.'},
+        {error:'기사명 또는 PIN이 올바르지 않습니다.'},
         {status:401}
       );
     }
 
-    const token=createTechnicianToken({
-      technician_id:technician.id,
-      name:technician.name,
-      team:technician.team,
-      region:technician.region,
-    });
+    const rawToken=createSessionToken();
+    const tokenHash=hashSessionToken(rawToken);
+    const expiresAt=new Date(
+      Date.now()+technicianCookie.options.maxAge*1000
+    ).toISOString();
 
-    const store=await cookies();
-    store.set(
-      TECHNICIAN_COOKIE_NAME,
-      token,
-      technicianCookieOptions
-    );
+    await supabase
+      .from('technician_sessions')
+      .delete()
+      .eq('technician_id',technician.technician_id);
 
-    return NextResponse.json({
+    const {error:sessionError}=await supabase
+      .from('technician_sessions')
+      .insert({
+        technician_id:technician.technician_id,
+        token_hash:tokenHash,
+        expires_at:expiresAt,
+      });
+
+    if(sessionError){
+      throw sessionError;
+    }
+
+    const response=NextResponse.json({
       success:true,
       data:{
-        id:technician.id,
-        name:technician.name,
-        team:technician.team,
+        id:technician.technician_id,
+        name:technician.technician_name,
+        phone:technician.phone,
         region:technician.region,
+        team_name:technician.team_name,
+        expires_at:expiresAt,
       },
     });
+
+    response.cookies.set(
+      technicianCookie.name,
+      rawToken,
+      technicianCookie.options
+    );
+
+    return response;
   }catch(e:any){
+    console.error('technician login error',e);
+
     return NextResponse.json(
-      {error:e?.message||'기사 로그인 오류'},
+      {error:e?.message||'기사 로그인 처리 중 오류가 발생했습니다.'},
       {status:500}
     );
   }
