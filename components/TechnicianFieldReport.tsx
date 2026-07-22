@@ -388,42 +388,66 @@ export default function TechnicianFieldReport({
                   <b>{label}</b>
 
                   {found?(
-                    <a
-                      href={found.photo_url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <img
-                        src={found.photo_url}
-                        alt={label}
-                      />
-                    </a>
-                  ):(
-                    <span>
-                      {uploading?'업로드 중':'사진 없음'}
-                    </span>
-                  )}
+  <div className="photo-preview-box">
+    <a
+      href={found.photo_url}
+      target="_blank"
+      rel="noreferrer"
+    >
+      <img
+        src={found.photo_url}
+        alt={label}
+      />
+    </a>
 
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    disabled={uploading}
-                    onChange={event=>{
-                      const file=event.currentTarget.files?.[0];
+    <div className="photo-edit-actions">
+      <label className="photo-replace-button">
+        사진 교체
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          disabled={uploading}
+          onChange={event=>{
+            const file=event.currentTarget.files?.[0];
 
-                      void uploadPhoto(type,file);
+            void uploadPhoto(type,file);
 
-                      // 동일한 사진을 다시 선택할 수 있도록 초기화합니다.
-                      event.currentTarget.value='';
-                    }}
-                  />
-                </label>
-              );
-            })}
-          </div>
-        </section>
+            event.currentTarget.value='';
+          }}
+        />
+      </label>
 
+      <button
+        type="button"
+        className="photo-delete-button"
+        onClick={()=>deletePhoto(found.id)}
+      >
+        삭제
+      </button>
+    </div>
+  </div>
+):(
+  <>
+    <span>
+      {uploading?'업로드 중':'사진 없음'}
+    </span>
+
+    <input
+      type="file"
+      accept="image/*"
+      capture="environment"
+      disabled={uploading}
+      onChange={event=>{
+        const file=event.currentTarget.files?.[0];
+
+        void uploadPhoto(type,file);
+
+        event.currentTarget.value='';
+      }}
+    />
+  </>
+)}
         <section className="signature-section">
           <div>
             <h3>고객 서명</h3>
