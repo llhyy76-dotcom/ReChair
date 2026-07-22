@@ -489,18 +489,27 @@ export default function TechnicianFieldReport({
           </div>
 
           {report?.customer_signature_url?(
-            <a
-              href={report.customer_signature_url}
-              target="_blank"
-              rel="noreferrer"
-              className="saved-signature"
-            >
-              <img
-                src={report.customer_signature_url}
-                alt="고객 서명"
-              />
-            </a>
-          ):(
+  <div className="saved-signature-wrap">
+    <a
+      href={report.customer_signature_url}
+      target="_blank"
+      rel="noreferrer"
+      className="saved-signature"
+    >
+      <img
+        src={report.customer_signature_url}
+        alt="고객 서명"
+      />
+    </a>
+
+    <button
+      type="button"
+      onClick={resetSignature}
+    >
+      서명 다시 받기
+    </button>
+  </div>
+):(
             <>
               <canvas
                 ref={canvasRef}
@@ -536,4 +545,30 @@ export default function TechnicianFieldReport({
       </div>
     </div>
   );
+}
+async function resetSignature(){
+  const confirmed=window.confirm(
+    '기존 고객 서명을 삭제하고 다시 받으시겠습니까?'
+  );
+
+  if(!confirmed){
+    return;
+  }
+
+  const response=await fetch(
+    `/api/technician/assignments/${scheduleId}/signature`,
+    {
+      method:'DELETE',
+    }
+  );
+
+  const result=await response.json();
+
+  if(!response.ok){
+    setMessage(result.error||'서명 초기화 오류');
+    return;
+  }
+
+  setMessage('기존 서명이 삭제되었습니다.');
+  await load();
 }
