@@ -2,17 +2,68 @@ import {NextRequest,NextResponse} from 'next/server';
 import {requireTechnicianSession} from '@/lib/technicianAuth';
 import {getSupabaseServer} from '@/lib/supabaseServer';
 
-export async function GET(_req:NextRequest,{params}:{params:Promise<{id:string}>}){
+export async function GET(
+  _req:NextRequest,
+  {params}:{params:Promise<{id:string}>}
+){
   try{
     const session=await requireTechnicianSession();
     const {id}=await params;
     const supabase=getSupabaseServer();
-    const {data,error}=await supabase.from('service_schedules').select(`*,service_schedule_photos(id,photo_type,photo_url,created_at)`).eq('id',id).eq('assignee',session.technician.name).single();
-    if(error||!data)return NextResponse.json({error:'본인에게 배정된 일정을 찾을 수 없습니다.'},{status:404});
-    return NextResponse.json({data});
+
+    const {data:schedule,error:scheduleError}=await supabase
+      .from('service_schedules')
+      .select('*')
+      .eq('id',id)
+      .eq('assignee',session.technician.name)
+      .single();
+
+    if(scheduleError||!schedule){
+      return NextResponse.json(
+        {error:'본인에게 배정된 일정을 찾을 수 없습니다.'},
+        {status:404}
+      );
+    }
+
+    const {data:photos,error:photoError}=await supabase
+      .from('service_schedule_photos')
+      .select(`
+        id,
+        schedule_id,
+        technician_id,
+        photo_type,
+        photo_url,
+        created_at
+      `)
+      .eq('schedule_id',id)
+      .order('created_at',{
+        ascending:true,
+      });
+
+    if(photoError){
+      throw photoError;
+    }
+
+    return NextResponse.json({
+      data:{
+        ...schedule,
+        service_schedule_photos:photos||[],
+      },
+    });
   }catch(e:any){
-    if(e?.message==='TECHNICIAN_UNAUTHORIZED')return NextResponse.json({error:'기사 로그인이 필요합니다.'},{status:401});
-    return NextResponse.json({error:e?.message||'작업보고 조회 오류'},{status:500});
+    if(e?.message==='TECHNICIAN_UNAUTHORIZED'){
+      return NextResponse.json(
+        {error:'기사 로그인이 필요합니다.'},
+        {status:401}
+      );
+    }
+
+    console.error('field report load error',e);
+
+    return NextResponse.json(
+      {error:e?.message||'작업보고 조회 오류'},
+      {status:500}
+    );
   }
 }
 
