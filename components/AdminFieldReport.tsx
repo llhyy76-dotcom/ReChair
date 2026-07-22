@@ -247,7 +247,7 @@ export default function AdminFieldReport({
           </aside>
         )}
 
-        {ing?(
+        {loading?(
           <div className="admin-report-ing">
             작업보고를 불러오고 있습니다.
           </div>
