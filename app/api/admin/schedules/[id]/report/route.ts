@@ -75,7 +75,7 @@ export async function GET(
       throw photoError;
     }
 
-    return NextResponse.json({
+  return NextResponse.json({
   success:true,
   data:Object.assign(
     {},
@@ -84,7 +84,7 @@ export async function GET(
       service_schedule_photos:photos||[],
     }
   ),
-});
+});  
   }catch(error:any){
     if(
       error?.message==='ADMIN_UNAUTHORIZED'||
