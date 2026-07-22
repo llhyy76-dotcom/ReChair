@@ -176,24 +176,23 @@ export async function DELETE(
 
     if(scheduleError||!schedule){
       return NextResponse.json(
-        {error:'본인 일정의 서명만 삭제할 수 있습니다.'},
-        {status:403}
+        {
+          error:'본인 일정의 서명만 삭제할 수 있습니다.',
+        },
+        {
+          status:403,
+        }
       );
     }
 
-    const oldSignatureUrl=
-      schedule.customer_signature_url;
+    const oldSignatureUrl=schedule.customer_signature_url;
 
-    /*
-     * DB 값을 먼저 비웁니다.
-     * 이 부분이 실행되어야 화면에서 기존 서명이 사라집니다.
-     */
     const {data:updated,error:updateError}=await supabase
       .from('service_schedules')
       .update({
-  customer_signature_url:null,
-  field_report_updated_at:new Date().toISOString(),
-})
+        customer_signature_url:null,
+        field_report_updated_at:new Date().toISOString(),
+      })
       .eq('id',id)
       .eq('assignee',session.technician.name)
       .select('*')
@@ -203,15 +202,19 @@ export async function DELETE(
       throw updateError;
     }
 
-    // DB 초기화 성공 후 Storage 원본 파일 제거
     if(oldSignatureUrl){
-      const storagePath=extractStoragePath(
-        oldSignatureUrl
-      );
+      const marker='/storage/v1/object/public/service-signatures/';
+      const markerIndex=oldSignatureUrl.indexOf(marker);
 
-      if(storagePath){
+      if(markerIndex>=0){
+        const storagePath=decodeURIComponent(
+          oldSignatureUrl.slice(
+            markerIndex+marker.length
+          )
+        );
+
         const {error:storageError}=await supabase.storage
-          .from(SIGNATURE_BUCKET)
+          .from('service-signatures')
           .remove([storagePath]);
 
         if(storageError){
@@ -229,14 +232,25 @@ export async function DELETE(
     });
   }catch(error:any){
     if(error?.message==='TECHNICIAN_UNAUTHORIZED'){
-      return unauthorizedResponse();
+      return NextResponse.json(
+        {
+          error:'기사 로그인이 필요합니다.',
+        },
+        {
+          status:401,
+        }
+      );
     }
 
     console.error('signature reset error',error);
 
     return NextResponse.json(
-      {error:error?.message||'서명 초기화 오류'},
-      {status:500}
+      {
+        error:error?.message||'서명 초기화 오류',
+      },
+      {
+        status:500,
+      }
     );
   }
 }
