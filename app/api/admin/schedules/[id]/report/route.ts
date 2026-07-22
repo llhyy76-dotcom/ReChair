@@ -76,12 +76,15 @@ export async function GET(
     }
 
     return NextResponse.json({
-      success:true,
-      data:{
-        ...schedule,
-        service_schedule_photos:photos||[],
-      },
-    });
+  success:true,
+  data:Object.assign(
+    {},
+    schedule,
+    {
+      service_schedule_photos:photos||[],
+    }
+  ),
+});
   }catch(error:any){
     if(
       error?.message==='ADMIN_UNAUTHORIZED'||
