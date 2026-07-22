@@ -191,10 +191,9 @@ export async function DELETE(
     const {data:updated,error:updateError}=await supabase
       .from('service_schedules')
       .update({
-        customer_signature_url:null,
-        customer_signed_at:null,
-        field_report_updated_at:new Date().toISOString(),
-      })
+  customer_signature_url:null,
+  field_report_updated_at:new Date().toISOString(),
+})
       .eq('id',id)
       .eq('assignee',session.technician.name)
       .select('*')
