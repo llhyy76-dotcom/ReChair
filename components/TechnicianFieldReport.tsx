@@ -147,7 +147,7 @@ export default function TechnicianFieldReport({
           body:form,
         }
       );
-
+      
       const result=await response.json();
 
       if(response.status===401){
@@ -246,7 +246,39 @@ export default function TechnicianFieldReport({
     hasDrawingRef.current=false;
     setMessage('');
   }
+  async function deletePhoto(photoId:string){
+  const confirmed=window.confirm(
+    '등록된 사진을 삭제하시겠습니까?'
+  );
 
+  if(!confirmed){
+    return;
+  }
+
+  try{
+    setMessage('사진을 삭제하고 있습니다.');
+
+    const response=await fetch(
+      `/api/technician/assignments/${scheduleId}/report?photo_id=${photoId}`,
+      {
+        method:'DELETE',
+      }
+    );
+
+    const result=await response.json();
+
+    if(!response.ok){
+      setMessage(result.error||'사진 삭제 오류');
+      return;
+    }
+
+    setMessage('사진이 삭제되었습니다.');
+    await load();
+  }catch(error){
+    console.error('photo delete client error',error);
+    setMessage('사진 삭제 요청을 처리하지 못했습니다.');
+  }
+}
   async function saveSignature(){
     const canvas=canvasRef.current;
 
