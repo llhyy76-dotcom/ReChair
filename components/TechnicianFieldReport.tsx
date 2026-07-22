@@ -123,160 +123,193 @@ export default function TechnicianFieldReport({
       setSaving(false);
     }
   }
+  function readImage(file:File):Promise<HTMLImageElement>{
+  return new Promise((resolve,reject)=>{
+    const image=new Image();
+    const url=URL.createObjectURL(file);
 
-  async function uploadPhoto(
-    type:string,
-    file?:File
-  ){
-    if(!file){
-      return;
-    }
-
-    try{
-      setUploadingType(type);
-      setMessage('사진을 업로드하고 있습니다.');
-
-      const form=new FormData();
-      form.append('photo_type',type);
-      form.append('file',file);
-
-      const response=await fetch(
-        `/api/technician/assignments/${scheduleId}/report`,
-        {
-          method:'POST',
-          body:form,
-        }
-      );
-      
-      const result=await response.json();
-
-      if(response.status===401){
-        setMessage('기사 로그인이 필요합니다.');
-        return;
-      }
-
-      if(!response.ok){
-        setMessage(
-          result.error||
-          '사진 업로드 중 오류가 발생했습니다.'
-        );
-        return;
-      }
-
-      setMessage('사진이 등록되었습니다.');
-
-      // 업로드된 사진 목록을 DB에서 다시 가져옵니다.
-      await load();
-    }catch(error){
-      console.error('photo upload client error',error);
-      setMessage('사진 업로드 요청을 처리하지 못했습니다.');
-    }finally{
-      setUploadingType(null);
-    }
-  }
-
-  function getCanvasPoint(
-    event:ReactPointerEvent<HTMLCanvasElement>
-  ){
-    const canvas=event.currentTarget;
-    const rect=canvas.getBoundingClientRect();
-
-    return {
-      x:(event.clientX-rect.left)*(canvas.width/rect.width),
-      y:(event.clientY-rect.top)*(canvas.height/rect.height),
+    image.onload=()=>{
+      URL.revokeObjectURL(url);
+      resolve(image);
     };
+
+    image.onerror=()=>{
+      URL.revokeObjectURL(url);
+      reject(new Error('사진을 읽지 못했습니다.'));
+    };
+
+    image.src=url;
+  });
+}
+
+async function compressPhoto(file:File):Promise<File>{
+  // 이미 충분히 작으면 원본을 사용
+  if(file.size<=2.5*1024*1024){
+    return file;
   }
 
-  function startDraw(
-    event:ReactPointerEvent<HTMLCanvasElement>
-  ){
-    const canvas=event.currentTarget;
-    const context=canvas.getContext('2d');
+  const image=await readImage(file);
 
-    if(!context){
-      return;
-    }
+  const maxWidth=1920;
+  const maxHeight=1920;
 
-    drawingRef.current=true;
-    hasDrawingRef.current=true;
-    canvas.setPointerCapture(event.pointerId);
-
-    const point=getCanvasPoint(event);
-
-    context.beginPath();
-    context.moveTo(point.x,point.y);
-  }
-
-  function draw(
-    event:ReactPointerEvent<HTMLCanvasElement>
-  ){
-    if(!drawingRef.current){
-      return;
-    }
-
-    const context=event.currentTarget.getContext('2d');
-
-    if(!context){
-      return;
-    }
-
-    const point=getCanvasPoint(event);
-
-    context.lineWidth=4;
-    context.lineCap='round';
-    context.lineJoin='round';
-    context.strokeStyle='#071126';
-    context.lineTo(point.x,point.y);
-    context.stroke();
-  }
-
-  function stopDraw(){
-    drawingRef.current=false;
-  }
-
-  function clearSignature(){
-    const canvas=canvasRef.current;
-
-    if(!canvas){
-      return;
-    }
-
-    const context=canvas.getContext('2d');
-    context?.clearRect(0,0,canvas.width,canvas.height);
-    hasDrawingRef.current=false;
-    setMessage('');
-  }
-  async function deletePhoto(photoId:string){
-  const confirmed=window.confirm(
-    '등록된 사진을 삭제하시겠습니까?'
+  const ratio=Math.min(
+    1,
+    maxWidth/image.width,
+    maxHeight/image.height
   );
 
-  if(!confirmed){
+  const width=Math.max(
+    1,
+    Math.round(image.width*ratio)
+  );
+
+  const height=Math.max(
+    1,
+    Math.round(image.height*ratio)
+  );
+
+  const canvas=document.createElement('canvas');
+  canvas.width=width;
+  canvas.height=height;
+
+  const context=canvas.getContext('2d');
+
+  if(!context){
+    throw new Error('사진 압축 기능을 사용할 수 없습니다.');
+  }
+
+  context.drawImage(
+    image,
+    0,
+    0,
+    width,
+    height
+  );
+
+  const qualities=[0.8,0.7,0.6,0.5];
+
+  for(const quality of qualities){
+    const blob=await new Promise<Blob|null>(resolve=>{
+      canvas.toBlob(
+        resolve,
+        'image/jpeg',
+        quality
+      );
+    });
+
+    if(blob&&blob.size<=2.5*1024*1024){
+      return new File(
+        [blob],
+        `${Date.now()}.jpg`,
+        {
+          type:'image/jpeg',
+          lastModified:Date.now(),
+        }
+      );
+    }
+  }
+
+  const finalBlob=await new Promise<Blob|null>(resolve=>{
+    canvas.toBlob(
+      resolve,
+      'image/jpeg',
+      0.45
+    );
+  });
+
+  if(!finalBlob){
+    throw new Error('사진 압축에 실패했습니다.');
+  }
+
+  return new File(
+    [finalBlob],
+    `${Date.now()}.jpg`,
+    {
+      type:'image/jpeg',
+      lastModified:Date.now(),
+    }
+  );
+}
+  async function uploadPhoto(
+  type:string,
+  file?:File
+){
+  if(!file){
     return;
   }
 
   try{
-    setMessage('사진을 삭제하고 있습니다.');
+    setUploadingType(type);
+    setMessage('사진을 최적화하고 있습니다.');
 
-    const response=await fetch(
-      `/api/technician/assignments/${scheduleId}/report?photo_id=${photoId}`,
-      {
-        method:'DELETE',
-      }
-    );
+    const uploadFile=await compressPhoto(file);
 
-    const result=await response.json();
-
-    if(!response.ok){
-      setMessage(result.error||'사진 삭제 오류');
+    if(uploadFile.size>3.5*1024*1024){
+      setMessage(
+        '사진 용량이 너무 큽니다. 카메라 해상도를 낮추거나 다른 사진을 선택하세요.'
+      );
       return;
     }
 
-    setMessage('사진이 삭제되었습니다.');
+    setMessage('사진을 업로드하고 있습니다.');
+
+    const form=new FormData();
+    form.append('photo_type',type);
+    form.append('file',uploadFile);
+
+    const response=await fetch(
+      `/api/technician/assignments/${scheduleId}/report`,
+      {
+        method:'POST',
+        body:form,
+      }
+    );
+
+    const contentType=
+      response.headers.get('content-type')||'';
+
+    let result:any=null;
+
+    if(contentType.includes('application/json')){
+      result=await response.json();
+    }else{
+      const text=await response.text();
+
+      result={
+        error:
+          response.status===413
+            ? '사진 용량이 서버 허용 크기를 초과했습니다.'
+            : text||'사진 업로드 오류',
+      };
+    }
+
+    if(response.status===401){
+      setMessage('기사 로그인이 필요합니다.');
+      return;
+    }
+
+    if(!response.ok){
+      setMessage(
+        result?.error||
+        `사진 업로드 오류 (${response.status})`
+      );
+      return;
+    }
+
+    setMessage('사진이 등록되었습니다.');
+
     await load();
   }catch(error){
-    console.error('photo delete client error',error);
-    setMessage('사진 삭제 요청을 처리하지 못했습니다.');
+    console.error('photo upload client error',error);
+
+    setMessage(
+      error instanceof Error
+        ? error.message
+        : '사진 업로드 요청을 처리하지 못했습니다.'
+    );
+  }finally{
+    setUploadingType(null);
   }
 }
   async function saveSignature(){
