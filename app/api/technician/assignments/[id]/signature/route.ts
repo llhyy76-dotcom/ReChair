@@ -107,10 +107,9 @@ export async function POST(
     const {data:updated,error:updateError}=await supabase
       .from('service_schedules')
       .update({
-        customer_signature_url:signatureUrl,
-        customer_signed_at:new Date().toISOString(),
-        field_report_updated_at:new Date().toISOString(),
-      })
+  customer_signature_url:signatureUrl,
+  field_report_updated_at:new Date().toISOString(),
+})
       .eq('id',id)
       .eq('assignee',session.technician.name)
       .select('*')
