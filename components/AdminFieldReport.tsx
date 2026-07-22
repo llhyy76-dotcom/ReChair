@@ -34,7 +34,10 @@ type AdminReport={
   work_started_at?:string|null;
   completed_at?:string|null;
   field_report_updated_at?:string|null;
-
+  report_approval_status?:string|null;
+  report_rejection_reason?:string|null;
+  report_reviewed_at?:string|null;
+  report_reviewed_by?:string|null;
   service_schedule_photos?:Photo[];
 };
 
@@ -76,7 +79,8 @@ export default function AdminFieldReport({
   const [report,setReport]=useState<AdminReport|null>(null);
   const [loading,setLoading]=useState(true);
   const [message,setMessage]=useState('');
-
+  const [reviewing,setReviewing]=useState(false);
+  const [rejectionReason,setRejectionReason]=useState('');
   async function load(){
     try{
       setLoading(true);
@@ -107,6 +111,9 @@ export default function AdminFieldReport({
       }
 
       setReport(result.data);
+      setRejectionReason(
+  result.data.report_rejection_reason||''
+);
     }catch(error){
       console.error('admin report load error',error);
       setMessage('작업보고 조회 요청에 실패했습니다.');
@@ -120,7 +127,88 @@ export default function AdminFieldReport({
   },[scheduleId]);
 
   const photos=report?.service_schedule_photos||[];
+  async function reviewReport(
+  approvalStatus:'승인'|'반려'|'검토대기'
+){
+  if(
+    approvalStatus==='반려'&&
+    !rejectionReason.trim()
+  ){
+    setMessage('반려 사유를 입력하세요.');
+    return;
+  }
 
+  const confirmMessage=
+    approvalStatus==='승인'
+      ? '이 작업보고를 승인하시겠습니까?'
+      : approvalStatus==='반려'
+        ? '이 작업보고를 기사에게 반려하시겠습니까?'
+        : '검토대기 상태로 되돌리시겠습니까?';
+
+  if(!window.confirm(confirmMessage)){
+    return;
+  }
+
+  try{
+    setReviewing(true);
+    setMessage('작업보고 검토 상태를 저장하고 있습니다.');
+
+    const response=await fetch(
+      `/api/admin/schedules/${scheduleId}/report/review`,
+      {
+        method:'PATCH',
+        headers:{
+          'Content-Type':'application/json',
+        },
+        body:JSON.stringify({
+          approval_status:approvalStatus,
+          rejection_reason:
+            approvalStatus==='반려'
+              ? rejectionReason.trim()
+              : '',
+        }),
+      }
+    );
+
+    const contentType=
+      response.headers.get('content-type')||'';
+
+    const result=contentType.includes('application/json')
+      ? await response.json()
+      : {
+          error:await response.text(),
+        };
+
+    if(!response.ok){
+      setMessage(
+        result.error||
+        '작업보고 검토 처리 오류'
+      );
+      return;
+    }
+
+    setMessage(
+      approvalStatus==='승인'
+        ? '작업보고가 승인되었습니다.'
+        : approvalStatus==='반려'
+          ? '작업보고가 반려되었습니다.'
+          : '검토대기 상태로 변경되었습니다.'
+    );
+
+    await load();
+  }catch(error){
+    console.error(
+      'admin report review client error',
+      error
+    );
+
+    setMessage(
+      '작업보고 검토 요청을 처리하지 못했습니다.'
+    );
+  }finally{
+    setReviewing(false);
+  }
+}
   return (
     <div
       className="admin-report-backdrop"
@@ -159,8 +247,8 @@ export default function AdminFieldReport({
           </aside>
         )}
 
-        {loading?(
-          <div className="admin-report-loading">
+        {ing?(
+          <div className="admin-report-ing">
             작업보고를 불러오고 있습니다.
           </div>
         ):report?(
@@ -337,7 +425,99 @@ export default function AdminFieldReport({
                 </div>
               )}
             </section>
+            <section className="admin-report-review">
+  <div className="admin-report-review-head">
+    <div>
+      <h3>관리자 검토</h3>
+      <p>
+        기사 작업보고를 확인한 뒤 승인 또는 반려합니다.
+      </p>
+    </div>
 
+    <strong
+      className={
+        'review-status '+
+        (
+          report.report_approval_status||
+          '검토대기'
+        )
+      }
+    >
+      {report.report_approval_status||
+        '검토대기'}
+    </strong>
+  </div>
+
+  {report.report_approval_status==='반려'&&
+    report.report_rejection_reason&&(
+      <div className="admin-report-rejection-view">
+        <b>기존 반려 사유</b>
+        <p>{report.report_rejection_reason}</p>
+      </div>
+    )}
+
+  <label className="admin-report-rejection-input">
+    <span>반려 사유</span>
+
+    <textarea
+      value={rejectionReason}
+      onChange={event=>
+        setRejectionReason(
+          event.target.value
+        )
+      }
+      placeholder="기사에게 보완을 요청할 내용을 입력하세요."
+    />
+  </label>
+
+  <div className="admin-report-review-actions">
+    {report.report_approval_status!=='검토대기'&&(
+      <button
+        type="button"
+        disabled={reviewing}
+        onClick={()=>
+          void reviewReport('검토대기')
+        }
+      >
+        검토대기로 변경
+      </button>
+    )}
+
+    <button
+      type="button"
+      className="reject"
+      disabled={reviewing}
+      onClick={()=>
+        void reviewReport('반려')
+      }
+    >
+      반려
+    </button>
+
+    <button
+      type="button"
+      className="approve"
+      disabled={reviewing}
+      onClick={()=>
+        void reviewReport('승인')
+      }
+    >
+      {reviewing?'처리 중':'승인'}
+    </button>
+  </div>
+
+  {report.report_reviewed_at&&(
+    <small className="admin-report-reviewed-at">
+      검토일시:
+      {' '}
+      {formatDateTime(
+        report.report_reviewed_at
+      )}
+      {' · '}
+      {report.report_reviewed_by||'관리자'}
+    </small>
+  )}
+</section>
             <footer className="admin-report-footer">
               <span>
                 최근 보고서 수정:
