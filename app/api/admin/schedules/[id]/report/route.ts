@@ -1,6 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
-import {requireAdminSession} from '@/lib/adminAuth';
+import {requireAdmin} from '@/lib/adminAuth';
 
 export const dynamic='force-dynamic';
 
@@ -9,8 +9,7 @@ export async function GET(
   {params}:{params:Promise<{id:string}>}
 ){
   try{
-    await requireAdminSession();
-
+    await requireAdmin();
     const {id}=await params;
     const supabase=getSupabaseServer();
 
