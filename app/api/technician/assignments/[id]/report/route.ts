@@ -98,7 +98,46 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
     const photoType=String(form.get('photo_type')||'other');
     const file=form.get('file');
     if(!(file instanceof File))return NextResponse.json({error:'사진 파일이 필요합니다.'},{status:400});
-    const allowed=['front','side','label','after','part','receipt','other'];
+    const arrayBuffer=await file.arrayBuffer();
+const bytes=new Uint8Array(arrayBuffer);
+
+const {error:uploadError}=await supabase.storage
+  .from('service-report-photos')
+  .upload(objectPath,bytes,{
+    contentType:file.type||'image/jpeg',
+    cacheControl:'3600',
+    upsert:false,
+  });
+
+if(uploadError){
+  throw uploadError;
+}
+
+const {data:publicUrlData}=supabase.storage
+  .from('service-report-photos')
+  .getPublicUrl(objectPath);
+
+const photoUrl=publicUrlData.publicUrl;
+
+const {data:photo,error:photoError}=await supabase
+  .from('service_schedule_photos')
+  .insert({
+    schedule_id:id,
+    technician_id:session.technician_id,
+    photo_type:photoType,
+    photo_url:photoUrl,
+  })
+  .select('*')
+  .single();
+
+if(photoError){
+  throw photoError;
+}
+
+return NextResponse.json({
+  success:true,
+  data:photo,
+});const allowed=['front','side','label','after','part','receipt','other'];
     if(!allowed.includes(photoType))return NextResponse.json({error:'허용되지 않은 사진 구분입니다.'},{status:400});
     if(file.size>10*1024*1024)return NextResponse.json({error:'사진은 10MB 이하만 등록할 수 있습니다.'},{status:400});
     const supabase=getSupabaseServer();
