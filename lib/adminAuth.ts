@@ -38,3 +38,12 @@ export const adminCookieOptions={
   path:'/',
   maxAge:60*60*12,
 };
+export async function requireAdminSession(){
+  const valid=await verifyAdminSession();
+
+  if(!valid){
+    throw new Error('ADMIN_UNAUTHORIZED');
+  }
+
+  return true;
+}
