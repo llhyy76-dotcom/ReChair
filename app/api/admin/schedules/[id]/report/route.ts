@@ -38,6 +38,10 @@ export async function GET(
         work_started_at,
         completed_at,
         field_report_updated_at
+        report_approval_status,
+        report_rejection_reason,
+        report_reviewed_at,
+        report_reviewed_by,
       `)
       .eq('id',id)
       .single();
