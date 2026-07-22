@@ -272,3 +272,94 @@ export async function POST(
     );
   }
 }
+export async function DELETE(
+  req:NextRequest,
+  {params}:{params:Promise<{id:string}>}
+){
+  try{
+    const session=await requireTechnicianSession();
+    const {id}=await params;
+
+    const photoId=new URL(req.url)
+      .searchParams
+      .get('photo_id');
+
+    if(!photoId){
+      return NextResponse.json(
+        {error:'삭제할 사진 정보가 필요합니다.'},
+        {status:400}
+      );
+    }
+
+    const supabase=getSupabaseServer();
+
+    const {data:schedule,error:scheduleError}=await supabase
+      .from('service_schedules')
+      .select('id,assignee')
+      .eq('id',id)
+      .eq('assignee',session.technician.name)
+      .single();
+
+    if(scheduleError||!schedule){
+      return NextResponse.json(
+        {error:'본인 일정의 사진만 삭제할 수 있습니다.'},
+        {status:403}
+      );
+    }
+
+    const {data:photo,error:photoLoadError}=await supabase
+      .from('service_schedule_photos')
+      .select('id,photo_url')
+      .eq('id',photoId)
+      .eq('schedule_id',id)
+      .single();
+
+    if(photoLoadError||!photo){
+      return NextResponse.json(
+        {error:'사진 정보를 찾을 수 없습니다.'},
+        {status:404}
+      );
+    }
+
+    const marker='/service-report-photos/';
+    const markerIndex=photo.photo_url.indexOf(marker);
+
+    if(markerIndex>=0){
+      const storagePath=decodeURIComponent(
+        photo.photo_url.slice(
+          markerIndex+marker.length
+        )
+      );
+
+      await supabase.storage
+        .from('service-report-photos')
+        .remove([storagePath]);
+    }
+
+    const {error:deleteError}=await supabase
+      .from('service_schedule_photos')
+      .delete()
+      .eq('id',photoId)
+      .eq('schedule_id',id);
+
+    if(deleteError){
+      throw deleteError;
+    }
+
+    return NextResponse.json({
+      success:true,
+    });
+  }catch(e:any){
+    if(e?.message==='TECHNICIAN_UNAUTHORIZED'){
+      return NextResponse.json(
+        {error:'기사 로그인이 필요합니다.'},
+        {status:401}
+      );
+    }
+
+    return NextResponse.json(
+      {error:e?.message||'사진 삭제 오류'},
+      {status:500}
+    );
+  }
+}
