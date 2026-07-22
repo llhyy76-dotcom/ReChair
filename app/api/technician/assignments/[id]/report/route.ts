@@ -106,7 +106,8 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
     if(scheduleError||!schedule)return NextResponse.json({error:'본인 일정만 사진을 등록할 수 있습니다.'},{status:403});
     const ext=(file.name.split('.').pop()||'jpg').replace(/[^a-zA-Z0-9]/g,'');
     const objectPath=[session.technician_id,id,`${photoType}-${Date.now()}.${ext}`].join('/');
-    const bytes=await file.arrayBuffer();
+    const arrayBuffer=await file.arrayBuffer();
+    const bytes=new Uint8Array(arrayBuffer);
     const {error:uploadError}=await supabase.storage.from('service-report-photos').upload(objectPath,bytes,{contentType:file.type||'image/jpeg',upsert:false});
     if(uploadError)throw uploadError;
     const {data:publicUrlData}=supabase.storage.from('service-report-photos').getPublicUrl(objectPath);
