@@ -4425,3 +4425,130 @@ body {
     padding:18px;
   }
 }
+.admin-report-review{
+  margin-top:24px;
+  padding:20px;
+  border:1px solid #dce5f2;
+  border-radius:16px;
+  background:#f8faff;
+}
+
+.admin-report-review-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:18px;
+}
+
+.admin-report-review-head h3{
+  margin:0;
+  font-size:17px;
+}
+
+.admin-report-review-head p{
+  margin:6px 0 0;
+  color:#64748b;
+  font-size:12px;
+}
+
+.review-status{
+  flex:none;
+  padding:8px 12px;
+  border-radius:999px;
+  background:#edf2f8;
+  color:#475569;
+  font-size:12px;
+}
+
+.review-status.승인{
+  background:#dcfce7;
+  color:#15803d;
+}
+
+.review-status.반려{
+  background:#fee2e2;
+  color:#b42318;
+}
+
+.review-status.검토대기{
+  background:#eaf2ff;
+  color:#0e5bff;
+}
+
+.admin-report-rejection-view{
+  margin-top:14px;
+  padding:14px;
+  border-radius:12px;
+  background:#fff0f0;
+  color:#b42318;
+}
+
+.admin-report-rejection-view b{
+  display:block;
+  margin-bottom:5px;
+  font-size:12px;
+}
+
+.admin-report-rejection-view p{
+  margin:0;
+  white-space:pre-wrap;
+  line-height:1.6;
+}
+
+.admin-report-rejection-input{
+  display:block;
+  margin-top:16px;
+}
+
+.admin-report-rejection-input span{
+  display:block;
+  margin-bottom:7px;
+  font-size:12px;
+  font-weight:800;
+}
+
+.admin-report-rejection-input textarea{
+  width:100%;
+  min-height:88px;
+  resize:vertical;
+  padding:12px;
+  border:1px solid #cfd9e8;
+  border-radius:11px;
+  font:inherit;
+}
+
+.admin-report-review-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:14px;
+}
+
+.admin-report-review-actions button{
+  border:0;
+  border-radius:10px;
+  padding:10px 15px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.admin-report-review-actions button.reject{
+  background:#fff0f0;
+  color:#b42318;
+}
+
+.admin-report-review-actions button.approve{
+  background:#0e5bff;
+  color:#fff;
+}
+
+.admin-report-review-actions button:disabled{
+  cursor:not-allowed;
+  opacity:.55;
+}
+
+.admin-report-reviewed-at{
+  display:block;
+  margin-top:12px;
+  color:#64748b;
+}
