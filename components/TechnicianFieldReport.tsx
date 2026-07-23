@@ -775,11 +775,7 @@ export default function TechnicianFieldReport({
                             type="file"
                             accept="image/*"
                             capture="environment"
-                            disabled={
-                              uploading||
-                              deleting||
-                              isApproved
-                            }
+                            disabled={uploading||deleting||isApproved}
                             onChange={event=>{
                               const file=
                                 event.currentTarget
