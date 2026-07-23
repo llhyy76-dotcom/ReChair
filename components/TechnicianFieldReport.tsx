@@ -22,6 +22,10 @@ type Report={
   replaced_parts?:string|null;
   customer_confirmation?:string|null;
   customer_signature_url?:string|null;
+  report_approval_status?:string|null;
+  report_rejection_reason?:string|null;
+  report_reviewed_at?:string|null;
+  report_reviewed_by?:string|null;
   service_schedule_photos?:Photo[];
 };
 
