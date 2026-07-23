@@ -128,7 +128,10 @@ export async function PATCH(
   report_reviewed_at:null,
   report_reviewed_by:null,
 };
-
+{
+  "report_approval_status": "반려",
+  "report_rejection_reason": "문제가 많음"
+}
     const {data,error}=await supabase
       .from('service_schedules')
       .update(payload)
