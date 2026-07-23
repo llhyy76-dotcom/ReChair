@@ -46,16 +46,33 @@ export async function GET(
       .eq('id',id)
       .single();
 
-    if(scheduleError||!schedule){
-      return NextResponse.json(
-        {
-          error:'작업보고를 찾을 수 없습니다.',
-        },
-        {
-          status:404,
-        }
-      );
+    if(scheduleError){
+  console.error(
+    'admin report schedule query error',
+    scheduleError
+  );
+
+  return NextResponse.json(
+    {
+      error:
+        `작업보고 조회 오류: ${scheduleError.message}`,
+    },
+    {
+      status:500,
     }
+  );
+}
+
+if(!schedule){
+  return NextResponse.json(
+    {
+      error:'작업보고를 찾을 수 없습니다.',
+    },
+    {
+      status:404,
+    }
+  );
+}
 
     const {data:photos,error:photoError}=await supabase
       .from('service_schedule_photos')
