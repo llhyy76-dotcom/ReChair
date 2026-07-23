@@ -123,7 +123,6 @@ export async function PATCH(
   completed_by_technician_id:session.technician_id,
   field_report_updated_at:new Date().toISOString(),
 
-  // 반려 후 기사가 내용을 수정하면 관리자에게 재검토 요청
   report_approval_status:'검토대기',
   report_rejection_reason:null,
   report_reviewed_at:null,
