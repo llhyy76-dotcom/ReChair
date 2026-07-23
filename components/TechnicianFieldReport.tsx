@@ -554,8 +554,6 @@ export default function TechnicianFieldReport({
   }
   const isApproved=
   report?.report_approval_status==='승인';
-  const isApproved=
-  report?.report_approval_status==='승인';
   const photos=report?.service_schedule_photos||[];
 
   if(loading&&!report){
