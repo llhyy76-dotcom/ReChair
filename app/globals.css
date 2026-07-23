@@ -4639,3 +4639,83 @@ input:disabled{
   opacity:.72;
   background:#f1f5f9;
 }
+.technician-review-status{
+  margin:16px 0;
+  padding:16px;
+  border:1px solid #dce5f2;
+  border-radius:14px;
+  background:#f7f9fd;
+}
+
+.technician-review-status>div:first-child{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+
+.technician-review-status small{
+  color:#64748b;
+  font-size:11px;
+}
+
+.technician-review-status strong{
+  padding:7px 11px;
+  border-radius:999px;
+  background:#eaf2ff;
+  color:#0e5bff;
+  font-size:12px;
+}
+
+.technician-review-status>p{
+  margin:10px 0 0;
+  color:#64748b;
+  font-size:13px;
+}
+
+.technician-review-status.승인{
+  border-color:#bbf7d0;
+  background:#f0fdf4;
+}
+
+.technician-review-status.승인 strong{
+  background:#dcfce7;
+  color:#15803d;
+}
+
+.technician-review-status.반려{
+  border-color:#fecaca;
+  background:#fff7f7;
+}
+
+.technician-review-status.반려 strong{
+  background:#fee2e2;
+  color:#b42318;
+}
+
+.technician-rejection-reason{
+  margin-top:12px;
+  padding:13px;
+  border-radius:11px;
+  background:#fff;
+  color:#b42318;
+}
+
+.technician-rejection-reason b{
+  display:block;
+  margin-bottom:6px;
+  font-size:12px;
+}
+
+.technician-rejection-reason p{
+  margin:0;
+  white-space:pre-wrap;
+  line-height:1.6;
+}
+
+.technician-rejection-reason span{
+  display:block;
+  margin-top:8px;
+  color:#64748b;
+  font-size:11px;
+}
