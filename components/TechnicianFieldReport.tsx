@@ -777,7 +777,7 @@ export default function TechnicianFieldReport({
                             capture="environment"
                             disabled={
                               uploading||
-                              deleting
+                              deleting||
                               isApproved
                             }
                             onChange={event=>{
