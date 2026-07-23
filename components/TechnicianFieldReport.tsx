@@ -772,24 +772,21 @@ export default function TechnicianFieldReport({
                             : '사진 교체'}
 
                           <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            disabled={uploading||deleting||isApproved}
-                            onChange={event=>{
-                              const file=
-                                event.currentTarget
-                                  .files?.[0];
+  type="file"
+  accept="image/*"
+  capture="environment"
+  disabled={uploading||deleting||isApproved}
+  onChange={event=>{
+    const file=event.currentTarget.files?.[0];
 
-                              void uploadPhoto(
-                                type,
-                                file
-                              );
+    void uploadPhoto(
+      type,
+      file
+    );
 
-                              event.currentTarget
-                                .value='';
-                            }}
-                          />
+    event.currentTarget.value='';
+  }}
+/>
                         </label>
 
                         <button
