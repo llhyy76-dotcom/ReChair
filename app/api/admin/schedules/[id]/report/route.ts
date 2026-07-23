@@ -10,6 +10,7 @@ export async function GET(
 ){
   try{
     await requireAdmin();
+
     const {id}=await params;
     const supabase=getSupabaseServer();
 
@@ -37,38 +38,41 @@ export async function GET(
         arrival_at,
         work_started_at,
         completed_at,
-        field_report_updated_at
+        field_report_updated_at,
+        report_approval_status,
+        report_rejection_reason,
+        report_reviewed_at,
+        report_reviewed_by
       `)
       .eq('id',id)
       .single();
 
     if(scheduleError){
-  console.error(
-    'admin report schedule query error',
-    scheduleError
-  );
+      console.error(
+        'admin report schedule query error',
+        scheduleError
+      );
 
-  return NextResponse.json(
-    {
-      error:
-        `작업보고 조회 오류: ${scheduleError.message}`,
-    },
-    {
-      status:500,
+      return NextResponse.json(
+        {
+          error:`작업보고 조회 오류: ${scheduleError.message}`,
+        },
+        {
+          status:500,
+        }
+      );
     }
-  );
-}
 
-if(!schedule){
-  return NextResponse.json(
-    {
-      error:'작업보고를 찾을 수 없습니다.',
-    },
-    {
-      status:404,
+    if(!schedule){
+      return NextResponse.json(
+        {
+          error:'작업보고를 찾을 수 없습니다.',
+        },
+        {
+          status:404,
+        }
+      );
     }
-  );
-}
 
     const {data:photos,error:photoError}=await supabase
       .from('service_schedule_photos')
@@ -85,19 +89,31 @@ if(!schedule){
       });
 
     if(photoError){
-      throw photoError;
+      console.error(
+        'admin report photo query error',
+        photoError
+      );
+
+      return NextResponse.json(
+        {
+          error:`현장사진 조회 오류: ${photoError.message}`,
+        },
+        {
+          status:500,
+        }
+      );
     }
 
-  return NextResponse.json({
-  success:true,
-  data:Object.assign(
-    {},
-    schedule,
-    {
-      service_schedule_photos:photos||[],
-    }
-  ),
-});  
+    return NextResponse.json({
+      success:true,
+      data:Object.assign(
+        {},
+        schedule,
+        {
+          service_schedule_photos:photos||[],
+        }
+      ),
+    });
   }catch(error:any){
     if(
       error?.message==='ADMIN_UNAUTHORIZED'||
@@ -113,11 +129,15 @@ if(!schedule){
       );
     }
 
-    console.error('admin field report load error',error);
+    console.error(
+      'admin field report load error',
+      error
+    );
 
     return NextResponse.json(
       {
-        error:error?.message||
+        error:
+          error?.message||
           '관리자 작업보고 조회 오류',
       },
       {
