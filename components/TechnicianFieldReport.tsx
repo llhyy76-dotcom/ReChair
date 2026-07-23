@@ -552,7 +552,8 @@ export default function TechnicianFieldReport({
       setSignatureResetting(false);
     }
   }
-
+  const isApproved=
+  report?.report_approval_status==='승인';
   const photos=report?.service_schedule_photos||[];
 
   if(loading&&!report){
@@ -609,13 +610,56 @@ export default function TechnicianFieldReport({
             {message}
           </aside>
         )}
+        <section
+  className={
+    'technician-review-status '+
+    (report?.report_approval_status||'검토대기')
+  }
+>
+  <div>
+    <small>관리자 검토 상태</small>
 
+    <strong>
+      {report?.report_approval_status||'검토대기'}
+    </strong>
+  </div>
+
+  {report?.report_approval_status==='승인'&&(
+    <p>
+      관리자가 작업보고를 승인했습니다.
+    </p>
+  )}
+
+  {report?.report_approval_status==='반려'&&(
+    <div className="technician-rejection-reason">
+      <b>보완 요청사항</b>
+
+      <p>
+        {report.report_rejection_reason||
+          '관리자가 작업보고 보완을 요청했습니다.'}
+      </p>
+
+      <span>
+        내용을 수정한 뒤 작업보고 저장을 누르면
+        검토대기로 다시 제출됩니다.
+      </span>
+    </div>
+  )}
+
+  {(!report?.report_approval_status||
+    report.report_approval_status==='검토대기')&&(
+    <p>
+      관리자 확인을 기다리고 있습니다.
+    </p>
+  )}
+</section>
         <section className="report-form-grid">
           <label>
             <span>고객 증상</span>
 
             <textarea
               value={symptom}
+              disabled={isApproved}
               onChange={event=>
                 setSymptom(event.target.value)
               }
@@ -628,6 +672,7 @@ export default function TechnicianFieldReport({
 
             <textarea
               value={action}
+              disabled={isApproved}
               onChange={event=>
                 setAction(event.target.value)
               }
@@ -640,6 +685,7 @@ export default function TechnicianFieldReport({
 
             <textarea
               value={parts}
+              disabled={isApproved}
               onChange={event=>
                 setParts(event.target.value)
               }
@@ -652,6 +698,7 @@ export default function TechnicianFieldReport({
 
             <textarea
               value={confirmation}
+              disabled={isApproved}
               onChange={event=>
                 setConfirmation(event.target.value)
               }
@@ -661,14 +708,19 @@ export default function TechnicianFieldReport({
         </section>
 
         <button
-          type="button"
-          className="primary"
-          disabled={saving}
-          onClick={saveReport}
-        >
-          {saving?'저장 중':'작업보고 저장'}
-        </button>
-
+  type="button"
+  className="primary"
+  disabled={saving||isApproved}
+  onClick={saveReport}
+>
+  {isApproved
+    ? '승인 완료'
+    : saving
+      ? '저장 중'
+      : report?.report_approval_status==='반려'
+        ? '수정 후 재제출'
+        : '작업보고 저장'}
+</button>
         <section className="report-photo-section">
           <h3>현장 사진</h3>
 
@@ -726,6 +778,7 @@ export default function TechnicianFieldReport({
                             disabled={
                               uploading||
                               deleting
+                              isApproved
                             }
                             onChange={event=>{
                               const file=
@@ -819,6 +872,7 @@ export default function TechnicianFieldReport({
               <button
                 type="button"
                 disabled={signatureResetting}
+                isApproved
                 onClick={()=>
                   void resetSignature()
                 }
