@@ -634,20 +634,19 @@ export default function TechnicianFieldReport({
   )}
 
   {report?.report_approval_status==='반려'&&(
-    <div className="technician-rejection-reason">
-      <b>보완 요청사항</b>
+  <div className="technician-rejection-reason">
+    <b>관리자 보완 요청</b>
 
-      <p>
-        {report.report_rejection_reason||
-          '관리자가 작업보고 보완을 요청했습니다.'}
-      </p>
+    <p>
+      {report.report_rejection_reason||
+        '관리자가 작업보고 보완을 요청했습니다.'}
+    </p>
 
-      <span>
-        내용을 수정한 뒤 아래의 수정 후 재제출 버튼을 누르세요.
-      </span>
-    </div>
-  )}
-
+    <span>
+      내용을 수정한 뒤 수정 후 재제출을 눌러주세요.
+    </span>
+  </div>
+)}
   {(!report?.report_approval_status||
     report.report_approval_status==='검토대기')&&(
     <p>
