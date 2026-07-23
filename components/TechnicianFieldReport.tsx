@@ -554,6 +554,8 @@ export default function TechnicianFieldReport({
   }
   const isApproved=
   report?.report_approval_status==='승인';
+  const isApproved=
+  report?.report_approval_status==='승인';
   const photos=report?.service_schedule_photos||[];
 
   if(loading&&!report){
@@ -611,6 +613,7 @@ export default function TechnicianFieldReport({
           </aside>
         )}
         <section
+  <section
   className={
     'technician-review-status '+
     (report?.report_approval_status||'검토대기')
@@ -626,7 +629,7 @@ export default function TechnicianFieldReport({
 
   {report?.report_approval_status==='승인'&&(
     <p>
-      관리자가 작업보고를 승인했습니다.
+      관리자가 작업보고를 승인했습니다. 승인된 보고서는 수정할 수 없습니다.
     </p>
   )}
 
@@ -640,8 +643,7 @@ export default function TechnicianFieldReport({
       </p>
 
       <span>
-        내용을 수정한 뒤 작업보고 저장을 누르면
-        검토대기로 다시 제출됩니다.
+        내용을 수정한 뒤 아래의 수정 후 재제출 버튼을 누르세요.
       </span>
     </div>
   )}
@@ -823,7 +825,7 @@ export default function TechnicianFieldReport({
                         type="file"
                         accept="image/*"
                         capture="environment"
-                        disabled={uploading}
+                        disabled={uploading||isApproved}                  
                         onChange={event=>{
                           const file=
                             event.currentTarget
@@ -871,8 +873,7 @@ export default function TechnicianFieldReport({
 
               <button
                 type="button"
-                disabled={signatureResetting}
-                isApproved
+                disabled={signatureResetting||isApproved}
                 onClick={()=>
                   void resetSignature()
                 }
