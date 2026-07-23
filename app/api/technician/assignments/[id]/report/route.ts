@@ -115,24 +115,20 @@ export async function PATCH(
     const supabase=getSupabaseServer();
 
     const payload={
-      symptom_text:
-        String(body.symptom_text||'').trim()||null,
+  symptom_text:String(body.symptom_text||'').trim()||null,
+  action_text:String(body.action_text||'').trim()||null,
+  replaced_parts:String(body.replaced_parts||'').trim()||null,
+  customer_confirmation:String(body.customer_confirmation||'').trim()||null,
 
-      action_text:
-        String(body.action_text||'').trim()||null,
+  completed_by_technician_id:session.technician_id,
+  field_report_updated_at:new Date().toISOString(),
 
-      replaced_parts:
-        String(body.replaced_parts||'').trim()||null,
-
-      customer_confirmation:
-        String(body.customer_confirmation||'').trim()||null,
-
-      completed_by_technician_id:
-        session.technician_id,
-
-      field_report_updated_at:
-        new Date().toISOString(),
-    };
+  // 반려 후 기사가 내용을 수정하면 관리자에게 재검토 요청
+  report_approval_status:'검토대기',
+  report_rejection_reason:null,
+  report_reviewed_at:null,
+  report_reviewed_by:null,
+};
 
     const {data,error}=await supabase
       .from('service_schedules')
