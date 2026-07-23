@@ -613,7 +613,6 @@ export default function TechnicianFieldReport({
           </aside>
         )}
         <section
-  <section
   className={
     'technician-review-status '+
     (report?.report_approval_status||'검토대기')
