@@ -72,10 +72,12 @@ function text(value?:string|null){
 export default function AdminFieldReport({
   scheduleId,
   onClose,
-}:{
-  scheduleId:string;
-  onClose:()=>void;
-}){
+  onUpdated,
+}: {
+  scheduleId: string;
+  onClose: () => void;
+  onUpdated?: () => void;
+}) {
   const [report,setReport]=useState<AdminReport|null>(null);
   const [loading,setLoading]=useState(true);
   const [message,setMessage]=useState('');
