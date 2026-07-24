@@ -2,7 +2,9 @@
 
 import {useEffect,useMemo,useState} from 'react';
 import {useRouter} from 'next/navigation';
+
 import TechnicianFieldReport from '@/components/TechnicianFieldReport';
+import styles from './TechnicianMobileApp.module.css';
 
 type Assignment={
   id:string;
@@ -44,24 +46,27 @@ const iso=(date=new Date())=>{
   const year=date.getFullYear();
   const month=String(date.getMonth()+1).padStart(2,'0');
   const day=String(date.getDate()).padStart(2,'0');
-
   return `${year}-${month}-${day}`;
 };
 
 const time=(value?:string|null)=>{
-  if(!value){
-    return '-';
-  }
+  if(!value) return '-';
+  return new Date(value).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+};
 
-  return new Date(value).toLocaleTimeString('ko-KR',{
-    hour:'2-digit',
-    minute:'2-digit',
-  });
+const dateLabel=(value:string)=>{
+  const target=new Date(`${value}T00:00:00`);
+  return target.toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
+};
+
+const statusTone=(status:string)=>{
+  if(status==='완료') return styles.done;
+  if(['이동중','방문중','작업중'].includes(status)) return styles.active;
+  return styles.waiting;
 };
 
 export default function TechnicianMobileApp(){
   const router=useRouter();
-
   const [date,setDate]=useState(iso());
   const [technician,setTechnician]=useState<Technician|null>(null);
   const [items,setItems]=useState<Assignment[]>([]);
@@ -69,25 +74,20 @@ export default function TechnicianMobileApp(){
   const [checking,setChecking]=useState(true);
   const [workingId,setWorkingId]=useState<string|null>(null);
   const [reportScheduleId,setReportScheduleId]=useState<string|null>(null);
+  const [expandedId,setExpandedId]=useState<string|null>(null);
 
   async function checkSession(){
     try{
-      const response=await fetch('/api/technician/me',{
-        cache:'no-store',
-      });
-
+      const response=await fetch('/api/technician/me',{cache:'no-store'});
       const result=await response.json();
-
       if(response.status===401){
         router.replace('/technician/login');
         return;
       }
-
       if(!response.ok){
         setMessage(result.error||'로그인 확인 오류');
         return;
       }
-
       setTechnician(result.data);
     }catch(error){
       console.error('technician session error',error);
@@ -98,36 +98,20 @@ export default function TechnicianMobileApp(){
   }
 
   async function loadAssignments(){
-    if(!technician?.name){
-      return;
-    }
-
+    if(!technician?.name) return;
     try{
       setMessage('');
-
-      const params=new URLSearchParams({
-        date,
-      });
-
-      const response=await fetch(
-        `/api/technician/assignments?${params.toString()}`,
-        {
-          cache:'no-store',
-        }
-      );
-
+      const params=new URLSearchParams({date});
+      const response=await fetch(`/api/technician/assignments?${params.toString()}`,{cache:'no-store'});
       const result=await response.json();
-
       if(response.status===401){
         router.replace('/technician/login');
         return;
       }
-
       if(!response.ok){
         setMessage(result.error||'일정 조회 오류');
         return;
       }
-
       setItems(result.data||[]);
     }catch(error){
       console.error('assignment load error',error);
@@ -135,38 +119,31 @@ export default function TechnicianMobileApp(){
     }
   }
 
-  useEffect(()=>{
-    checkSession();
-  },[]);
+  useEffect(()=>{void checkSession();},[]);
+  useEffect(()=>{if(technician?.name) void loadAssignments();},[date,technician?.name]);
 
-  useEffect(()=>{
-    if(technician?.name){
-      loadAssignments();
-    }
-  },[date,technician?.name]);
+  const sortedItems=useMemo(
+    ()=>[...items].sort((a,b)=>new Date(a.scheduled_at).getTime()-new Date(b.scheduled_at).getTime()),
+    [items]
+  );
 
   const summary=useMemo(()=>({
     total:items.length,
-
-    waiting:items.filter(item=>
-      ['배정대기','배정완료'].includes(item.status)
-    ).length,
-
-    active:items.filter(item=>
-      ['이동중','방문중','작업중'].includes(item.status)
-    ).length,
-
-    done:items.filter(item=>
-      item.status==='완료'
-    ).length,
+    waiting:items.filter(item=>['배정대기','배정완료'].includes(item.status)).length,
+    active:items.filter(item=>['이동중','방문중','작업중'].includes(item.status)).length,
+    done:items.filter(item=>item.status==='완료').length,
   }),[items]);
 
+  const nextItem=useMemo(
+    ()=>sortedItems.find(item=>item.status!=='완료')||null,
+    [sortedItems]
+  );
+
+  const progress=summary.total===0?0:Math.round((summary.done/summary.total)*100);
+
   async function logout(){
-    try{
-      await fetch('/api/technician/auth/logout',{
-        method:'POST',
-      });
-    }finally{
+    try{await fetch('/api/technician/auth/logout',{method:'POST'});}
+    finally{
       router.replace('/technician/login');
       router.refresh();
     }
@@ -175,86 +152,43 @@ export default function TechnicianMobileApp(){
   function getLocation():Promise<LocationPayload>{
     return new Promise(resolve=>{
       if(!navigator.geolocation){
-        resolve({
-          latitude:null,
-          longitude:null,
-          accuracy:null,
-        });
+        resolve({latitude:null,longitude:null,accuracy:null});
         return;
       }
-
       navigator.geolocation.getCurrentPosition(
-        position=>{
-          resolve({
-            latitude:position.coords.latitude,
-            longitude:position.coords.longitude,
-            accuracy:position.coords.accuracy,
-          });
-        },
-        ()=>{
-          resolve({
-            latitude:null,
-            longitude:null,
-            accuracy:null,
-          });
-        },
-        {
-          enableHighAccuracy:true,
-          timeout:8000,
-          maximumAge:30000,
-        }
+        position=>resolve({
+          latitude:position.coords.latitude,
+          longitude:position.coords.longitude,
+          accuracy:position.coords.accuracy,
+        }),
+        ()=>resolve({latitude:null,longitude:null,accuracy:null}),
+        {enableHighAccuracy:true,timeout:8000,maximumAge:30000}
       );
     });
   }
 
-  async function updateStatus(
-    item:Assignment,
-    status:string,
-    extra:Record<string,unknown>={}
-  ){
+  async function updateStatus(item:Assignment,status:string,extra:Record<string,unknown>={}){
     try{
       setWorkingId(item.id);
       setMessage('현재 위치를 확인하고 있습니다.');
-
       const location=await getLocation();
-
-      const response=await fetch(
-        `/api/technician/assignments/${item.id}`,
-        {
-          method:'PATCH',
-          headers:{
-            'Content-Type':'application/json',
-          },
-          body:JSON.stringify({
-            status,
-            ...location,
-            ...extra,
-          }),
-        }
-      );
-
+      const response=await fetch(`/api/technician/assignments/${item.id}`,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({status,...location,...extra}),
+      });
       const result=await response.json();
-
       if(response.status===401){
         router.replace('/technician/login');
         return false;
       }
-
       if(!response.ok){
         setMessage(result.error||'상태 변경 오류');
         return false;
       }
-
-      const locationText=location.latitude===null
-        ? ' 위치정보 없이 저장되었습니다.'
-        : ' GPS 위치도 함께 기록되었습니다.';
-
-      setMessage(
-        `${item.customer_name} 일정이 '${status}' 상태로 변경되었습니다.${locationText}`
-      );
-
+      const locationText=location.latitude===null?' 위치정보 없이 저장되었습니다.':' GPS 위치도 함께 기록되었습니다.';
+      setMessage(`${item.customer_name} 일정이 '${status}' 상태로 변경되었습니다.${locationText}`);
       await loadAssignments();
-
       return true;
     }catch(error){
       console.error('assignment status update error',error);
@@ -265,221 +199,163 @@ export default function TechnicianMobileApp(){
     }
   }
 
-  const mapUrl=(address?:string|null)=>{
-    return `https://map.kakao.com/link/search/${encodeURIComponent(
-      address||''
-    )}`;
-  };
+  const mapUrl=(address?:string|null)=>`https://map.kakao.com/link/search/${encodeURIComponent(address||'')}`;
+
+  function actionFor(item:Assignment){
+    const busy=workingId===item.id;
+    if(['배정대기','배정완료'].includes(item.status)){
+      return <button className={styles.primaryAction} disabled={busy} onClick={()=>updateStatus(item,'이동중')}>{busy?'처리 중':'출발하기'}</button>;
+    }
+    if(item.status==='이동중'){
+      return <button className={styles.primaryAction} disabled={busy} onClick={()=>updateStatus(item,'방문중')}>{busy?'처리 중':'도착하기'}</button>;
+    }
+    if(item.status==='방문중'){
+      return <button className={styles.primaryAction} disabled={busy} onClick={()=>updateStatus(item,'작업중')}>{busy?'처리 중':'작업 시작'}</button>;
+    }
+    if(item.status==='작업중'){
+      return <button className={styles.primaryAction} onClick={()=>setReportScheduleId(item.id)}>작업보고 작성</button>;
+    }
+    if(item.status==='완료'){
+      return <button className={styles.secondaryAction} onClick={()=>setReportScheduleId(item.id)}>작업보고 보기</button>;
+    }
+    return null;
+  }
 
   if(checking){
-    return (
-      <div className="tech-mobile-loading">
-        로그인 상태를 확인하고 있습니다.
-      </div>
-    );
+    return <div className={styles.loading}>로그인 상태를 확인하고 있습니다.</div>;
   }
 
   return (
-    <div className="tech-mobile">
-      <header>
+    <div className={styles.page}>
+      <header className={styles.header}>
         <div>
-          <p>RECHAIR FIELD</p>
-          <h1>오늘의 방문 일정</h1>
-          <span>{technician?.name} 전용 일정입니다.</span>
+          <p className={styles.eyebrow}>RECHAIR FIELD</p>
+          <h1>{technician?.name} 기사님</h1>
+          <span>{technician?.team_name||technician?.region||'오늘도 안전하게 업무하세요.'}</span>
         </div>
-
-        <div className="field-account">
-          <b>{technician?.name}</b>
-          <button type="button" onClick={logout}>
-            로그아웃
-          </button>
-        </div>
+        <button type="button" className={styles.logout} onClick={logout}>로그아웃</button>
       </header>
 
-      <section className="mobile-controls auth-controls">
-        <label>
-          <span>일자</span>
+      <main className={styles.main}>
+        <section className={styles.dateBar}>
+          <label>
+            <span>업무일</span>
+            <input type="date" value={date} onChange={event=>setDate(event.target.value)}/>
+          </label>
+          <button type="button" onClick={()=>void loadAssignments()} aria-label="일정 새로고침">새로고침</button>
+        </section>
 
-          <input
-            type="date"
-            value={date}
-            onChange={event=>setDate(event.target.value)}
-          />
-        </label>
+        {message&&<aside className={styles.notice}>{message}</aside>}
 
-        <button type="button" onClick={loadAssignments}>
-          새로고침
-        </button>
-      </section>
-
-      {message&&(
-        <aside>
-          {message}
-        </aside>
-      )}
-
-      <section className="mobile-summary">
-        <article>
-          <small>전체</small>
-          <strong>{summary.total}</strong>
-        </article>
-
-        <article>
-          <small>대기</small>
-          <strong>{summary.waiting}</strong>
-        </article>
-
-        <article>
-          <small>진행중</small>
-          <strong>{summary.active}</strong>
-        </article>
-
-        <article className="dark">
-          <small>완료</small>
-          <strong>{summary.done}</strong>
-        </article>
-      </section>
-
-      <section className="assignment-list">
-        {items.length===0?(
-          <div className="empty">
-            <b>배정된 일정이 없습니다.</b>
-
-            <p>
-              관리자가 {technician?.name}에 일정을 배정하면 표시됩니다.
-            </p>
+        <section className={styles.progressCard}>
+          <div className={styles.progressTop}>
+            <div>
+              <span>{dateLabel(date)}</span>
+              <strong>오늘 업무 {summary.done} / {summary.total}건 완료</strong>
+            </div>
+            <b>{progress}%</b>
           </div>
-        ):(
-          items.map((item,index)=>(
-            <article key={item.id}>
-              <div className="visit-order">
-                {index+1}
+          <div className={styles.progressTrack}><i style={{width:`${progress}%`}}/></div>
+          <div className={styles.stats}>
+            <span><b>{summary.waiting}</b> 대기</span>
+            <span><b>{summary.active}</b> 진행</span>
+            <span><b>{summary.done}</b> 완료</span>
+          </div>
+        </section>
+
+        {nextItem&&(
+          <section className={styles.nextCard}>
+            <div className={styles.sectionLabel}>지금 해야 할 일정</div>
+            <div className={styles.nextHead}>
+              <div>
+                <time>{time(nextItem.scheduled_at)}</time>
+                <h2>{nextItem.customer_name}</h2>
               </div>
-
-              <div className="visit-main">
-                <div className="visit-head">
-                  <time>
-                    {time(item.scheduled_at)}
-                  </time>
-
-                  <span className={`status ${item.status}`}>
-                    {item.status}
-                  </span>
-                </div>
-
-                <h2>{item.customer_name}</h2>
-
-                <p>
-                  {item.service_type||'서비스 미입력'}
-                  {' · '}
-                  예상 {item.duration_minutes||60}분
-                </p>
-
-                <address>
-                  {item.address||item.region||'주소 미입력'}
-                </address>
-
-                {item.memo&&(
-                  <blockquote>
-                    {item.memo}
-                  </blockquote>
-                )}
-
-                <div className="workflow-times">
-                  <span>
-                    출발 <b>{time(item.departed_at)}</b>
-                  </span>
-
-                  <span>
-                    도착 <b>{time(item.arrival_at)}</b>
-                  </span>
-
-                  <span>
-                    작업 <b>{time(item.work_started_at)}</b>
-                  </span>
-
-                  <span>
-                    완료 <b>{time(item.completed_at)}</b>
-                  </span>
-                </div>
-
-                <div className="quick-links">
-                  <a href={`tel:${item.phone||''}`}>
-                    고객 전화
-                  </a>
-
-                  <a
-                    href={mapUrl(item.address||item.region)}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    지도 열기
-                  </a>
-                </div>
-              </div>
-
-              <div className="status-actions workflow-actions">
-                {['배정대기','배정완료'].includes(item.status)&&(
-                  <button
-                    type="button"
-                    disabled={workingId===item.id}
-                    onClick={()=>updateStatus(item,'이동중')}
-                  >
-                    {workingId===item.id?'처리 중':'출발'}
-                  </button>
-                )}
-
-                {item.status==='이동중'&&(
-                  <button
-                    type="button"
-                    disabled={workingId===item.id}
-                    onClick={()=>updateStatus(item,'방문중')}
-                  >
-                    {workingId===item.id?'처리 중':'도착'}
-                  </button>
-                )}
-
-                {item.status==='방문중'&&(
-                  <button
-                    type="button"
-                    disabled={workingId===item.id}
-                    onClick={()=>updateStatus(item,'작업중')}
-                  >
-                    {workingId===item.id?'처리 중':'작업 시작'}
-                  </button>
-                )}
-
-                {item.status==='작업중'&&(
-                  <button
-                    type="button"
-                    className="complete"
-                    onClick={()=>setReportScheduleId(item.id)}
-                  >
-                    현장 작업보고
-                  </button>
-                )}
-
-                {item.status==='완료'&&(
-                  <button
-                    type="button"
-                    className="done"
-                    onClick={()=>setReportScheduleId(item.id)}
-                  >
-                    작업보고 보기
-                  </button>
-                )}
-              </div>
-            </article>
-          ))
+              <span className={`${styles.status} ${statusTone(nextItem.status)}`}>{nextItem.status}</span>
+            </div>
+            <p className={styles.service}>{nextItem.service_type||'서비스 미입력'} · 예상 {nextItem.duration_minutes||60}분</p>
+            <address>{nextItem.address||nextItem.region||'주소 미입력'}</address>
+            {nextItem.memo&&<p className={styles.memo}>{nextItem.memo}</p>}
+            <div className={styles.quickActions}>
+              <a className={!nextItem.phone?styles.disabledLink:''} href={nextItem.phone?`tel:${nextItem.phone}`:undefined}>전화</a>
+              <a href={mapUrl(nextItem.address||nextItem.region)} target="_blank" rel="noreferrer">길찾기</a>
+            </div>
+            {actionFor(nextItem)}
+          </section>
         )}
-      </section>
+
+        <section className={styles.scheduleSection}>
+          <div className={styles.sectionTitle}>
+            <div>
+              <span>오늘 일정</span>
+              <h2>방문 순서</h2>
+            </div>
+            <b>{summary.total}건</b>
+          </div>
+
+          {sortedItems.length===0?(
+            <div className={styles.empty}>
+              <b>배정된 일정이 없습니다.</b>
+              <p>관리자가 일정을 배정하면 이곳에 표시됩니다.</p>
+            </div>
+          ):(
+            <div className={styles.list}>
+              {sortedItems.map((item,index)=>{
+                const expanded=expandedId===item.id;
+                const isNext=nextItem?.id===item.id;
+                return (
+                  <article key={item.id} className={`${styles.scheduleCard} ${isNext?styles.currentCard:''}`}>
+                    <button type="button" className={styles.cardSummary} onClick={()=>setExpandedId(expanded?null:item.id)}>
+                      <span className={styles.order}>{index+1}</span>
+                      <span className={styles.cardMain}>
+                        <span className={styles.cardTop}>
+                          <time>{time(item.scheduled_at)}</time>
+                          <i className={`${styles.status} ${statusTone(item.status)}`}>{item.status}</i>
+                        </span>
+                        <strong>{item.customer_name}</strong>
+                        <small>{item.service_type||'서비스 미입력'} · {item.region||'지역 미입력'}</small>
+                      </span>
+                      <span className={styles.chevron}>{expanded?'⌃':'⌄'}</span>
+                    </button>
+
+                    {expanded&&(
+                      <div className={styles.cardDetail}>
+                        <address>{item.address||item.region||'주소 미입력'}</address>
+                        {item.memo&&<p className={styles.memo}>{item.memo}</p>}
+                        <div className={styles.timeline}>
+                          <span>출발 <b>{time(item.departed_at)}</b></span>
+                          <span>도착 <b>{time(item.arrival_at)}</b></span>
+                          <span>작업 <b>{time(item.work_started_at)}</b></span>
+                          <span>완료 <b>{time(item.completed_at)}</b></span>
+                        </div>
+                        <div className={styles.quickActions}>
+                          <a className={!item.phone?styles.disabledLink:''} href={item.phone?`tel:${item.phone}`:undefined}>전화</a>
+                          <a href={mapUrl(item.address||item.region)} target="_blank" rel="noreferrer">길찾기</a>
+                        </div>
+                        {actionFor(item)}
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </main>
+
+      <nav className={styles.bottomNav} aria-label="기사 메뉴">
+        <button type="button" className={styles.navActive}><span>⌂</span>홈</button>
+        <button type="button" onClick={()=>document.querySelector(`.${styles.scheduleSection}`)?.scrollIntoView({behavior:'smooth'})}><span>▣</span>일정</button>
+        <button type="button" onClick={()=>nextItem&&setReportScheduleId(nextItem.id)} disabled={!nextItem}><span>✎</span>보고</button>
+        <button type="button" onClick={logout}><span>○</span>내정보</button>
+      </nav>
 
       {reportScheduleId&&(
         <TechnicianFieldReport
           scheduleId={reportScheduleId}
           onClose={()=>{
             setReportScheduleId(null);
-            loadAssignments();
+            void loadAssignments();
           }}
         />
       )}
