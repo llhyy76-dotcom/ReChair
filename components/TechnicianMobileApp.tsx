@@ -75,6 +75,9 @@ export default function TechnicianMobileApp(){
   const [workingId,setWorkingId]=useState<string|null>(null);
   const [reportScheduleId,setReportScheduleId]=useState<string|null>(null);
   const [expandedId,setExpandedId]=useState<string|null>(null);
+  const [scheduleOpen,setScheduleOpen]=useState(false);
+  const [quickMenuOpen,setQuickMenuOpen]=useState(false);
+  const [fieldModeOpen,setFieldModeOpen]=useState(false);
 
   async function checkSession(){
     try{
@@ -139,6 +142,19 @@ export default function TechnicianMobileApp(){
     [sortedItems]
   );
 
+  const activeItem=useMemo(
+    ()=>sortedItems.find(item=>['이동중','방문중','작업중'].includes(item.status))||null,
+    [sortedItems]
+  );
+
+  useEffect(()=>{
+    if(activeItem){
+      setFieldModeOpen(true);
+    }else{
+      setFieldModeOpen(false);
+    }
+  },[activeItem?.id,activeItem?.status]);
+
   const progress=summary.total===0?0:Math.round((summary.done/summary.total)*100);
 
   async function logout(){
@@ -201,22 +217,22 @@ export default function TechnicianMobileApp(){
 
   const mapUrl=(address?:string|null)=>`https://map.kakao.com/link/search/${encodeURIComponent(address||'')}`;
 
-  function actionFor(item:Assignment){
+  function actionFor(item:Assignment,compact=false){
     const busy=workingId===item.id;
     if(['배정대기','배정완료'].includes(item.status)){
-      return <button className={styles.primaryAction} disabled={busy} onClick={()=>updateStatus(item,'이동중')}>{busy?'처리 중':'출발하기'}</button>;
+      return <button className={`${styles.primaryAction} ${compact?styles.compactAction:''}`} disabled={busy} onClick={()=>updateStatus(item,'이동중')}>{busy?'처리 중':'출발하기'}</button>;
     }
     if(item.status==='이동중'){
-      return <button className={styles.primaryAction} disabled={busy} onClick={()=>updateStatus(item,'방문중')}>{busy?'처리 중':'도착하기'}</button>;
+      return <button className={`${styles.primaryAction} ${compact?styles.compactAction:''}`} disabled={busy} onClick={()=>updateStatus(item,'방문중')}>{busy?'처리 중':'도착하기'}</button>;
     }
     if(item.status==='방문중'){
-      return <button className={styles.primaryAction} disabled={busy} onClick={()=>updateStatus(item,'작업중')}>{busy?'처리 중':'작업 시작'}</button>;
+      return <button className={`${styles.primaryAction} ${compact?styles.compactAction:''}`} disabled={busy} onClick={()=>updateStatus(item,'작업중')}>{busy?'처리 중':'작업 시작'}</button>;
     }
     if(item.status==='작업중'){
       return <button className={styles.primaryAction} onClick={()=>setReportScheduleId(item.id)}>작업보고 작성</button>;
     }
     if(item.status==='완료'){
-      return <button className={styles.secondaryAction} onClick={()=>setReportScheduleId(item.id)}>작업보고 보기</button>;
+      return <button className={`${styles.secondaryAction} ${compact?styles.compactAction:''}`} onClick={()=>setReportScheduleId(item.id)}>작업보고 보기</button>;
     }
     return null;
   }
@@ -285,67 +301,108 @@ export default function TechnicianMobileApp(){
         )}
 
         <section className={styles.scheduleSection}>
-          <div className={styles.sectionTitle}>
-            <div>
-              <span>오늘 일정</span>
-              <h2>방문 순서</h2>
-            </div>
-            <b>{summary.total}건</b>
-          </div>
+          <button type="button" className={styles.scheduleToggle} onClick={()=>setScheduleOpen(value=>!value)} aria-expanded={scheduleOpen}>
+            <span>
+              <small>오늘 일정</small>
+              <strong>전체 방문 순서</strong>
+            </span>
+            <span className={styles.scheduleCount}>{summary.total}건 {scheduleOpen?'접기':'보기'}</span>
+          </button>
 
-          {sortedItems.length===0?(
-            <div className={styles.empty}>
-              <b>배정된 일정이 없습니다.</b>
-              <p>관리자가 일정을 배정하면 이곳에 표시됩니다.</p>
-            </div>
-          ):(
-            <div className={styles.list}>
-              {sortedItems.map((item,index)=>{
-                const expanded=expandedId===item.id;
-                const isNext=nextItem?.id===item.id;
-                return (
-                  <article key={item.id} className={`${styles.scheduleCard} ${isNext?styles.currentCard:''}`}>
-                    <button type="button" className={styles.cardSummary} onClick={()=>setExpandedId(expanded?null:item.id)}>
-                      <span className={styles.order}>{index+1}</span>
-                      <span className={styles.cardMain}>
-                        <span className={styles.cardTop}>
-                          <time>{time(item.scheduled_at)}</time>
-                          <i className={`${styles.status} ${statusTone(item.status)}`}>{item.status}</i>
+          {scheduleOpen&&(
+            sortedItems.length===0?(
+              <div className={styles.empty}>
+                <b>배정된 일정이 없습니다.</b>
+                <p>관리자가 일정을 배정하면 이곳에 표시됩니다.</p>
+              </div>
+            ):(
+              <div className={styles.list}>
+                {sortedItems.map((item,index)=>{
+                  const expanded=expandedId===item.id;
+                  const isNext=nextItem?.id===item.id;
+                  return (
+                    <article key={item.id} className={`${styles.scheduleCard} ${isNext?styles.currentCard:''}`}>
+                      <button type="button" className={styles.cardSummary} onClick={()=>setExpandedId(expanded?null:item.id)}>
+                        <span className={styles.order}>{index+1}</span>
+                        <span className={styles.cardMain}>
+                          <span className={styles.cardTop}>
+                            <time>{time(item.scheduled_at)}</time>
+                            <i className={`${styles.status} ${statusTone(item.status)}`}>{item.status}</i>
+                          </span>
+                          <strong>{item.customer_name}</strong>
+                          <small>{item.service_type||'서비스 미입력'} · {item.region||'지역 미입력'}</small>
                         </span>
-                        <strong>{item.customer_name}</strong>
-                        <small>{item.service_type||'서비스 미입력'} · {item.region||'지역 미입력'}</small>
-                      </span>
-                      <span className={styles.chevron}>{expanded?'⌃':'⌄'}</span>
-                    </button>
+                        <span className={styles.chevron}>{expanded?'⌃':'⌄'}</span>
+                      </button>
 
-                    {expanded&&(
-                      <div className={styles.cardDetail}>
-                        <address>{item.address||item.region||'주소 미입력'}</address>
-                        {item.memo&&<p className={styles.memo}>{item.memo}</p>}
-                        <div className={styles.timeline}>
-                          <span>출발 <b>{time(item.departed_at)}</b></span>
-                          <span>도착 <b>{time(item.arrival_at)}</b></span>
-                          <span>작업 <b>{time(item.work_started_at)}</b></span>
-                          <span>완료 <b>{time(item.completed_at)}</b></span>
+                      {expanded&&(
+                        <div className={styles.cardDetail}>
+                          <address>{item.address||item.region||'주소 미입력'}</address>
+                          {item.memo&&<p className={styles.memo}>{item.memo}</p>}
+                          <div className={styles.timeline}>
+                            <span>출발 <b>{time(item.departed_at)}</b></span>
+                            <span>도착 <b>{time(item.arrival_at)}</b></span>
+                            <span>작업 <b>{time(item.work_started_at)}</b></span>
+                            <span>완료 <b>{time(item.completed_at)}</b></span>
+                          </div>
+                          <div className={styles.quickActions}>
+                            <a className={!item.phone?styles.disabledLink:''} href={item.phone?`tel:${item.phone}`:undefined}>전화</a>
+                            <a href={mapUrl(item.address||item.region)} target="_blank" rel="noreferrer">길찾기</a>
+                          </div>
+                          {actionFor(item)}
                         </div>
-                        <div className={styles.quickActions}>
-                          <a className={!item.phone?styles.disabledLink:''} href={item.phone?`tel:${item.phone}`:undefined}>전화</a>
-                          <a href={mapUrl(item.address||item.region)} target="_blank" rel="noreferrer">길찾기</a>
-                        </div>
-                        {actionFor(item)}
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            )
           )}
         </section>
       </main>
 
+      {activeItem&&fieldModeOpen&&(
+        <section className={styles.fieldMode} aria-label="현장 모드">
+          <div className={styles.fieldModeHandle}/>
+          <div className={styles.fieldModeTop}>
+            <span className={styles.fieldModeLabel}>현장 모드 · {activeItem.status}</span>
+            <button type="button" onClick={()=>setFieldModeOpen(false)}>최소화</button>
+          </div>
+          <div className={styles.fieldCustomer}>
+            <time>{time(activeItem.scheduled_at)}</time>
+            <h2>{activeItem.customer_name}</h2>
+            <p>{activeItem.service_type||'서비스 미입력'}</p>
+            <address>{activeItem.address||activeItem.region||'주소 미입력'}</address>
+          </div>
+          {activeItem.memo&&<p className={styles.fieldMemo}>{activeItem.memo}</p>}
+          <div className={styles.fieldQuick}>
+            <a className={!activeItem.phone?styles.disabledLink:''} href={activeItem.phone?`tel:${activeItem.phone}`:undefined}>고객 전화</a>
+            <a href={mapUrl(activeItem.address||activeItem.region)} target="_blank" rel="noreferrer">길찾기</a>
+          </div>
+          {actionFor(activeItem,true)}
+        </section>
+      )}
+
+      {activeItem&&!fieldModeOpen&&(
+        <button type="button" className={styles.fieldModeRestore} onClick={()=>setFieldModeOpen(true)}>현장 모드 열기</button>
+      )}
+
+      {nextItem&&(
+        <div className={styles.fabWrap}>
+          {quickMenuOpen&&(
+            <div className={styles.fabMenu}>
+              <button type="button" onClick={()=>{setReportScheduleId(nextItem.id);setQuickMenuOpen(false);}}>작업보고</button>
+              <a className={!nextItem.phone?styles.disabledLink:''} href={nextItem.phone?`tel:${nextItem.phone}`:undefined}>고객전화</a>
+              <a href={mapUrl(nextItem.address||nextItem.region)} target="_blank" rel="noreferrer">길찾기</a>
+            </div>
+          )}
+          <button type="button" className={styles.fab} aria-label="빠른 작업" aria-expanded={quickMenuOpen} onClick={()=>setQuickMenuOpen(value=>!value)}>{quickMenuOpen?'×':'+'}</button>
+        </div>
+      )}
+
       <nav className={styles.bottomNav} aria-label="기사 메뉴">
         <button type="button" className={styles.navActive}><span>⌂</span>홈</button>
-        <button type="button" onClick={()=>document.querySelector(`.${styles.scheduleSection}`)?.scrollIntoView({behavior:'smooth'})}><span>▣</span>일정</button>
+        <button type="button" onClick={()=>{setScheduleOpen(true);setTimeout(()=>document.querySelector(`.${styles.scheduleSection}`)?.scrollIntoView({behavior:'smooth'}),0);}}><span>▣</span>일정</button>
         <button type="button" onClick={()=>nextItem&&setReportScheduleId(nextItem.id)} disabled={!nextItem}><span>✎</span>보고</button>
         <button type="button" onClick={logout}><span>○</span>내정보</button>
       </nav>
