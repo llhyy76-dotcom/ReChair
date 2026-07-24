@@ -9,11 +9,58 @@ export default function AdminScheduleCalendar(){
   reportScheduleId,
   setReportScheduleId,
 ]=useState<string|null>(null);
- async function load(){const [a,b]=await Promise.all([fetch(`/api/admin/schedule?date=${date}&view=${view}`,{cache:'no-store'}),fetch('/api/admin/technicians',{cache:'no-store'})]);const x=await a.json(),y=await b.json();if(!a.ok||!b.ok){setMessage(x.error||y.error||'조회 오류');return}setItems(x.data||[]);setTechs(y.data||[])}
+async function load(){
+  try{
+    setMessage('');
+
+    const [scheduleResponse,technicianResponse]=await Promise.all([
+      fetch(
+        `/api/admin/schedule?date=${date}&view=${view}`,
+        {
+          cache:'no-store',
+        }
+      ),
+      fetch(
+        '/api/admin/technicians',
+        {
+          cache:'no-store',
+        }
+      ),
+    ]);
+
+    const scheduleResult=await scheduleResponse.json();
+    const technicianResult=await technicianResponse.json();
+
+    if(
+      !scheduleResponse.ok||
+      !technicianResponse.ok
+    ){
+      setMessage(
+        scheduleResult.error||
+        technicianResult.error||
+        '조회 오류'
+      );
+      return;
+    }
+
+    setItems(scheduleResult.data||[]);
+    setTechs(technicianResult.data||[]);
+  }catch(error){
+    console.error(
+      'admin schedule load error',
+      error
+    );
+
+    setMessage(
+      'AS 운영 캘린더를 불러오지 못했습니다.'
+    );
+  }
+} 
  useEffect(()=>{load()},[date,view]);
  const groups=useMemo(()=>['미배정',...techs.filter(t=>t.is_active).map(t=>t.name)].map(name=>({name,items:items.filter(i=>(i.assignee||'미배정')===name)})),[items,techs]);
  const recommend=useMemo(()=>{const a=techs.filter(t=>t.is_active).map(t=>({name:t.name,count:items.filter(i=>i.assignee===t.name&&i.status!=='취소').length})).sort((x,y)=>x.count-y.count);return a[0]?.name||'-'},[items,techs]);
- async function save(){if(!selected)return;const r=await fetch('/api/admin/schedule/'+selected.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(selected)});const j=await r.json();if(!r.ok){setMessage(j.error||'저장 오류');return}setMessage('일정이 저장되었습니다.');setSelected(null);load()}
+ async function save(){if(!selected)return;const r=await fetch('/api/admin/schedule/'+selected.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(selected)});const j=await r.json();if(!r.ok){setMessage(j.error||'저장 오류');return}setMessage('일정이 저장되었습니다.');setSelected(null);
+void load();}
  return <div className="ops"><header><div><p>RECHAIR ADMIN</p><h1>AS 운영 캘린더</h1><span>기사별 일정과 업무량을 관리합니다.</span></div><nav><a href="/admin/dashboard">대시보드</a><a href="/admin/consultations">상담 CRM</a></nav></header>
  <section className="ops-controls"><input type="date" value={date} onChange={e=>setDate(e.target.value)}/><button className={view==='day'?'on':''} onClick={()=>setView('day')}>일간</button><button className={view==='week'?'on':''} onClick={()=>setView('week')}>주간</button><button onClick={load}>새로고침</button></section>
  {message&&<aside>{message}</aside>}
@@ -59,9 +106,10 @@ export default function AdminScheduleCalendar(){
  {reportScheduleId&&(
   <AdminFieldReport
     scheduleId={reportScheduleId}
-    onClose={()=>
-      setReportScheduleId(null)
-    }
+    onClose={()=>{
+      setReportScheduleId(null);
+      void load();
+    }}
   />
 )}
  </div>}
