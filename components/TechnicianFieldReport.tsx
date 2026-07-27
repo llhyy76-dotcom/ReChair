@@ -30,12 +30,12 @@ type Report={
 };
 
 const photoTypes=[
-  ['front','제품 정면'],
-  ['side','제품 측면'],
-  ['label','제품 라벨'],
-  ['after','작업 후'],
-  ['part','교체 부품'],
-  ['receipt','영수증'],
+  ['front','제품 정면',true,'제품 전체가 정면에서 보이도록 촬영'],
+  ['side','제품 측면',true,'제품의 측면과 설치 공간이 보이도록 촬영'],
+  ['label','제품 라벨',true,'모델명과 제조번호가 선명하게 보이도록 촬영'],
+  ['after','작업 후',false,'수리 완료 상태가 확인되도록 촬영'],
+  ['part','교체 부품',false,'교체하거나 회수한 부품을 촬영'],
+  ['receipt','영수증',false,'유상 수리 영수증이 있는 경우 촬영'],
 ] as const;
 
 export default function TechnicianFieldReport({
@@ -720,35 +720,53 @@ export default function TechnicianFieldReport({
         : '작업보고 저장'}
 </button>
         <section className="report-photo-section">
-          <h3>현장 사진</h3>
+          <div className="report-photo-heading">
+            <div>
+              <span className="report-step-kicker">STEP 1</span>
+              <h3>현장사진 등록</h3>
+              <p>필수 사진 3장을 먼저 등록한 뒤 작업 후 사진을 추가하세요.</p>
+            </div>
+
+            <span className="report-photo-count">
+              {photos.length}장 등록
+            </span>
+          </div>
+
+          <div className="report-photo-guide">
+            <b>촬영 안내</b>
+            <span>흔들림 없이 제품 전체와 라벨 글자가 선명하게 보이도록 촬영해 주세요.</span>
+          </div>
 
           <div className="report-photo-grid">
-            {photoTypes.map(([type,label])=>{
+            {photoTypes.map(([type,label,required,description])=>{
               const matchingPhotos=photos.filter(
                 photo=>photo.photo_type===type
               );
 
               const found=
                 matchingPhotos.length>0
-                  ? matchingPhotos[
-                      matchingPhotos.length-1
-                    ]
+                  ? matchingPhotos[matchingPhotos.length-1]
                   : undefined;
 
-              const uploading=
-                uploadingType===type;
-
-              const deleting=
-                found
-                  ? deletingPhotoId===found.id
-                  : false;
+              const uploading=uploadingType===type;
+              const deleting=found
+                ? deletingPhotoId===found.id
+                : false;
 
               return (
-                <div
+                <article
                   key={type}
-                  className="photo-slot"
+                  className={`photo-slot ${found?'has-photo':''}`}
                 >
-                  <b>{label}</b>
+                  <div className="photo-slot-title">
+                    <div>
+                      <b>{label}</b>
+                      <span className={required?'required':'optional'}>
+                        {required?'필수':'선택'}
+                      </span>
+                    </div>
+                    {found&&<small>1장 등록됨</small>}
+                  </div>
 
                   {found?(
                     <div className="photo-preview-box">
@@ -756,82 +774,61 @@ export default function TechnicianFieldReport({
                         href={found.photo_url}
                         target="_blank"
                         rel="noreferrer"
+                        className="photo-preview-link"
                       >
-                        <img
-                          src={found.photo_url}
-                          alt={label}
-                        />
+                        <img src={found.photo_url} alt={label}/>
                       </a>
 
+                      <button
+                        type="button"
+                        className="photo-delete-icon"
+                        aria-label={`${label} 사진 삭제`}
+                        disabled={uploading||deleting||isApproved}
+                        onClick={()=>void deletePhoto(found.id)}
+                      >
+                        {deleting?'…':'×'}
+                      </button>
+
                       <div className="photo-edit-actions">
+                        <span>등록 완료</span>
                         <label className="photo-replace-button">
-                          {uploading
-                            ? '교체 중'
-                            : '사진 교체'}
-
+                          {uploading?'교체 중':'다시 선택'}
                           <input
-  type="file"
-  accept="image/*"
-  capture="environment"
-  disabled={uploading||deleting||isApproved}
-  onChange={event=>{
-    const file=event.currentTarget.files?.[0];
-
-    void uploadPhoto(
-      type,
-      file
-    );
-
-    event.currentTarget.value='';
-  }}
-/>
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            disabled={uploading||deleting||isApproved}
+                            onChange={event=>{
+                              const file=event.currentTarget.files?.[0];
+                              void uploadPhoto(type,file);
+                              event.currentTarget.value='';
+                            }}
+                          />
                         </label>
-
-                        <button
-                          type="button"
-                          className="photo-delete-button"
-                          disabled={
-                            uploading||
-                            deleting
-                          }
-                          onClick={()=>
-                            void deletePhoto(found.id)
-                          }
-                        >
-                          {deleting?'삭제 중':'삭제'}
-                        </button>
                       </div>
                     </div>
                   ):(
-                    <>
-                      <span>
-                        {uploading
-                          ? '업로드 중'
-                          : '사진 없음'}
+                    <label className={`photo-empty ${uploading?'uploading':''}`}>
+                      <span className="photo-camera-icon" aria-hidden="true">⌑</span>
+                      <strong>{uploading?'사진 업로드 중':'사진을 등록해 주세요'}</strong>
+                      <small>{description}</small>
+                      <span className="photo-select-button">
+                        {uploading?'처리 중…':'사진 선택'}
                       </span>
-
                       <input
                         type="file"
                         accept="image/*"
                         capture="environment"
-                        disabled={uploading||isApproved}                  
+                        disabled={uploading||isApproved}
                         onChange={event=>{
-                          const file=
-                            event.currentTarget
-                              .files?.[0];
-
-                          void uploadPhoto(
-                            type,
-                            file
-                          );
-
-                          event.currentTarget
-                            .value='';
+                          const file=event.currentTarget.files?.[0];
+                          void uploadPhoto(type,file);
+                          event.currentTarget.value='';
                         }}
                       />
-                    </>
+                    </label>
                   )}
-                </div>
+                </article>
               );
             })}
           </div>
