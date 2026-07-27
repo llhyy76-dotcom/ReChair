@@ -24,6 +24,8 @@ type Assignment={
   arrival_at?:string|null;
   work_started_at?:string|null;
   completed_at?:string|null;
+  report_approval_status?:string|null;
+  report_rejection_reason?:string|null;
 };
 
 type Technician={
@@ -58,18 +60,41 @@ const time=(value?:string|null)=>{
 
 const STATUS_ORDER=['배정대기','배정완료','이동중','방문중','작업중','완료'];
 
-function statusLabel(status:string){
+function approvalState(item:Assignment){
+  if(item.status!=='완료') return null;
+  const approval=item.report_approval_status||'검토대기';
+  if(approval==='승인') return '승인완료';
+  if(approval==='반려'){
+    const reason=item.report_rejection_reason||'';
+    if(/재방문|방문.*필요|현장.*확인/.test(reason)) return '재방문';
+    return '반려';
+  }
+  return '승인대기';
+}
+
+function displayStatus(item:Assignment){
+  return approvalState(item)||item.status;
+}
+
+function statusLabel(item:Assignment){
+  const status=displayStatus(item);
   if(status==='배정대기') return '배정 대기';
   if(status==='배정완료') return '방문 예정';
   if(status==='방문중') return '현장 도착';
+  if(status==='승인완료') return '최종 완료';
+  if(status==='승인대기') return '승인 대기';
+  if(status==='반려') return '반려 · 수정 필요';
+  if(status==='재방문') return '재방문 요청';
   return status;
 }
 
-function nextActionLabel(status:string){
-  if(['배정대기','배정완료'].includes(status)) return '출발하기';
-  if(status==='이동중') return '도착 처리';
-  if(status==='방문중') return '작업 시작';
-  if(status==='작업중') return '작업보고 작성';
+function nextActionLabel(item:Assignment){
+  if(['배정대기','배정완료'].includes(item.status)) return '출발하기';
+  if(item.status==='이동중') return '도착 처리';
+  if(item.status==='방문중') return '작업 시작';
+  if(item.status==='작업중') return '작업보고 작성';
+  if(approvalState(item)==='반려') return '작업보고 수정';
+  if(approvalState(item)==='재방문') return '재방문 내용 확인';
   return '작업보고 보기';
 }
 
@@ -154,15 +179,18 @@ export default function TechnicianMobileApp(){
     total:items.length,
     waiting:items.filter(item=>['배정대기','배정완료'].includes(item.status)).length,
     active:items.filter(item=>['이동중','방문중','작업중'].includes(item.status)).length,
-    done:items.filter(item=>item.status==='완료').length,
+    approved:items.filter(item=>approvalState(item)==='승인완료').length,
+    review:items.filter(item=>approvalState(item)==='승인대기').length,
+    rejected:items.filter(item=>['반려','재방문'].includes(approvalState(item)||'')).length,
   }),[items]);
 
   const nextItem=useMemo(
-    ()=>items.find(item=>item.status!=='완료')||null,
+    ()=>items.find(item=>item.status!=='완료')||
+      items.find(item=>['반려','재방문'].includes(approvalState(item)||''))||null,
     [items]
   );
 
-  const progress=summary.total===0?0:Math.round((summary.done/summary.total)*100);
+  const progress=summary.total===0?0:Math.round((summary.approved/summary.total)*100);
 
   async function logout(){
     try{
@@ -232,7 +260,7 @@ export default function TechnicianMobileApp(){
         : ' GPS 위치도 함께 기록되었습니다.';
 
       setMessage(
-        `${item.customer_name} 일정이 '${statusLabel(status)}' 상태로 변경되었습니다.${locationText}`
+        `${item.customer_name} 일정이 '${status}' 상태로 변경되었습니다.${locationText}`
       );
       await loadAssignments();
       return true;
@@ -321,7 +349,7 @@ export default function TechnicianMobileApp(){
           <div className={styles.progressTop}>
             <div>
               <span>오늘 진행률</span>
-              <strong>{summary.done} / {summary.total}건 완료</strong>
+              <strong>{summary.approved} / {summary.total}건 최종 완료</strong>
             </div>
             <b>{progress}%</b>
           </div>
@@ -331,9 +359,11 @@ export default function TechnicianMobileApp(){
           </div>
 
           <div className={styles.summaryGrid}>
-            <div><span>대기</span><strong>{summary.waiting}</strong></div>
+            <div><span>방문 대기</span><strong>{summary.waiting}</strong></div>
             <div><span>진행중</span><strong>{summary.active}</strong></div>
-            <div><span>완료</span><strong>{summary.done}</strong></div>
+            <div><span>승인 대기</span><strong>{summary.review}</strong></div>
+            <div><span>반려·재방문</span><strong>{summary.rejected}</strong></div>
+            <div><span>최종 완료</span><strong>{summary.approved}</strong></div>
           </div>
         </section>
 
@@ -344,8 +374,8 @@ export default function TechnicianMobileApp(){
                 <span className={styles.heroLabel}>다음 방문</span>
                 <h2>{nextItem.customer_name} 고객</h2>
               </div>
-              <span className={styles.status} data-status={nextItem.status}>
-                {statusLabel(nextItem.status)}
+              <span className={styles.status} data-status={displayStatus(nextItem)}>
+                {statusLabel(nextItem)}
               </span>
             </div>
 
@@ -392,18 +422,18 @@ export default function TechnicianMobileApp(){
                 disabled={workingId===nextItem.id}
                 onClick={()=>runPrimaryAction(nextItem)}
               >
-                {workingId===nextItem.id?'처리 중…':nextActionLabel(nextItem.status)}
+                {workingId===nextItem.id?'처리 중…':nextActionLabel(nextItem)}
               </button>
             </div>
           </section>
         ):(
           <section className={styles.completeCard}>
             <span>✓</span>
-            <h2>{summary.total===0?'배정된 일정이 없습니다.':'오늘 일정이 모두 완료되었습니다.'}</h2>
+            <h2>{summary.total===0?'배정된 일정이 없습니다.':'오늘 현장 방문이 모두 끝났습니다.'}</h2>
             <p>
               {summary.total===0
                 ?'관리자가 일정을 배정하면 이 화면에 표시됩니다.'
-                :'작업보고 누락 여부를 확인한 뒤 안전하게 복귀해 주세요.'}
+                :'승인 대기·반려 건이 있는지 확인한 뒤 안전하게 복귀해 주세요.'}
             </p>
           </section>
         )}
@@ -423,7 +453,8 @@ export default function TechnicianMobileApp(){
             <div className={styles.timeline}>
               {items.map((item,index)=>{
                 const statusIndex=STATUS_ORDER.indexOf(item.status);
-                const isDone=item.status==='완료';
+                const approval=approvalState(item);
+                const isDone=approval==='승인완료';
                 const isCurrent=item.id===nextItem?.id;
 
                 return (
@@ -443,8 +474,8 @@ export default function TechnicianMobileApp(){
                           <span className={styles.time}>{time(item.scheduled_at)}</span>
                           <h3>{item.customer_name}</h3>
                         </div>
-                        <span className={styles.status} data-status={item.status}>
-                          {statusLabel(item.status)}
+                        <span className={styles.status} data-status={displayStatus(item)}>
+                          {statusLabel(item)}
                         </span>
                       </div>
 
@@ -465,10 +496,21 @@ export default function TechnicianMobileApp(){
                         <span className={statusIndex>=4?styles.historyDone:''}>
                           작업 {time(item.work_started_at)}
                         </span>
-                        <span className={isDone?styles.historyDone:''}>
-                          완료 {time(item.completed_at)}
+                        <span className={item.status==='완료'?styles.historyDone:''}>
+                          현장완료 {time(item.completed_at)}
                         </span>
                       </div>
+
+                      {approval&&approval!=='승인완료'&&(
+                        <div className={styles.reviewAlert} data-review={approval}>
+                          <strong>{statusLabel(item)}</strong>
+                          <p>{item.report_rejection_reason||(
+                            approval==='승인대기'
+                              ?'작업보고를 제출했으며 관리자 검토를 기다리고 있습니다.'
+                              :'관리자 보완 요청을 확인해 주세요.'
+                          )}</p>
+                        </div>
+                      )}
 
                       <div className={styles.cardActions}>
                         {item.phone&&(
@@ -486,7 +528,7 @@ export default function TechnicianMobileApp(){
                           disabled={workingId===item.id}
                           onClick={()=>runPrimaryAction(item)}
                         >
-                          {workingId===item.id?'처리 중…':nextActionLabel(item.status)}
+                          {workingId===item.id?'처리 중…':nextActionLabel(item)}
                         </button>
                       </div>
                     </div>

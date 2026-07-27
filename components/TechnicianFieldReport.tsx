@@ -49,7 +49,21 @@ const wizardSteps=[
 const symptomOptions=['전원 불량','마사지볼 이상','에어백 이상','리모컨 이상','이상 소음','가죽·외관','기타'];
 const causeOptions=['단선·접촉 불량','PCB 이상','모터 이상','센서 이상','에어 누기','조립·마찰 문제','원인 미확인'];
 const actionOptions=['부품 교체','현장 수리','조정·체결','점검 후 정상','청소·윤활','사용방법 안내'];
-const commonParts=['마사지 모터 1EA','메인 PCB 1EA','리모컨 1EA','에어호스 1EA','솔레노이드 밸브 1EA','센서 1EA','교체 부품 없음'];
+const commonParts=['마사지 모터','메인 PCB','리모컨','에어호스','솔레노이드 밸브','센서'];
+
+type PartSelection={name:string;quantity:number};
+
+function parseParts(value:string):PartSelection[]{
+  if(!value||value.trim()==='교체 부품 없음') return [];
+  return value.split(/[\n,]+/).map(item=>item.trim()).filter(Boolean).map(item=>{
+    const match=item.match(/^(.*?)(?:\s+(\d+)\s*EA)?$/i);
+    return {name:(match?.[1]||item).trim(),quantity:Math.max(1,Number(match?.[2]||1))};
+  });
+}
+
+function formatParts(items:PartSelection[]){
+  return items.length?items.map(item=>`${item.name} ${item.quantity}EA`).join('\n'):'교체 부품 없음';
+}
 
 export default function TechnicianFieldReport({
   scheduleId,
@@ -68,7 +82,7 @@ export default function TechnicianFieldReport({
   const [selectedSymptom,setSelectedSymptom]=useState('');
   const [selectedCause,setSelectedCause]=useState('');
   const [selectedAction,setSelectedAction]=useState('');
-  const [selectedPart,setSelectedPart]=useState('');
+  const [selectedParts,setSelectedParts]=useState<PartSelection[]>([]);
 
   const [message,setMessage]=useState('');
   const [loading,setLoading]=useState(true);
@@ -122,7 +136,9 @@ export default function TechnicianFieldReport({
       setReport(data);
       setSymptom(data.symptom_text||'');
       setAction(data.action_text||'');
-      setParts(data.replaced_parts||'');
+      const loadedParts=data.replaced_parts||'';
+      setParts(loadedParts);
+      setSelectedParts(parseParts(loadedParts));
       setConfirmation(data.customer_confirmation||'');
     }catch(error){
       console.error('field report load error',error);
@@ -587,16 +603,34 @@ export default function TechnicianFieldReport({
     setAction(generated);
   }
 
+  function syncParts(items:PartSelection[]){
+    setSelectedParts(items);
+    setParts(formatParts(items));
+  }
+
   function choosePart(value:string){
-    setSelectedPart(value);
-    setParts(value==='교체 부품 없음'?'교체 부품 없음':value);
+    const exists=selectedParts.some(item=>item.name===value);
+    syncParts(exists
+      ? selectedParts.filter(item=>item.name!==value)
+      : [...selectedParts,{name:value,quantity:1}]
+    );
+  }
+
+  function changePartQuantity(name:string,quantity:number){
+    syncParts(selectedParts.map(item=>
+      item.name===name?{...item,quantity:Math.max(1,Math.min(99,quantity))}:item
+    ));
+  }
+
+  function clearParts(){
+    syncParts([]);
   }
 
   function generateReportText(){
     const symptomText=symptom.trim()||selectedSymptom;
     const causeText=selectedCause||'점검 결과';
     const actionChoice=selectedAction||action.trim();
-    const partText=parts.trim()||selectedPart;
+    const partText=formatParts(selectedParts);
 
     if(!symptomText||!actionChoice){
       setMessage('증상과 조치 내용을 먼저 선택하거나 입력하세요.');
@@ -608,9 +642,7 @@ export default function TechnicianFieldReport({
     if(!confirmation.trim()){
       setConfirmation('작업내용과 제품 동작 상태를 고객에게 설명하고 확인받았습니다.');
     }
-    if(!partText){
-      setParts('교체 부품 없음');
-    }
+    setParts(partText);
     setMessage('선택한 내용으로 작업보고 문장을 자동 생성했습니다. 필요하면 직접 수정할 수 있습니다.');
   }
 
@@ -795,15 +827,36 @@ export default function TechnicianFieldReport({
               ))}
             </div>
             <h4>교체 부품</h4>
-            <div className="choice-grid compact">
-              {commonParts.map(value=>(
-                <button key={value} type="button" className={selectedPart===value?'selected':''} disabled={isApproved} onClick={()=>choosePart(value)}>{value}</button>
-              ))}
+            <div className="choice-grid compact part-choice-grid">
+              {commonParts.map(value=>{
+                const selected=selectedParts.some(item=>item.name===value);
+                return (
+                  <button key={value} type="button" className={selected?'selected':''} disabled={isApproved} onClick={()=>choosePart(value)}>{value}</button>
+                );
+              })}
+              <button type="button" className={selectedParts.length===0?'selected':''} disabled={isApproved} onClick={clearParts}>교체 부품 없음</button>
             </div>
+
+            {selectedParts.length>0&&(
+              <div className="part-quantity-list">
+                {selectedParts.map(item=>(
+                  <div key={item.name} className="part-quantity-row">
+                    <strong>{item.name}</strong>
+                    <div>
+                      <button type="button" disabled={isApproved||item.quantity<=1} onClick={()=>changePartQuantity(item.name,item.quantity-1)} aria-label={`${item.name} 수량 감소`}>−</button>
+                      <input type="number" min="1" max="99" value={item.quantity} disabled={isApproved} onChange={event=>changePartQuantity(item.name,Number(event.target.value)||1)} aria-label={`${item.name} 수량`}/>
+                      <button type="button" disabled={isApproved||item.quantity>=99} onClick={()=>changePartQuantity(item.name,item.quantity+1)} aria-label={`${item.name} 수량 증가`}>＋</button>
+                      <span>EA</span>
+                      <button type="button" className="part-remove" disabled={isApproved} onClick={()=>choosePart(item.name)}>삭제</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <button type="button" className="auto-report-button" disabled={isApproved} onClick={generateReportText}>선택 내용으로 보고서 자동 작성</button>
             <div className="report-form-grid wizard-fields">
               <label><span>조치 내용</span><textarea value={action} disabled={isApproved} onChange={event=>setAction(event.target.value)} placeholder="점검 결과와 수리·조정 내용을 입력하세요."/></label>
-              <label><span>교체 부품</span><textarea value={parts} disabled={isApproved} onChange={event=>setParts(event.target.value)} placeholder="부품명과 수량, 회수 여부를 입력하세요."/></label>
+              <label><span>교체 부품</span><textarea value={parts} disabled={isApproved} onChange={event=>{setParts(event.target.value);setSelectedParts(parseParts(event.target.value));}} placeholder="부품명과 수량, 회수 여부를 입력하세요."/></label>
               <label><span>고객 확인사항</span><textarea value={confirmation} disabled={isApproved} onChange={event=>setConfirmation(event.target.value)} placeholder="비용과 보증, 사용방법 등 안내사항을 입력하세요."/></label>
             </div>
           </section>

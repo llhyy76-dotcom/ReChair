@@ -166,7 +166,7 @@
 
 .summaryGrid{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(5,1fr);
   gap:8px;
 }
 
@@ -237,7 +237,10 @@
 .status[data-status="이동중"]{background:#fff1d7;color:#9a5b00}
 .status[data-status="방문중"]{background:#e8f2ff;color:#1452a0}
 .status[data-status="작업중"]{background:#ede9fe;color:#6d28d9}
-.status[data-status="완료"]{background:#dcfce7;color:#15753c}
+.status[data-status="완료"],.status[data-status="승인완료"]{background:#dcfce7;color:#15753c}
+.status[data-status="승인대기"]{background:#fff7d6;color:#8a5a00}
+.status[data-status="반려"]{background:#fee2e2;color:#b42318}
+.status[data-status="재방문"]{background:#dbeafe;color:#1d4ed8}
 
 .heroMeta{
   display:grid;
@@ -465,6 +468,19 @@
   color:#198754!important;
 }
 
+
+.reviewAlert{
+  margin-top:12px;
+  border-radius:12px;
+  padding:11px 12px;
+  background:#fff7d6;
+  color:#775000;
+}
+.reviewAlert[data-review="반려"]{background:#fff0f0;color:#9f1d1d}
+.reviewAlert[data-review="재방문"]{background:#eaf2ff;color:#174a96}
+.reviewAlert strong{display:block;font-size:13px}
+.reviewAlert p{margin:5px 0 0;font-size:12px;line-height:1.45}
+
 .cardActions{
   display:grid;
   grid-template-columns:.7fr .7fr 1.4fr;
@@ -549,6 +565,9 @@
   .toolbar{
     align-items:stretch;
   }
+
+  .summaryGrid{grid-template-columns:repeat(2,1fr)}
+  .summaryGrid div:last-child{grid-column:1/-1}
 
   .heroMeta{
     grid-template-columns:1fr 1fr;
