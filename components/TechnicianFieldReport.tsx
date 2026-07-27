@@ -30,12 +30,12 @@ type Report={
 };
 
 const photoTypes=[
-  ['front','제품 정면',true,'제품 전체가 정면에서 보이도록 촬영'],
-  ['side','제품 측면',true,'제품의 측면과 설치 공간이 보이도록 촬영'],
-  ['label','제품 라벨',true,'모델명과 제조번호가 선명하게 보이도록 촬영'],
-  ['after','작업 후',false,'수리 완료 상태가 확인되도록 촬영'],
-  ['part','교체 부품',false,'교체하거나 회수한 부품을 촬영'],
-  ['receipt','영수증',false,'유상 수리 영수증이 있는 경우 촬영'],
+  {type:'front',label:'제품 정면',description:'제품 전체가 정면에서 보이도록 촬영',required:true},
+  {type:'side',label:'제품 측면',description:'외관과 설치 상태가 보이도록 촬영',required:true},
+  {type:'label',label:'제품 라벨',description:'모델명과 제조번호가 선명하게 보이도록 촬영',required:true},
+  {type:'after',label:'작업 후',description:'수리 완료 상태를 확인할 수 있도록 촬영',required:false},
+  {type:'part',label:'교체 부품',description:'교체하거나 회수한 부품을 촬영',required:false},
+  {type:'receipt',label:'영수증',description:'비용이 발생한 경우 영수증을 촬영',required:false},
 ] as const;
 
 export default function TechnicianFieldReport({
@@ -722,23 +722,26 @@ export default function TechnicianFieldReport({
         <section className="report-photo-section">
           <div className="report-photo-heading">
             <div>
-              <span className="report-step-kicker">STEP 1</span>
-              <h3>현장사진 등록</h3>
-              <p>필수 사진 3장을 먼저 등록한 뒤 작업 후 사진을 추가하세요.</p>
+              <small>PHOTO REGISTRATION</small>
+              <h3>현장 사진</h3>
+              <p>필수 사진 3장을 포함해 작업 상태가 잘 보이도록 촬영해주세요.</p>
             </div>
-
-            <span className="report-photo-count">
-              {photos.length}장 등록
-            </span>
+            <strong>{photos.length}장 등록</strong>
           </div>
 
-          <div className="report-photo-guide">
-            <b>촬영 안내</b>
-            <span>흔들림 없이 제품 전체와 라벨 글자가 선명하게 보이도록 촬영해 주세요.</span>
+          <div className="photo-progress" aria-label="사진 등록 진행률">
+            {photoTypes.map(item=>{
+              const done=photos.some(photo=>photo.photo_type===item.type);
+              return (
+                <span key={item.type} className={done?'done':''}>
+                  {done?'✓':'○'} {item.label}
+                </span>
+              );
+            })}
           </div>
 
           <div className="report-photo-grid">
-            {photoTypes.map(([type,label,required,description])=>{
+            {photoTypes.map(({type,label,description,required})=>{
               const matchingPhotos=photos.filter(
                 photo=>photo.photo_type===type
               );
@@ -749,39 +752,30 @@ export default function TechnicianFieldReport({
                   : undefined;
 
               const uploading=uploadingType===type;
-              const deleting=found
-                ? deletingPhotoId===found.id
-                : false;
+              const deleting=found?deletingPhotoId===found.id:false;
+              const inputId=`field-photo-${type}`;
 
               return (
-                <article
-                  key={type}
-                  className={`photo-slot ${found?'has-photo':''}`}
-                >
-                  <div className="photo-slot-title">
+                <article key={type} className={`photo-slot ${found?'has-photo':''}`}>
+                  <div className="photo-slot-head">
                     <div>
                       <b>{label}</b>
                       <span className={required?'required':'optional'}>
                         {required?'필수':'선택'}
                       </span>
                     </div>
-                    {found&&<small>1장 등록됨</small>}
+                    {found&&<em>1장 등록됨</em>}
                   </div>
 
                   {found?(
                     <div className="photo-preview-box">
-                      <a
-                        href={found.photo_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="photo-preview-link"
-                      >
+                      <a href={found.photo_url} target="_blank" rel="noreferrer">
                         <img src={found.photo_url} alt={label}/>
                       </a>
 
                       <button
                         type="button"
-                        className="photo-delete-icon"
+                        className="photo-remove-icon"
                         aria-label={`${label} 사진 삭제`}
                         disabled={uploading||deleting||isApproved}
                         onClick={()=>void deletePhoto(found.id)}
@@ -789,48 +783,42 @@ export default function TechnicianFieldReport({
                         {deleting?'…':'×'}
                       </button>
 
-                      <div className="photo-edit-actions">
-                        <span>등록 완료</span>
-                        <label className="photo-replace-button">
+                      <div className="photo-card-footer">
+                        <span>사진을 눌러 크게 보기</span>
+                        <label htmlFor={inputId} className="photo-replace-button">
                           {uploading?'교체 중':'다시 선택'}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            disabled={uploading||deleting||isApproved}
-                            onChange={event=>{
-                              const file=event.currentTarget.files?.[0];
-                              void uploadPhoto(type,file);
-                              event.currentTarget.value='';
-                            }}
-                          />
                         </label>
                       </div>
                     </div>
                   ):(
-                    <label className={`photo-empty ${uploading?'uploading':''}`}>
-                      <span className="photo-camera-icon" aria-hidden="true">⌑</span>
-                      <strong>{uploading?'사진 업로드 중':'사진을 등록해 주세요'}</strong>
+                    <label htmlFor={inputId} className="photo-empty-box">
+                      <span className="camera-icon" aria-hidden="true">▣</span>
+                      <strong>{uploading?'업로드 중입니다':'사진을 등록해주세요'}</strong>
                       <small>{description}</small>
-                      <span className="photo-select-button">
-                        {uploading?'처리 중…':'사진 선택'}
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        disabled={uploading||isApproved}
-                        onChange={event=>{
-                          const file=event.currentTarget.files?.[0];
-                          void uploadPhoto(type,file);
-                          event.currentTarget.value='';
-                        }}
-                      />
+                      <b>{uploading?'처리 중…':'사진 선택'}</b>
                     </label>
                   )}
+
+                  <input
+                    id={inputId}
+                    className="photo-file-input"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    disabled={uploading||deleting||isApproved}
+                    onChange={event=>{
+                      const file=event.currentTarget.files?.[0];
+                      void uploadPhoto(type,file);
+                      event.currentTarget.value='';
+                    }}
+                  />
                 </article>
               );
             })}
+          </div>
+
+          <div className="photo-tip">
+            <b>촬영 팁</b> 흔들림 없이 밝은 곳에서 제품 전체와 라벨 문자가 선명하게 보이도록 촬영해주세요.
           </div>
         </section>
 
