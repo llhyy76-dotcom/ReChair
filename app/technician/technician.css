@@ -50,3 +50,20 @@
   .photo-slot .photo-preview-box img{aspect-ratio:16/10}
   .photo-empty-box{min-height:210px}
 }
+
+/* Sprint 3.3 - technician work wizard */
+.work-wizard{position:sticky;top:0;z-index:4;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:18px 0;padding:8px;border:1px solid #e3eaf3;border-radius:17px;background:rgba(255,255,255,.96);backdrop-filter:blur(10px)}
+.work-wizard button{display:grid;justify-items:center;gap:5px;border:0;border-radius:12px;padding:8px 4px;background:transparent;color:#8a97a8;font-size:11px;font-weight:900;cursor:pointer}
+.work-wizard button b{display:grid;width:25px;height:25px;place-items:center;border-radius:50%;background:#edf1f6;color:#718096;font-size:11px}
+.work-wizard button.active{background:#edf4ff;color:#0e5bff}.work-wizard button.active b{background:#0e5bff;color:#fff}.work-wizard button.done{color:#08783f}.work-wizard button.done b{background:#dff5e7;color:#08783f}
+.wizard-section{margin-top:16px;border:1px solid #e2e9f2;border-radius:20px;padding:20px;background:#fff}
+.wizard-heading small{color:#0e5bff;font-size:11px;font-weight:1000;letter-spacing:.08em}.wizard-heading h3{margin:5px 0;font-size:23px}.wizard-heading p{margin:0 0 18px;color:#64748b;line-height:1.5}
+.wizard-section h4{margin:20px 0 9px;font-size:14px}
+.choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.choice-grid.compact{grid-template-columns:repeat(4,minmax(0,1fr))}
+.choice-grid button{min-height:48px;border:1px solid #d7e0eb;border-radius:13px;background:#f8fafc;color:#334155;padding:9px;font-weight:850;cursor:pointer}.choice-grid button.selected{border-color:#0e5bff;background:#eaf2ff;color:#0e5bff;box-shadow:inset 0 0 0 1px #0e5bff}
+.wizard-textarea{display:grid;gap:8px;margin-top:16px}.wizard-textarea span,.wizard-fields span{font-weight:900}.wizard-textarea textarea,.wizard-fields textarea{width:100%;min-height:110px;border:1px solid #dbe4ef;border-radius:13px;padding:13px;font:inherit;resize:vertical}
+.auto-report-button{width:100%;min-height:50px;margin-top:18px;border:0;border-radius:13px;background:#071126;color:#fff;font-weight:1000;cursor:pointer}.wizard-fields{margin-top:14px}.wizard-fields label:last-child{grid-column:1/-1}
+.report-review-card dl{display:grid;gap:9px;margin:0}.report-review-card dl div{display:grid;grid-template-columns:120px 1fr;gap:12px;border-radius:12px;background:#f7f9fc;padding:12px}.report-review-card dt{font-weight:900}.report-review-card dd{margin:0;color:#475569;white-space:pre-wrap;line-height:1.55}.final-save{width:100%;min-height:52px;margin-top:16px}
+.wizard-footer{position:sticky;bottom:0;z-index:6;display:grid;grid-template-columns:1fr 1.5fr;gap:10px;margin:24px -24px -24px;padding:14px 24px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #e2e8f0;background:rgba(255,255,255,.97);backdrop-filter:blur(12px)}
+.wizard-footer button{min-height:50px;border:0;border-radius:13px;font-weight:1000;cursor:pointer}.wizard-back{background:#edf1f6;color:#334155}.wizard-back:disabled{opacity:.45}.wizard-next,.wizard-close{background:#0e5bff;color:#fff}
+@media(max-width:620px){.work-wizard{top:76px;margin:8px 0 14px}.work-wizard button{font-size:10px}.wizard-section{padding:16px;border-radius:17px}.choice-grid,.choice-grid.compact{grid-template-columns:1fr 1fr}.wizard-heading h3{font-size:21px}.wizard-footer{margin:20px -14px -108px;padding:12px 14px calc(12px + env(safe-area-inset-bottom))}.report-review-card dl div{grid-template-columns:1fr;gap:5px}}
