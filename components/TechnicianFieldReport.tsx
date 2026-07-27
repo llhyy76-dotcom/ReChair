@@ -38,6 +38,19 @@ const photoTypes=[
   {type:'receipt',label:'영수증',description:'비용이 발생한 경우 영수증을 촬영',required:false},
 ] as const;
 
+const wizardSteps=[
+  {id:'symptom',label:'증상'},
+  {id:'action',label:'조치'},
+  {id:'photo',label:'사진'},
+  {id:'signature',label:'서명'},
+  {id:'review',label:'확인'},
+] as const;
+
+const symptomOptions=['전원 불량','마사지볼 이상','에어백 이상','리모컨 이상','이상 소음','가죽·외관','기타'];
+const causeOptions=['단선·접촉 불량','PCB 이상','모터 이상','센서 이상','에어 누기','조립·마찰 문제','원인 미확인'];
+const actionOptions=['부품 교체','현장 수리','조정·체결','점검 후 정상','청소·윤활','사용방법 안내'];
+const commonParts=['마사지 모터 1EA','메인 PCB 1EA','리모컨 1EA','에어호스 1EA','솔레노이드 밸브 1EA','센서 1EA','교체 부품 없음'];
+
 export default function TechnicianFieldReport({
   scheduleId,
   onClose,
@@ -51,6 +64,11 @@ export default function TechnicianFieldReport({
   const [action,setAction]=useState('');
   const [parts,setParts]=useState('');
   const [confirmation,setConfirmation]=useState('');
+  const [currentStep,setCurrentStep]=useState(0);
+  const [selectedSymptom,setSelectedSymptom]=useState('');
+  const [selectedCause,setSelectedCause]=useState('');
+  const [selectedAction,setSelectedAction]=useState('');
+  const [selectedPart,setSelectedPart]=useState('');
 
   const [message,setMessage]=useState('');
   const [loading,setLoading]=useState(true);
@@ -552,6 +570,79 @@ export default function TechnicianFieldReport({
       setSignatureResetting(false);
     }
   }
+  function chooseSymptom(value:string){
+    setSelectedSymptom(value);
+    setSymptom(value==='기타'?'':value);
+  }
+
+  function chooseAction(value:string){
+    setSelectedAction(value);
+    const generated=[selectedCause,value].filter(Boolean).join(' / ');
+    setAction(generated);
+  }
+
+  function chooseCause(value:string){
+    setSelectedCause(value);
+    const generated=[value,selectedAction].filter(Boolean).join(' / ');
+    setAction(generated);
+  }
+
+  function choosePart(value:string){
+    setSelectedPart(value);
+    setParts(value==='교체 부품 없음'?'교체 부품 없음':value);
+  }
+
+  function generateReportText(){
+    const symptomText=symptom.trim()||selectedSymptom;
+    const causeText=selectedCause||'점검 결과';
+    const actionChoice=selectedAction||action.trim();
+    const partText=parts.trim()||selectedPart;
+
+    if(!symptomText||!actionChoice){
+      setMessage('증상과 조치 내용을 먼저 선택하거나 입력하세요.');
+      return;
+    }
+
+    setSymptom(symptomText);
+    setAction(`${symptomText} 증상을 확인하였으며, ${causeText}으로 판단하여 ${actionChoice}를 진행했습니다. 작업 후 동작 상태를 점검해 정상 작동을 확인했습니다.`);
+    if(!confirmation.trim()){
+      setConfirmation('작업내용과 제품 동작 상태를 고객에게 설명하고 확인받았습니다.');
+    }
+    if(!partText){
+      setParts('교체 부품 없음');
+    }
+    setMessage('선택한 내용으로 작업보고 문장을 자동 생성했습니다. 필요하면 직접 수정할 수 있습니다.');
+  }
+
+  function validateStep(step:number){
+    if(step===0&&!symptom.trim()){
+      setMessage('고객 증상을 선택하거나 입력하세요.');
+      return false;
+    }
+    if(step===1&&!action.trim()){
+      setMessage('원인과 조치 내용을 선택하거나 입력하세요.');
+      return false;
+    }
+    if(step===2){
+      const missing=photoTypes.filter(item=>item.required&&!photos.some(photo=>photo.photo_type===item.type));
+      if(missing.length){
+        setMessage(`필수 사진을 등록하세요: ${missing.map(item=>item.label).join(', ')}`);
+        return false;
+      }
+    }
+    if(step===3&&!report?.customer_signature_url){
+      setMessage('고객 서명을 저장한 뒤 다음 단계로 이동하세요.');
+      return false;
+    }
+    return true;
+  }
+
+  function goNext(){
+    if(!validateStep(currentStep)) return;
+    setMessage('');
+    setCurrentStep(step=>Math.min(step+1,wizardSteps.length-1));
+  }
+
   const isApproved=
   report?.report_approval_status==='승인';
   const photos=report?.service_schedule_photos||[];
@@ -651,75 +742,75 @@ export default function TechnicianFieldReport({
     </p>
   )}
 </section>
-        <section className="report-form-grid">
-          <label>
-            <span>고객 증상</span>
+        <nav className="work-wizard" aria-label="작업보고 단계">
+          {wizardSteps.map((step,index)=>(
+            <button
+              key={step.id}
+              type="button"
+              className={`${index===currentStep?'active':''} ${index<currentStep?'done':''}`}
+              onClick={()=>setCurrentStep(index)}
+            >
+              <b>{index<currentStep?'✓':index+1}</b>
+              <span>{step.label}</span>
+            </button>
+          ))}
+        </nav>
 
-            <textarea
-              value={symptom}
-              disabled={isApproved}
-              onChange={event=>
-                setSymptom(event.target.value)
-              }
-              placeholder="고객이 설명한 증상과 점검 전 상태를 입력하세요."
-            />
-          </label>
+        {currentStep===0&&(
+          <section className="wizard-section">
+            <div className="wizard-heading">
+              <small>STEP 1</small>
+              <h3>고객 증상을 선택하세요</h3>
+              <p>자주 발생하는 증상은 버튼만 누르면 입력됩니다.</p>
+            </div>
+            <div className="choice-grid">
+              {symptomOptions.map(value=>(
+                <button key={value} type="button" className={selectedSymptom===value?'selected':''} disabled={isApproved} onClick={()=>chooseSymptom(value)}>{value}</button>
+              ))}
+            </div>
+            <label className="wizard-textarea">
+              <span>증상 상세</span>
+              <textarea value={symptom} disabled={isApproved} onChange={event=>setSymptom(event.target.value)} placeholder="고객이 설명한 증상과 점검 전 상태를 입력하세요."/>
+            </label>
+          </section>
+        )}
 
-          <label>
-            <span>조치 내용</span>
+        {currentStep===1&&(
+          <section className="wizard-section">
+            <div className="wizard-heading">
+              <small>STEP 2</small>
+              <h3>원인과 조치를 기록하세요</h3>
+              <p>선택값을 바탕으로 작업보고 문장을 자동 생성합니다.</p>
+            </div>
+            <h4>추정 원인</h4>
+            <div className="choice-grid compact">
+              {causeOptions.map(value=>(
+                <button key={value} type="button" className={selectedCause===value?'selected':''} disabled={isApproved} onClick={()=>chooseCause(value)}>{value}</button>
+              ))}
+            </div>
+            <h4>조치 방법</h4>
+            <div className="choice-grid compact">
+              {actionOptions.map(value=>(
+                <button key={value} type="button" className={selectedAction===value?'selected':''} disabled={isApproved} onClick={()=>chooseAction(value)}>{value}</button>
+              ))}
+            </div>
+            <h4>교체 부품</h4>
+            <div className="choice-grid compact">
+              {commonParts.map(value=>(
+                <button key={value} type="button" className={selectedPart===value?'selected':''} disabled={isApproved} onClick={()=>choosePart(value)}>{value}</button>
+              ))}
+            </div>
+            <button type="button" className="auto-report-button" disabled={isApproved} onClick={generateReportText}>선택 내용으로 보고서 자동 작성</button>
+            <div className="report-form-grid wizard-fields">
+              <label><span>조치 내용</span><textarea value={action} disabled={isApproved} onChange={event=>setAction(event.target.value)} placeholder="점검 결과와 수리·조정 내용을 입력하세요."/></label>
+              <label><span>교체 부품</span><textarea value={parts} disabled={isApproved} onChange={event=>setParts(event.target.value)} placeholder="부품명과 수량, 회수 여부를 입력하세요."/></label>
+              <label><span>고객 확인사항</span><textarea value={confirmation} disabled={isApproved} onChange={event=>setConfirmation(event.target.value)} placeholder="비용과 보증, 사용방법 등 안내사항을 입력하세요."/></label>
+            </div>
+          </section>
+        )}
 
-            <textarea
-              value={action}
-              disabled={isApproved}
-              onChange={event=>
-                setAction(event.target.value)
-              }
-              placeholder="점검 결과와 수리·조정 내용을 입력하세요."
-            />
-          </label>
-
-          <label>
-            <span>교체 부품</span>
-
-            <textarea
-              value={parts}
-              disabled={isApproved}
-              onChange={event=>
-                setParts(event.target.value)
-              }
-              placeholder="부품명과 수량, 회수 여부를 입력하세요."
-            />
-          </label>
-
-          <label>
-            <span>고객 확인사항</span>
-
-            <textarea
-              value={confirmation}
-              disabled={isApproved}
-              onChange={event=>
-                setConfirmation(event.target.value)
-              }
-              placeholder="비용과 보증, 사용방법 등 안내사항을 입력하세요."
-            />
-          </label>
-        </section>
-
-        <button
-  type="button"
-  className="primary"
-  disabled={saving||isApproved}
-  onClick={saveReport}
->
-  {isApproved
-    ? '승인 완료'
-    : saving
-      ? '저장 중'
-      : report?.report_approval_status==='반려'
-        ? '수정 후 재제출'
-        : '작업보고 저장'}
-</button>
-        <section className="report-photo-section">
+        {currentStep===2&&(
+        <section className="report-photo-section wizard-section">
           <div className="report-photo-heading">
             <div>
               <small>PHOTO REGISTRATION</small>
@@ -821,8 +912,10 @@ export default function TechnicianFieldReport({
             <b>촬영 팁</b> 흔들림 없이 밝은 곳에서 제품 전체와 라벨 문자가 선명하게 보이도록 촬영해주세요.
           </div>
         </section>
+        )}
 
-        <section className="signature-section">
+        {currentStep===3&&(
+        <section className="signature-section wizard-section">
           <div>
             <h3>고객 서명</h3>
 
@@ -894,6 +987,31 @@ export default function TechnicianFieldReport({
             </>
           )}
         </section>
+        )}
+
+        {currentStep===4&&(
+          <section className="wizard-section report-review-card">
+            <div className="wizard-heading"><small>FINAL CHECK</small><h3>작업보고 최종 확인</h3><p>저장 전 누락된 내용이 없는지 확인하세요.</p></div>
+            <dl>
+              <div><dt>고객 증상</dt><dd>{symptom||'미입력'}</dd></div>
+              <div><dt>조치 내용</dt><dd>{action||'미입력'}</dd></div>
+              <div><dt>교체 부품</dt><dd>{parts||'교체 부품 없음'}</dd></div>
+              <div><dt>고객 안내</dt><dd>{confirmation||'미입력'}</dd></div>
+              <div><dt>현장 사진</dt><dd>{photos.length}장</dd></div>
+              <div><dt>고객 서명</dt><dd>{report?.customer_signature_url?'등록 완료':'미등록'}</dd></div>
+            </dl>
+            <button type="button" className="primary final-save" disabled={saving||isApproved} onClick={saveReport}>{isApproved?'승인 완료':saving?'저장 중':'작업보고 저장 및 제출'}</button>
+          </section>
+        )}
+
+        <footer className="wizard-footer">
+          <button type="button" className="wizard-back" disabled={currentStep===0} onClick={()=>setCurrentStep(step=>Math.max(0,step-1))}>이전</button>
+          {currentStep<wizardSteps.length-1?(
+            <button type="button" className="wizard-next" onClick={goNext}>다음 단계</button>
+          ):(
+            <button type="button" className="wizard-close" onClick={onClose}>닫기</button>
+          )}
+        </footer>
       </div>
     </div>
   );
