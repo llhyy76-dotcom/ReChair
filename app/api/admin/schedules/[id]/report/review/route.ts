@@ -8,7 +8,7 @@ const ALLOWED_STATUSES=[
   '검토대기',
   '승인',
   '반려',
-];
+] as const;
 
 export async function PATCH(
   req:NextRequest,
@@ -28,7 +28,9 @@ export async function PATCH(
       body.rejection_reason||''
     ).trim();
 
-    if(!ALLOWED_STATUSES.includes(approvalStatus)){
+    if(!ALLOWED_STATUSES.includes(
+      approvalStatus as typeof ALLOWED_STATUSES[number]
+    )){
       return NextResponse.json(
         {
           error:'올바른 검토 상태가 아닙니다.',
@@ -55,7 +57,10 @@ export async function PATCH(
 
     const supabase=getSupabaseServer();
 
-    const {data:schedule,error:loadError}=await supabase
+    const {
+      data:schedule,
+      error:loadError,
+    }=await supabase
       .from('service_schedules')
       .select(`
         id,
@@ -63,12 +68,19 @@ export async function PATCH(
         status,
         symptom_text,
         action_text,
-        customer_signature_url
+        customer_signature_url,
+        completed_at,
+        field_report_updated_at
       `)
       .eq('id',id)
       .single();
 
     if(loadError||!schedule){
+      console.error(
+        'admin report review load error',
+        loadError
+      );
+
       return NextResponse.json(
         {
           error:'검토할 작업보고를 찾을 수 없습니다.',
@@ -79,10 +91,18 @@ export async function PATCH(
       );
     }
 
-    if(schedule.status!=='완료'){
+    const hasSubmittedReport=Boolean(
+      schedule.field_report_updated_at||
+      schedule.completed_at||
+      schedule.symptom_text||
+      schedule.action_text||
+      schedule.customer_signature_url
+    );
+
+    if(!hasSubmittedReport){
       return NextResponse.json(
         {
-          error:'완료된 일정만 승인하거나 반려할 수 있습니다.',
+          error:'제출된 작업보고가 없어 검토할 수 없습니다.',
         },
         {
           status:400,
@@ -90,7 +110,14 @@ export async function PATCH(
       );
     }
 
+    const now=new Date().toISOString();
+
     const payload={
+      status:'완료',
+
+      completed_at:
+        schedule.completed_at||now,
+
       report_approval_status:approvalStatus,
 
       report_rejection_reason:
@@ -101,7 +128,7 @@ export async function PATCH(
       report_reviewed_at:
         approvalStatus==='검토대기'
           ? null
-          : new Date().toISOString(),
+          : now,
 
       report_reviewed_by:
         approvalStatus==='검토대기'
@@ -109,12 +136,17 @@ export async function PATCH(
           : '관리자',
     };
 
-    const {data,error}=await supabase
+    const {
+      data,
+      error,
+    }=await supabase
       .from('service_schedules')
       .update(payload)
       .eq('id',id)
       .select(`
         id,
+        status,
+        completed_at,
         report_approval_status,
         report_rejection_reason,
         report_reviewed_at,
@@ -123,7 +155,19 @@ export async function PATCH(
       .single();
 
     if(error){
-      throw error;
+      console.error(
+        'admin report review update error',
+        error
+      );
+
+      return NextResponse.json(
+        {
+          error:`작업보고 검토 저장 오류: ${error.message}`,
+        },
+        {
+          status:500,
+        }
+      );
     }
 
     return NextResponse.json({
@@ -131,7 +175,10 @@ export async function PATCH(
       data,
     });
   }catch(error:any){
-    if(error?.message==='ADMIN_UNAUTHORIZED'){
+    if(
+      error?.message==='ADMIN_UNAUTHORIZED'||
+      error?.message==='UNAUTHORIZED'
+    ){
       return NextResponse.json(
         {
           error:'관리자 로그인이 필요합니다.',
