@@ -1,20 +1,41 @@
-# ReChair v1.1 Consultation Photo Upload
+# ReChair Sprint 3.5.1 — 상태 표시 통합 패치
 
-목표: 고객 상담 사진 4장을 Supabase Storage에 저장하고 관리자 CRM에서 실제 사진을 표시합니다.
+이 패치는 현재 운영 파일 전체를 덮어쓰지 않습니다.
+최근 승인 API 수정과 키워드 관리 기능을 보존하면서,
+기사 화면과 관리자 캘린더의 상태 표시만 같은 규칙으로 통합합니다.
 
-## 교체 파일
-- lib/supabase.ts
-- app/api/consultations/route.ts
-- app/api/consultations/[id]/route.ts
-- components/ConsultationForm.tsx
-- components/AdminConsultations.tsx
+## 상태 우선순위
 
-## SQL 실행
-Supabase SQL Editor에서 실행:
-- supabase/v11_consult_photo_schema.sql
+1. 관리자 승인 → 승인완료
+2. 관리자 반려 → 반려 또는 재방문요청
+3. 최종보고서 제출 → 검토대기
+4. 보고서 미제출 → 일반 일정 상태
 
-## 확인
-1. GitHub에 파일 덮어 업로드
-2. Vercel 배포 Ready 확인
-3. 고객 화면에서 사진 포함 상담 신청
-4. /admin 에서 고객명/전화번호/사진 확인
+## 포함 파일
+
+- lib/scheduleDisplayStatus.ts
+- TECHNICIAN_APPLY.md
+- ADMIN_APPLY.md
+- status-badge.css
+
+## 적용 순서
+
+1. `lib/scheduleDisplayStatus.ts` 업로드
+2. TECHNICIAN_APPLY.md를 참고해 기사 화면 수정
+3. ADMIN_APPLY.md를 참고해 관리자 캘린더 수정
+4. `status-badge.css` 내용을 해당 CSS 파일에 추가
+5. Vercel 배포 후 아래 시나리오 확인
+
+## 테스트 시나리오
+
+- 보고서 미제출: 방문예정/작업중
+- 보고서 최종 제출: 양쪽 화면 모두 검토대기
+- 관리자 승인: 양쪽 화면 모두 승인완료
+- 관리자 반려: 양쪽 화면 모두 반려
+- 반려 사유에 '재방문' 포함: 재방문요청
+- 보고서 창 닫기: 관리자 캘린더 즉시 갱신
+
+## 중요
+
+현재 GitHub 파일이 마지막 업로드 ZIP 이후 변경되어 있으므로,
+이 패치는 전체 TSX 파일 덮어쓰기가 아닌 안전한 공통 엔진 방식으로 제작되었습니다.
