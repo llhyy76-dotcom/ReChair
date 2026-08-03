@@ -114,20 +114,63 @@ export async function PATCH(
     const body=await req.json();
     const supabase=getSupabaseServer();
 
+    const now=new Date().toISOString();
+
+    const {data:currentSchedule,error:currentScheduleError}=await supabase
+      .from('service_schedules')
+      .select(`
+        id,
+        assignee,
+        completed_at
+      `)
+      .eq('id',id)
+      .eq('assignee',session.technician.name)
+      .single();
+
+    if(currentScheduleError||!currentSchedule){
+      return NextResponse.json(
+        {
+          error:'본인에게 배정된 일정을 찾을 수 없습니다.',
+        },
+        {
+          status:404,
+        }
+      );
+    }
+
     const payload={
-  symptom_text:String(body.symptom_text||'').trim()||null,
-  action_text:String(body.action_text||'').trim()||null,
-  replaced_parts:String(body.replaced_parts||'').trim()||null,
-  customer_confirmation:String(body.customer_confirmation||'').trim()||null,
+      status:'완료',
 
-  completed_by_technician_id:session.technician_id,
-  field_report_updated_at:new Date().toISOString(),
+      completed_at:
+        currentSchedule.completed_at||now,
 
-  report_approval_status:'검토대기',
-  report_rejection_reason:null,
-  report_reviewed_at:null,
-  report_reviewed_by:null,
-};
+      symptom_text:
+        String(body.symptom_text||'').trim()||null,
+
+      action_text:
+        String(body.action_text||'').trim()||null,
+
+      replaced_parts:
+        String(body.replaced_parts||'').trim()||null,
+
+      customer_confirmation:
+        String(body.customer_confirmation||'').trim()||null,
+
+      completed_by_technician_id:
+        session.technician_id,
+
+      field_report_updated_at:now,
+
+      report_approval_status:'검토대기',
+
+      report_rejection_reason:null,
+
+      report_reviewed_at:null,
+
+      report_reviewed_by:null,
+
+      updated_at:now,
+    };
     const {data,error}=await supabase
       .from('service_schedules')
       .update(payload)
