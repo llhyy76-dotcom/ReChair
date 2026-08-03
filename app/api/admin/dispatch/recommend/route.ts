@@ -1,14 +1,118 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
-function match(t:any,text:string){const h=[t.region,...(Array.isArray(t.service_regions)?t.service_regions:[])].filter(Boolean).join(' ').toLowerCase();return text.replace(/[,\-·]/g,' ').split(/\s+/).filter(v=>v.length>=2).some(w=>h.includes(w.toLowerCase()))}
+import {requireAdmin} from '@/lib/adminAuth';
+import {
+  kstDayRange,
+  scoreTechnician,
+} from '@/lib/dispatchRecommendation';
+
+export const dynamic='force-dynamic';
+
 export async function GET(req:NextRequest){
   try{
-    const u=new URL(req.url),text=((u.searchParams.get('region')||'')+' '+(u.searchParams.get('address')||'')).trim(),sb=getSupabaseServer(),now=new Date();
-    const start=new Date(now.getFullYear(),now.getMonth(),now.getDate()).toISOString(),end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1).toISOString();
-    const [a,b]=await Promise.all([sb.from('technicians').select('*').eq('is_active',true),sb.from('service_schedules').select('assignee,status').gte('scheduled_at',start).lt('scheduled_at',end)]);
-    if(a.error)throw a.error;if(b.error)throw b.error;
-    const scored=(a.data||[]).map((t:any)=>{const count=(b.data||[]).filter((s:any)=>s.assignee===t.name&&s.status!=='취소').length,cap=Number(t.daily_capacity||5),remain=Math.max(0,cap-count),m=text?match(t,text):false;return {...t,today_count:count,remaining_capacity:remain,region_match:m,score:(m?100:0)+remain*10-count*3}}).sort((x:any,y:any)=>y.score-x.score);
-    const best=scored[0]||null;
-    return NextResponse.json({data:{technician:best,reason:best?`${best.region_match?'담당지역이 일치하며, ':''}오늘 ${best.today_count}건 배정되어 잔여 처리한도 ${best.remaining_capacity}건입니다.`:'활성 기사·팀이 없습니다.',candidates:scored.slice(0,5)}});
-  }catch(e:any){return NextResponse.json({error:e?.message||'추천 기사 조회 오류'},{status:500})}
+    await requireAdmin();
+
+    const url=new URL(req.url);
+    const scheduledAt=String(url.searchParams.get('scheduled_at')||'').trim();
+    const durationMinutes=Math.max(
+      15,
+      Math.min(480,Number(url.searchParams.get('duration_minutes')||60))
+    );
+    const region=String(url.searchParams.get('region')||'').trim();
+    const address=String(url.searchParams.get('address')||'').trim();
+
+    if(!scheduledAt){
+      return NextResponse.json(
+        {error:'추천할 방문 일시가 필요합니다.'},
+        {status:400}
+      );
+    }
+
+    const requestedStart=new Date(scheduledAt);
+    if(Number.isNaN(requestedStart.getTime())){
+      return NextResponse.json(
+        {error:'올바른 방문 일시가 아닙니다.'},
+        {status:400}
+      );
+    }
+
+    const dateText=new Intl.DateTimeFormat('en-CA',{
+      timeZone:'Asia/Seoul',
+      year:'numeric',
+      month:'2-digit',
+      day:'2-digit',
+    }).format(requestedStart);
+    const {start,end}=kstDayRange(dateText);
+    const supabase=getSupabaseServer();
+
+    const [technicianResult,scheduleResult]=await Promise.all([
+      supabase
+        .from('technicians')
+        .select('*')
+        .eq('is_active',true)
+        .order('name',{ascending:true}),
+      supabase
+        .from('service_schedules')
+        .select(`
+          id,
+          assignee,
+          scheduled_at,
+          duration_minutes,
+          status,
+          address,
+          region
+        `)
+        .gte('scheduled_at',start)
+        .lt('scheduled_at',end)
+        .neq('status','취소'),
+    ]);
+
+    if(technicianResult.error)throw technicianResult.error;
+    if(scheduleResult.error)throw scheduleResult.error;
+
+    const candidates=(technicianResult.data||[])
+      .map(technician=>scoreTechnician({
+        technician,
+        schedules:scheduleResult.data||[],
+        requestedStart,
+        requestedDuration:durationMinutes,
+        region,
+        address,
+      }))
+      .sort((a,b)=>{
+        if(a.eligible!==b.eligible)return a.eligible?-1:1;
+        if(b.score!==a.score)return b.score-a.score;
+        return a.today_count-b.today_count;
+      });
+
+    const best=candidates.find(candidate=>candidate.eligible)||null;
+
+    return NextResponse.json({
+      data:{
+        technician:best,
+        candidates:candidates.slice(0,8),
+        requested_at:requestedStart.toISOString(),
+        duration_minutes:durationMinutes,
+        reason:best
+          ?best.reasons.join(' · ')
+          :'시간 충돌 또는 처리한도 초과로 추천 가능한 기사가 없습니다.',
+      },
+    });
+  }catch(error:any){
+    if(
+      error?.message==='ADMIN_UNAUTHORIZED'||
+      error?.message==='UNAUTHORIZED'
+    ){
+      return NextResponse.json(
+        {error:'관리자 로그인이 필요합니다.'},
+        {status:401}
+      );
+    }
+
+    console.error('dispatch recommendation error',error);
+    return NextResponse.json(
+      {error:error?.message||'추천 기사 조회 오류'},
+      {status:500}
+    );
+  }
 }
