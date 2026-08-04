@@ -109,12 +109,16 @@ export async function POST(
       customer_name:
         consultation.customer_name??consultation.name??'이름 없음',
       phone:consultation.phone??null,
-      region:consultation.region??null,
+      region:
+        String(body.region||consultation.region||'').trim()||null,
       address:
-        body.address||
-        consultation.address||
-        consultation.region||
-        null,
+        String(
+          body.address||
+          consultation.address||
+          body.region||
+          consultation.region||
+          ''
+        ).trim()||null,
       service_type:
         consultation.service_type??
         consultation.service??
@@ -137,6 +141,16 @@ export async function POST(
     const {error:updateError}=await supabase
       .from('consultations')
       .update({
+        region:
+          String(body.region||consultation.region||'').trim()||null,
+        address:
+          String(
+            body.address||
+            consultation.address||
+            body.region||
+            consultation.region||
+            ''
+          ).trim()||null,
         next_action_at:requestedStart.toISOString(),
         assignee,
         status:consultation.status==='신규'

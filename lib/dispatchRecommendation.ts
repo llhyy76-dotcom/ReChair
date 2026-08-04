@@ -20,6 +20,30 @@ export type ScheduleRow={
 
 const KST_OFFSET_MS=9*60*60*1000;
 
+const REGION_ALIASES:Record<string,string[]>={
+  '서울':['서울','서울시','서울특별시'],
+  '고양':['고양','고양시','덕양','일산동','일산서'],
+  '파주':['파주','파주시'],
+  '김포':['김포','김포시'],
+  '경기 북부':['고양','파주','김포','의정부','양주','포천','동두천','연천','구리','남양주'],
+  '경기 남부':['수원','용인','화성','오산','평택','안성','성남','광주','하남','이천','여주','의왕','군포','안양'],
+};
+
+function expandRegionTokens(values:unknown[]){
+  const result=new Set<string>();
+  for(const value of values){
+    for(const token of tokens(value))result.add(token);
+    const text=normalize(value);
+    for(const [group,aliases] of Object.entries(REGION_ALIASES)){
+      if(aliases.some(alias=>text.includes(normalize(alias)))){
+        result.add(normalize(group));
+        aliases.forEach(alias=>result.add(normalize(alias)));
+      }
+    }
+  }
+  return [...result];
+}
+
 export function kstDayRange(dateText:string){
   const normalized=/^\d{4}-\d{2}-\d{2}$/.test(dateText)
     ?dateText
@@ -48,12 +72,12 @@ export function regionMatchScore(
   region?:string|null,
   address?:string|null,
 ){
-  const targetTokens=[...tokens(region),...tokens(address)];
-  const techText=normalize([
+  const targetTokens=expandRegionTokens([region,address]);
+  const techText=expandRegionTokens([
     technician.region,
     technician.team_name,
     technician.memo,
-  ].filter(Boolean).join(' '));
+  ]).join(' ');
 
   if(targetTokens.length===0)return 0;
 

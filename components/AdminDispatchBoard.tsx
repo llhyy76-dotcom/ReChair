@@ -34,6 +34,8 @@ export default function AdminDispatchBoard(){
   const [selectedCandidate,setSelectedCandidate]=useState<Candidate|null>(null);
   const [scheduledAt,setScheduledAt]=useState(defaultScheduledAt());
   const [durationMinutes,setDurationMinutes]=useState(60);
+  const [regionInput,setRegionInput]=useState('');
+  const [addressInput,setAddressInput]=useState('');
   const [message,setMessage]=useState('');
   const [loadingRecommend,setLoadingRecommend]=useState(false);
   const [assigning,setAssigning]=useState(false);
@@ -66,6 +68,8 @@ export default function AdminDispatchBoard(){
     setMessage('');
     setScheduledAt(defaultScheduledAt());
     setDurationMinutes(60);
+    setRegionInput(String(item.region||''));
+    setAddressInput(String(item.address||''));
   }
 
   async function calculateRecommend(){
@@ -76,8 +80,8 @@ export default function AdminDispatchBoard(){
       setLoadingRecommend(true);
       setMessage('');
       const params=new URLSearchParams({
-        region:selected.region||'',
-        address:selected.address||'',
+        region:regionInput,
+        address:addressInput,
         scheduled_at:new Date(scheduledAt).toISOString(),
         duration_minutes:String(durationMinutes),
       });
@@ -107,7 +111,8 @@ export default function AdminDispatchBoard(){
           scheduled_at:new Date(scheduledAt).toISOString(),
           assignee:selectedCandidate.name,
           duration_minutes:durationMinutes,
-          address:selected.address||selected.region||'',
+          region:regionInput,
+          address:addressInput||regionInput,
           memo:[
             '자동배정 추천 적용',
             ...(selectedCandidate.reasons||[]),
@@ -190,10 +195,42 @@ export default function AdminDispatchBoard(){
           <div>
             <p>AUTO DISPATCH</p>
             <h2>{selected.customer_name}</h2>
-            <span>{selected.region||'지역 미입력'} · {selected.address||'주소 미입력'}</span>
+            <span>{regionInput||'지역 미입력'} · {addressInput||'주소 미입력'}</span>
           </div>
           <button onClick={()=>setSelected(null)}>×</button>
         </div>
+
+        <section className="dispatch-location-grid">
+          <label className="schedule-time">
+            <span>지역</span>
+            <input
+              value={regionInput}
+              placeholder="예: 고양시 덕양구"
+              onChange={event=>{
+                setRegionInput(event.target.value);
+                setRecommend(null);
+                setSelectedCandidate(null);
+              }}
+            />
+          </label>
+          <label className="schedule-time">
+            <span>주소</span>
+            <input
+              value={addressInput}
+              placeholder="예: 경기 고양시 덕양구 화정동"
+              onChange={event=>{
+                setAddressInput(event.target.value);
+                setRecommend(null);
+                setSelectedCandidate(null);
+              }}
+            />
+          </label>
+        </section>
+
+        {(!regionInput||!addressInput)&&
+          <p className="dispatch-warning">
+            지역과 주소를 입력하면 담당 기사 추천 정확도가 높아집니다.
+          </p>}
 
         <section className="dispatch-input-grid">
           <label className="schedule-time">
