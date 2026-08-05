@@ -1,0 +1,435 @@
+from __future__ import annotations
+
+import csv
+import json
+import shutil
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Callable
+
+from core.backup import backup_master
+from core.compare import build_kr_lookup, compare_records, complete_korean_names, merge_records
+from core.logger import AppLogger
+from core.parser import PartRecord, choose_preferred_files, infer_ir_no, infer_manufacturer, parse_master, parse_workbook, revision_rank
+from core.report_builder import rebuild_all_sheets
+
+ProgressCallback = Callable[[int, str], None]
+
+SUPPORTED_EXCEL_SUFFIXES = {".xls", ".xlsx", ".xlsm", ".xltx", ".xltm"}
+
+
+def _is_supported_excel_file(path: Path) -> bool:
+    return (
+        path.is_file()
+        and not path.name.startswith("~$")
+        and path.suffix.lower() in SUPPORTED_EXCEL_SUFFIXES
+    )
+
+
+class MasterFileLockedError(RuntimeError):
+    pass
+
+
+@dataclass
+class ManufacturerResult:
+    manufacturer: str
+    scanned_files: int = 0
+    selected_files: int = 0
+    duplicates: int = 0
+    revisions: int = 0
+    new_parts: int = 0
+    updated_rows: int = 0
+    kr_completed: int = 0
+    price_changes: int = 0
+    backup_path: Path | None = None
+    status: str = ""
+    errors: list[str] = field(default_factory=list)
+
+
+@dataclass
+class UpdateResult:
+    scanned_files: int
+    selected_files: int
+    duplicates: int
+    revisions: int
+    new_parts: int
+    updated_rows: int
+    kr_completed: int
+    price_changes: int
+    backup_path: Path
+    log_path: Path
+    manifest_path: Path
+    skipped_over_limit: int = 0
+    by_manufacturer: dict[str, ManufacturerResult] = field(default_factory=dict)
+
+
+class Updater:
+    def __init__(self, root: str | Path = ".") -> None:
+        self.root = Path(root)
+        self.config = self._load_config()
+        self.manufacturers = list(self.config.get("manufacturers", ["IR", "XC", "AC", "KA", "NC"]))
+        self.update_dir = self.root / self.config.get("update", "Update")
+        self.archive_dir = self.root / self.config.get("archive", "Archive")
+        self.backup_dir = self.root / self.config.get("backup", "Backup")
+        self.log_dir = self.root / self.config.get("log", "Log")
+        self.logger = AppLogger(self.log_dir)
+        self.max_files_per_run = int(self.config.get("max_files_per_run", 0) or 0)  # 0 = unlimited
+        self.manufacturer_root = self.root / self.config.get("manufacturer_root", "Manufacturers")
+
+    def _load_config(self) -> dict:
+        path = self.root / "Config" / "config.json"
+        with path.open("r", encoding="utf-8") as fp:
+            return json.load(fp)
+
+    def master_path(self, manufacturer: str) -> Path:
+        return self.manufacturer_root / manufacturer / "Master" / "Master.xlsx"
+
+    def scan(self) -> list[Path]:
+        self.update_dir.mkdir(parents=True, exist_ok=True)
+        # Do not use glob("*.xlsx") here. Legacy XC requests are real .xls files
+        # and must reach the unified Excel reader.
+        return sorted(path for path in self.update_dir.iterdir() if _is_supported_excel_file(path))
+
+    def scan_by_manufacturer(self) -> dict[str, list[Path]]:
+        grouped = {m: [] for m in self.manufacturers}
+        for path in self.scan():
+            m = infer_manufacturer(path.name)
+            if m in grouped:
+                grouped[m].append(path)
+        return grouped
+
+    def scan_archive_by_manufacturer(self) -> dict[str, list[Path]]:
+        """Collect archived Excel files (.xls/.xlsx/...) by manufacturer for Full Rebuild."""
+        grouped = {m: [] for m in self.manufacturers}
+        for m in self.manufacturers:
+            base = self.archive_dir / m
+            if base.exists():
+                grouped[m] = sorted(p for p in base.rglob("*") if _is_supported_excel_file(p))
+        return grouped
+
+    def _dedupe_same_source_file(self, records: list[PartRecord]) -> list[PartRecord]:
+        """If the same source filename appears more than once, keep the latest parsed copy.
+
+        This mainly protects manual re-import/rebuild cases where a corrected request file
+        has the same filename as an old one. The latest version is decided by the largest
+        updated date string and then by the parse order.
+        """
+        by_source: dict[str, int] = {}
+        keep_index = set()
+        for i, r in enumerate(records):
+            sf = r.source_file or f"__row_{i}"
+            by_source[sf] = i
+        # Keep all rows whose source file's last occurrence belongs to the same file group.
+        latest_files = set(by_source)
+        return [r for r in records if (r.source_file or "") in latest_files]
+
+    def _replace_existing_source_files(self, master_records: list[PartRecord], incoming: list[PartRecord]) -> tuple[list[PartRecord], int]:
+        """Remove existing 원본상세 rows for incoming source filenames before merge.
+
+        This implements 'same filename = overwrite with latest file' and prevents old
+        qty/price parsing errors from accumulating after re-upload.
+        """
+        sources = {r.source_file for r in incoming if r.source_file}
+        if not sources:
+            return master_records, 0
+        filtered = [r for r in master_records if r.source_file not in sources]
+        return filtered, len(master_records) - len(filtered)
+
+    def run(self, progress: ProgressCallback | None = None) -> UpdateResult:
+        """Run update with safe order.
+
+        v2.0.2 핵심 보정:
+        - Master 저장/검증 성공 후에만 Archive 이동
+        - 파싱 실패 파일은 Update 폴더에 남김
+        - 제조사별 Master 저장 경로를 로그에 명확히 기록
+        - Master 저장 후 원본상세 행수 검증
+        """
+        def emit(value: int, message: str) -> None:
+            if progress:
+                progress(value, message)
+
+        emit(3, "Update 폴더 검사 중")
+        files_all = self.scan()
+        grouped_all = self.scan_by_manufacturer()
+        unknown_files = [p for p in files_all if infer_manufacturer(p.name) not in self.manufacturers]
+        if unknown_files:
+            emit(5, f"제조사 구분 불가 파일 {len(unknown_files)}개는 건너뜁니다")
+
+        grouped_selected: dict[str, list[Path]] = {}
+        revisions_total = 0
+        selected_all: list[Path] = []
+        for m, paths in grouped_all.items():
+            preferred = choose_preferred_files(paths)
+            revisions_total += len(paths) - len(preferred)
+            grouped_selected[m] = preferred
+            selected_all.extend(preferred)
+
+        skipped_over_limit = 0
+        if self.max_files_per_run > 0 and len(selected_all) > self.max_files_per_run:
+            allowed = set(selected_all[: self.max_files_per_run])
+            skipped_over_limit = len(selected_all) - self.max_files_per_run
+            grouped_selected = {m: [p for p in paths if p in allowed] for m, paths in grouped_selected.items()}
+            selected_all = selected_all[: self.max_files_per_run]
+            emit(7, f"설정 제한 적용: {len(selected_all)}개 처리, {skipped_over_limit}개 보류")
+
+        total_selected = len(selected_all)
+        if total_selected == 0:
+            manifest_path = self._write_manifest([], {}, {}, {}, [])
+            log_path = self.logger.write_summary(["처리 대상 파일 없음", f"제조사 구분 불가: {len(unknown_files)}"])
+            return UpdateResult(len(files_all), 0, 0, revisions_total, 0, 0, 0, Path(""), log_path, manifest_path, skipped_over_limit)
+
+        by_m: dict[str, ManufacturerResult] = {}
+        total_new = total_updated = total_dup = total_price = total_kr = 0
+        backup_paths: list[Path] = []
+        parsed_by_file: dict[Path, list[PartRecord]] = {}
+        all_new_records: dict[str, list[PartRecord]] = {}
+        all_price_changes: list[dict] = []
+        successful_files: list[Path] = []
+
+        done_files = 0
+        for m in self.manufacturers:
+            selected = grouped_selected.get(m, [])
+            if not selected:
+                continue
+            res = ManufacturerResult(
+                manufacturer=m,
+                scanned_files=len(grouped_all.get(m, [])),
+                selected_files=len(selected),
+                revisions=len(grouped_all.get(m, [])) - len(selected),
+            )
+            by_m[m] = res
+            master = self.master_path(m)
+            emit(8 + int(70 * done_files / max(total_selected, 1)), f"{m} Master 확인 중: {master}")
+            parsed_success_files: list[Path] = []
+            try:
+                self._ensure_master_writable(master)
+                backup = backup_master(master, self.backup_dir / m)
+                res.backup_path = backup
+                backup_paths.append(backup)
+                master_records = parse_master(master)
+                before_count = len(master_records)
+                kr_lookup = build_kr_lookup(master_records)
+                incoming: list[PartRecord] = []
+
+                for path in selected:
+                    emit(10 + int(65 * done_files / max(total_selected, 1)), f"{m} 파싱 중: {path.name}")
+                    try:
+                        records = parse_workbook(path)
+                        if not records:
+                            raise ValueError("추출된 부품 행이 없습니다. 원본 양식/헤더를 확인하세요.")
+                    except Exception as exc:
+                        res.errors.append(f"{path.name}: 파싱 실패 - {exc}")
+                        done_files += 1
+                        continue
+                    parsed_by_file[path] = records
+                    incoming.extend(records)
+                    parsed_success_files.append(path)
+                    done_files += 1
+
+                if not incoming:
+                    res.status = "건너뜀"
+                    res.errors.append("정상 파싱된 파일이 없어 Master를 수정하지 않았습니다. Archive 이동도 하지 않았습니다.")
+                    continue
+
+                threshold = int(self.config.get("fuzzy_threshold", 95))
+                incoming, kr_completed = complete_korean_names(incoming, kr_lookup, threshold)
+                # Same filename re-upload means latest file replaces old rows from that source file.
+                master_records, replaced_rows = self._replace_existing_source_files(master_records, incoming)
+                all_records, new_records, price_changes, duplicates, updated_rows = merge_records(master_records, incoming)
+                updated_rows += replaced_rows
+
+                emit(80, f"{m} Master 저장 중: 원본상세 {before_count}행 → {len(all_records)}행 / 동일파일 교체 {replaced_rows}행")
+                rebuild_all_sheets(master, records=all_records, appended_count=len(new_records), selected_count=len(parsed_success_files), manufacturer=m)
+
+                # 저장 검증: 저장된 Master에서 원본상세를 다시 읽어 행수와 단가 존재 여부를 확인한다.
+                saved_records = parse_master(master)
+                if len(saved_records) < len(all_records):
+                    raise RuntimeError(f"Master 저장 검증 실패: 저장 후 원본상세 {len(saved_records)}행 / 예상 {len(all_records)}행")
+                expected_priced = sum(1 for r in all_records if r.price is not None)
+                saved_priced = sum(1 for r in saved_records if r.price is not None)
+                if saved_priced < expected_priced:
+                    raise RuntimeError(f"Master 단가 저장 검증 실패: 저장 후 단가행 {saved_priced} / 예상 {expected_priced}")
+
+                res.new_parts = len(new_records)
+                res.updated_rows = updated_rows
+                res.kr_completed = kr_completed
+                res.price_changes = len(price_changes)
+                res.duplicates = duplicates
+                res.status = f"완료 - Master 저장 검증 OK ({master})"
+                total_new += res.new_parts
+                total_updated += updated_rows
+                total_dup += duplicates
+                total_price += res.price_changes
+                total_kr += kr_completed
+                all_new_records[m] = new_records
+                all_price_changes.extend(price_changes)
+                successful_files.extend(parsed_success_files)
+            except Exception as exc:
+                res.status = "오류 - Archive 이동 안 함"
+                res.errors.append(str(exc))
+                emit(80, f"{m} 처리 오류: {exc}")
+
+        emit(88, "Master 저장 성공 파일만 Archive 이동 중")
+        archived_paths = self._archive_files(successful_files)
+        emit(95, "처리 명세 및 로그 작성 중")
+        manifest_path = self._write_manifest(successful_files, archived_paths, parsed_by_file, all_new_records, all_price_changes)
+        log_path = self._write_log(len(files_all), len(successful_files), total_dup, revisions_total, total_new, total_updated, total_kr, total_price, backup_paths, manifest_path, skipped_over_limit, by_m, unknown_files)
+        emit(100, "완료")
+        return UpdateResult(
+            scanned_files=len(files_all), selected_files=len(successful_files), duplicates=total_dup, revisions=revisions_total,
+            new_parts=total_new, updated_rows=total_updated, kr_completed=total_kr, price_changes=total_price,
+            backup_path=backup_paths[0] if backup_paths else Path(""), log_path=log_path, manifest_path=manifest_path,
+            skipped_over_limit=skipped_over_limit, by_manufacturer=by_m,
+        )
+
+    def rebuild_from_archive(self, progress: ProgressCallback | None = None) -> UpdateResult:
+        """Full rebuild every Manufacturer Master from Archive files.
+
+        This does not move Archive files. It reads archived request files, parses with the
+        latest parser/header logic, and recreates each Master from scratch. Use when parser,
+        year, model, color, or report rules change.
+        """
+        def emit(value: int, message: str) -> None:
+            if progress:
+                progress(value, message)
+
+        emit(3, "Archive 전체 재생성 준비")
+        grouped_all = self.scan_archive_by_manufacturer()
+        total_files = sum(len(v) for v in grouped_all.values())
+        if total_files == 0:
+            manifest_path = self._write_manifest([], {}, {}, {}, [])
+            log_path = self.logger.write_summary(["Archive 재생성 대상 파일 없음"])
+            return UpdateResult(0, 0, 0, 0, 0, 0, 0, Path(""), log_path, manifest_path)
+
+        by_m: dict[str, ManufacturerResult] = {}
+        total_new = total_updated = total_dup = total_price = total_kr = 0
+        backup_paths: list[Path] = []
+        parsed_by_file: dict[Path, list[PartRecord]] = {}
+        all_new_records: dict[str, list[PartRecord]] = {}
+        all_price_changes: list[dict] = []
+        successful_files: list[Path] = []
+        revisions_total = 0
+        processed_count = 0
+
+        for m in self.manufacturers:
+            archive_files = grouped_all.get(m, [])
+            if not archive_files:
+                continue
+            selected = choose_preferred_files(archive_files)
+            revisions_total += len(archive_files) - len(selected)
+            res = ManufacturerResult(manufacturer=m, scanned_files=len(archive_files), selected_files=len(selected), revisions=len(archive_files) - len(selected))
+            by_m[m] = res
+            master = self.master_path(m)
+            try:
+                self._ensure_master_writable(master)
+                backup = backup_master(master, self.backup_dir / m)
+                res.backup_path = backup
+                backup_paths.append(backup)
+                incoming: list[PartRecord] = []
+                for path in selected:
+                    emit(5 + int(70 * processed_count / max(total_files, 1)), f"{m} Archive 파싱 중: {path.name}")
+                    try:
+                        records = parse_workbook(path)
+                        if not records:
+                            raise ValueError("추출된 부품 행이 없습니다.")
+                    except Exception as exc:
+                        res.errors.append(f"{path.name}: 파싱 실패 - {exc}")
+                        processed_count += 1
+                        continue
+                    parsed_by_file[path] = records
+                    incoming.extend(records)
+                    successful_files.append(path)
+                    processed_count += 1
+                if not incoming:
+                    res.status = "건너뜀"
+                    res.errors.append("정상 파싱된 Archive 파일이 없어 Master를 재생성하지 않았습니다.")
+                    continue
+                # Full rebuild starts from an empty master, so all incoming rows are new.
+                all_records, new_records, price_changes, duplicates, updated_rows = merge_records([], incoming)
+                emit(80, f"{m} Master 전체 재생성 저장 중: {len(all_records)}행")
+                rebuild_all_sheets(master, records=all_records, appended_count=len(new_records), selected_count=len(selected), manufacturer=m)
+                saved_records = parse_master(master)
+                if len(saved_records) < len(all_records):
+                    raise RuntimeError(f"Master 저장 검증 실패: 저장 후 {len(saved_records)}행 / 예상 {len(all_records)}행")
+                res.new_parts = len(new_records)
+                res.updated_rows = updated_rows
+                res.price_changes = len(price_changes)
+                res.duplicates = duplicates
+                res.status = f"전체 재생성 완료 - Master 저장 검증 OK ({master})"
+                total_new += res.new_parts
+                total_updated += updated_rows
+                total_dup += duplicates
+                total_price += res.price_changes
+                all_new_records[m] = new_records
+                all_price_changes.extend(price_changes)
+            except Exception as exc:
+                res.status = "오류"
+                res.errors.append(str(exc))
+                emit(80, f"{m} 전체 재생성 오류: {exc}")
+
+        emit(95, "전체 재생성 명세 및 로그 작성 중")
+        manifest_path = self._write_manifest(successful_files, {}, parsed_by_file, all_new_records, all_price_changes)
+        log_path = self._write_log(total_files, len(successful_files), total_dup, revisions_total, total_new, total_updated, total_kr, total_price, backup_paths, manifest_path, 0, by_m, [])
+        emit(100, "전체 재생성 완료")
+        return UpdateResult(total_files, len(successful_files), total_dup, revisions_total, total_new, total_updated, total_kr, total_price, backup_paths[0] if backup_paths else Path(""), log_path, manifest_path, 0, by_m)
+
+    def _ensure_master_writable(self, master_path: Path) -> None:
+        if not master_path.exists():
+            raise FileNotFoundError(f"Master 파일을 찾을 수 없습니다: {master_path}")
+        try:
+            with master_path.open("r+b"):
+                pass
+        except PermissionError as exc:
+            raise MasterFileLockedError(f"Master 엑셀 파일에 저장할 수 없습니다. 열려 있는 엑셀 창을 닫아 주세요. 파일: {master_path}") from exc
+
+    def _archive_files(self, paths: list[Path]) -> dict[Path, Path]:
+        archived: dict[Path, Path] = {}
+        stamp = datetime.now().strftime("%Y%m%d")
+        for path in paths:
+            m = infer_manufacturer(path.name) or "UNKNOWN"
+            target_dir = self.archive_dir / m / stamp
+            target_dir.mkdir(parents=True, exist_ok=True)
+            target = target_dir / path.name
+            if target.exists():
+                target = target_dir / f"{path.stem}_{path.stat().st_mtime_ns}{path.suffix}"
+            shutil.move(str(path), target)
+            archived[path] = target
+        return archived
+
+    def _write_manifest(self, selected: list[Path], archived_paths: dict[Path, Path], parsed_by_file: dict[Path, list[PartRecord]], new_by_m: dict[str, list[PartRecord]], price_changes: list[dict]) -> Path:
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = self.log_dir / f"processed_manifest_{stamp}.csv"
+        new_by_file: dict[str, int] = {}
+        for records in new_by_m.values():
+            for record in records:
+                new_by_file[record.source_file] = new_by_file.get(record.source_file, 0) + 1
+        price_by_req: dict[str, int] = {}
+        for change in price_changes:
+            req = str(change.get("ir_no", "")); price_by_req[req] = price_by_req.get(req, 0) + 1
+        with path.open("w", newline="", encoding="utf-8-sig") as fp:
+            writer = csv.DictWriter(fp, fieldnames=["manufacturer", "filename", "request_no", "revision_rank", "parsed_rows", "new_raw_rows", "price_changes_by_request", "archived_to", "status"])
+            writer.writeheader()
+            for source in selected:
+                records = parsed_by_file.get(source, [])
+                req = infer_ir_no(source); m = infer_manufacturer(source.name) or "UNKNOWN"
+                writer.writerow({"manufacturer": m, "filename": source.name, "request_no": req, "revision_rank": revision_rank(source), "parsed_rows": len(records), "new_raw_rows": new_by_file.get(source.name, 0), "price_changes_by_request": price_by_req.get(req, 0), "archived_to": archived_paths.get(source, ""), "status": "archived" if source in archived_paths else "skipped"})
+        return path
+
+    def _write_log(self, scanned_files: int, selected_files: int, duplicates: int, revisions: int, new_parts: int, updated_rows: int, kr_completed: int, price_changes: int, backup_paths: list[Path], manifest_path: Path, skipped_over_limit: int, by_m: dict[str, ManufacturerResult], unknown_files: list[Path]) -> Path:
+        lines = [
+            f"Update 후보: {scanned_files}", f"처리 파일: {selected_files}", f"제한 초과 보류: {skipped_over_limit}",
+            f"수정본 우선 제외: {revisions}", f"원본상세 신규행: {new_parts}", f"기존 원본상세 보정행: {updated_rows}", f"KR보완: {kr_completed}",
+            f"가격변동: {price_changes}", f"중복 raw row: {duplicates}", f"처리명세: {manifest_path}",
+        ]
+        if backup_paths:
+            lines.append("백업:")
+            lines.extend(f" - {p}" for p in backup_paths)
+        if unknown_files:
+            lines.append("제조사 구분 불가 파일:")
+            lines.extend(f" - {p.name}" for p in unknown_files)
+        for m, res in by_m.items():
+            lines.append(f"[{m}] 파일 {res.selected_files} / 신규 {res.new_parts} / 보정 {res.updated_rows} / 가격변동 {res.price_changes} / 중복 {res.duplicates} / 상태 {res.status}")
+            lines.extend(f"  오류: {e}" for e in res.errors)
+        return self.logger.write_summary(lines)

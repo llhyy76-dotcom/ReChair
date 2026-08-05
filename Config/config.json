@@ -1,0 +1,24 @@
+{
+  "manufacturer_root": "Manufacturers",
+  "manufacturers": [
+    "IR",
+    "XC",
+    "AC",
+    "KA",
+    "NC"
+  ],
+  "update": "Update",
+  "archive": "Archive",
+  "backup": "Backup",
+  "log": "Log",
+  "database": "database/parts.db",
+  "fuzzy_threshold": 99,
+  "max_files_per_run": 0,
+  "history": "History",
+  "tesseract_path": "",
+  "ocr_language": "eng",
+  "ocr_timeout_seconds": 45,
+  "purchase_output": "Purchase_Analysis",
+  "app_name": "CPMS",
+  "app_version": "5.1 Price History Fixed"
+}

@@ -1,0 +1,31 @@
+CPMS v6.0 Header Fingerprint
+
+핵심 원칙
+- 기존 정상 파서는 수정하지 않음
+- 파일명으로 제조사를 알 수 없을 때만 내용 기반 보조 판정
+- 제조사 신뢰도 90% 이상 + 양식 신뢰도 90% 이상일 때만 자동 분류
+- 혼합 모델이나 애매한 파일은 UNKNOWN 유지
+
+새 양식 분류
+LEGACY-A: QTY 없이 PRICE만 회신
+LEGACY-B: PART NAME + QTY + PRICE
+LEGACY-C: QTY 없음 + IMAGE1/IMAGE2 + PRICE
+QUANTITY-ONLY: 부품·수량은 있으나 단가 없음
+UNKNOWN: 자동 반영 금지
+
+CMC-K1000.xlsx 예상
+- 제조사: KA
+- 제조사 신뢰도: 96%
+- 양식: LEGACY-C
+- 양식 신뢰도: 98%
+- 추출: 2행
+- 단가: 6.50 / 27.90 USD
+- 수량: 공란
+- 처리: KA Master 가격이력 반영
+
+안전장치
+- 파일명 제조사 판정이 있으면 기존 판정을 우선
+- 내용 기반 판정은 파일명이 UNKNOWN일 때만 사용
+- 모델군이 여러 제조사로 섞이면 자동 분류 금지
+- 실제 행 추출이 되지 않으면 자동 반영 금지
+- 기존 Parser와 Master 병합 규칙은 그대로 유지

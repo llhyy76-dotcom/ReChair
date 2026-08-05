@@ -1,0 +1,38 @@
+CPMS v5.4.2 History Stable
+
+확인된 실제 원인
+- 기존 History Repository가 openpyxl read_only 모드에서 ws.cell(row, column)을 반복 호출했습니다.
+- ReadOnlyWorksheet의 ws.cell()은 매번 시트 XML을 처음부터 다시 읽기 때문에,
+  변경이력 4,444건을 처리할 때 사실상 O(n²) 방식으로 느려졌습니다.
+- 그 결과 History Explorer가 계속 '불러오는 중'에 머물거나 프로그램이 종료될 수 있었습니다.
+
+History_2026.xlsx 검증 기준
+- 실행이력 8건
+- 변경이력 4,444건
+- 가격이력 133건
+- Explorer 조회 대상 4,577건
+
+주요 수정
+1. History Excel을 iter_rows(values_only=True) 방식으로 한 번만 순차 읽도록 변경
+2. v5.4.1의 QThread History 로딩 구조 제거
+3. History 창을 먼저 표시한 뒤 QTimer로 안전하게 로딩
+4. 초기 화면은 최근 200건만 출력
+5. 검색 결과는 최대 1,000건만 화면에 출력
+6. 검색과 집계는 전체 4,577건을 기준으로 수행
+7. History 창을 비모달 방식으로 열어 메인 Parts Manager와 분리
+8. History 오류가 발생해도 Parts Manager 전체가 종료되지 않도록 예외 처리
+9. 오류 발생 시 Log/history_explorer_error.log 기록
+10. 중복 History 창 생성 방지
+
+적용
+- 기존 CPMS 폴더를 백업합니다.
+- 압축 파일 내용을 기존 CPMS 폴더에 덮어씁니다.
+- 기존 dist 폴더를 삭제합니다.
+- CPMS_실행.bat를 실행해 새 EXE를 빌드합니다.
+
+확인 순서
+1. Parts Manager 실행
+2. History 조회 클릭
+3. 최근 200건이 표시되는지 확인
+4. XC, IR, 모델명 또는 요청번호 검색
+5. History 창을 닫은 뒤 Parts Manager가 계속 실행되는지 확인

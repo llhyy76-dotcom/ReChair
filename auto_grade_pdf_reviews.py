@@ -1,0 +1,16 @@
+from core.pdf_auto_approval import run_pdf_auto_grading
+r=run_pdf_auto_grading(".")
+print("="*65)
+print("PDF Auto Grading and Approval Result")
+print("="*65)
+print("Scanned       :",r.scanned_files)
+print("Auto approved :",r.auto_approved_files)
+print("Recommended   :",r.recommended_files)
+print("Manual review :",r.manual_review_files)
+print("Errors        :",r.failed_files)
+print("Decision log  :",r.decision_log)
+print("Approval log  :",r.approval_log or "")
+for d in r.decisions:
+    print(f"[Grade {d.grade} / {d.decision}] {d.review_file.name}")
+    print(" Score:",d.score)
+    print(" ",d.reason)
