@@ -1,11 +1,13 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
+import {requireAdmin} from '@/lib/adminAuth';
 
 export async function PATCH(
   req:NextRequest,
   {params}:{params:Promise<{id:string}>}
 ){
   try{
+    await requireAdmin();
     const {id}=await params;
     const b=await req.json();
 

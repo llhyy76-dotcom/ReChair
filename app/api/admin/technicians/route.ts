@@ -1,8 +1,10 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
+import {requireAdmin} from '@/lib/adminAuth';
 
 export async function GET(){
   try{
+    await requireAdmin();
     const {data,error}=await getSupabaseServer()
       .from('technicians')
       .select('*')
@@ -18,6 +20,7 @@ export async function GET(){
 
 export async function POST(req:NextRequest){
   try{
+    await requireAdmin();
     const b=await req.json();
     if(!String(b.name||'').trim()){
       return NextResponse.json({error:'기사명 또는 팀명이 필요합니다.'},{status:400});
