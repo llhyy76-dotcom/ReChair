@@ -106,7 +106,7 @@ export default function AdminTechnicianManager(){
       </div>
       <nav>
         <a href="/admin/dashboard">대시보드</a>
-        <a href="/admin/schedule">AS 캘린더</a>
+        <a href="/admin/schedule">AS 캘린더</a><a href="/admin/technician-availability">근무·휴무</a>
         <a href="/admin/consultations">상담 CRM</a>
       </nav>
     </header>

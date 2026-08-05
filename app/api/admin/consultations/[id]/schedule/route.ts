@@ -1,7 +1,7 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
 import {requireAdmin} from '@/lib/adminAuth';
-import {kstDayRange,overlaps} from '@/lib/dispatchRecommendation';
+import {availabilityCheck,kstDayRange,overlaps} from '@/lib/dispatchRecommendation';
 
 export async function POST(
   req:NextRequest,
@@ -96,6 +96,29 @@ export async function POST(
         day:'2-digit',
       }).format(requestedStart);
       const {start,end}=kstDayRange(dateText);
+
+      const {data:availability,error:availabilityError}=await supabase
+        .from('technician_availability')
+        .select('technician_id,availability_type,start_time,end_time,note')
+        .eq('technician_id',technician.id)
+        .eq('work_date',dateText)
+        .maybeSingle();
+
+      if(availabilityError)throw availabilityError;
+
+      const availabilityResult=availabilityCheck({
+        technician,
+        availability,
+        requestedStart,
+        requestedDuration:durationMinutes,
+      });
+
+      if(!availabilityResult.available){
+        return NextResponse.json(
+          {error:`선택한 기사는 배정할 수 없습니다. ${availabilityResult.reason}`},
+          {status:409}
+        );
+      }
 
       const {data:existing,error:existingError}=await supabase
         .from('service_schedules')

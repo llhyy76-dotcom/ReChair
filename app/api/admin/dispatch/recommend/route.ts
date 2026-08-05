@@ -45,7 +45,7 @@ export async function GET(req:NextRequest){
     const {start,end}=kstDayRange(dateText);
     const supabase=getSupabaseServer();
 
-    const [technicianResult,scheduleResult]=await Promise.all([
+    const [technicianResult,scheduleResult,availabilityResult]=await Promise.all([
       supabase
         .from('technicians')
         .select('*')
@@ -65,10 +65,15 @@ export async function GET(req:NextRequest){
         .gte('scheduled_at',start)
         .lt('scheduled_at',end)
         .neq('status','취소'),
+      supabase
+        .from('technician_availability')
+        .select('technician_id,availability_type,start_time,end_time,note')
+        .eq('work_date',dateText),
     ]);
 
     if(technicianResult.error)throw technicianResult.error;
     if(scheduleResult.error)throw scheduleResult.error;
+    if(availabilityResult.error)throw availabilityResult.error;
 
     const candidates=(technicianResult.data||[])
       .map(technician=>scoreTechnician({
@@ -78,6 +83,9 @@ export async function GET(req:NextRequest){
         requestedDuration:durationMinutes,
         region,
         address,
+        availability:(availabilityResult.data||[]).find(
+          (row:any)=>row.technician_id===technician.id
+        )||null,
       }))
       .sort((a,b)=>{
         if(a.eligible!==b.eligible)return a.eligible?-1:1;

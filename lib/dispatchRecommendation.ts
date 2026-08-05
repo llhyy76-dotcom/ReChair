@@ -8,6 +8,14 @@ export type TechnicianRow={
   memo?:string|null;
 };
 
+export type AvailabilityRow={
+  technician_id:string;
+  availability_type?:string|null;
+  start_time?:string|null;
+  end_time?:string|null;
+  note?:string|null;
+};
+
 export type ScheduleRow={
   id?:string;
   assignee?:string|null;
@@ -126,6 +134,52 @@ export function minutesGap(
   return 0;
 }
 
+
+export function availabilityCheck({
+  technician,
+  availability,
+  requestedStart,
+  requestedDuration,
+}:{
+  technician:TechnicianRow;
+  availability?:AvailabilityRow|null;
+  requestedStart:Date;
+  requestedDuration:number;
+}){
+  if(!availability){
+    return {available:true,label:'기본 근무',reason:'별도 휴무 설정 없음'};
+  }
+
+  const type=String(availability.availability_type||'근무');
+  if(type!=='근무'){
+    return {
+      available:false,
+      label:type,
+      reason:availability.note?`${type} · ${availability.note}`:type,
+    };
+  }
+
+  if(!availability.start_time||!availability.end_time){
+    return {available:true,label:'근무',reason:'시간 제한 없음'};
+  }
+
+  const dateText=new Intl.DateTimeFormat('en-CA',{
+    timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',
+  }).format(requestedStart);
+  const start=new Date(`${dateText}T${availability.start_time.slice(0,5)}:00+09:00`);
+  const end=new Date(`${dateText}T${availability.end_time.slice(0,5)}:00+09:00`);
+  const requestedEnd=new Date(requestedStart.getTime()+requestedDuration*60*1000);
+  const available=requestedStart>=start&&requestedEnd<=end;
+
+  return {
+    available,
+    label:'근무',
+    reason:available
+      ?`근무시간 ${availability.start_time.slice(0,5)}~${availability.end_time.slice(0,5)}`
+      :`근무시간 외 (${availability.start_time.slice(0,5)}~${availability.end_time.slice(0,5)})`,
+  };
+}
+
 export function scoreTechnician({
   technician,
   schedules,
@@ -133,6 +187,7 @@ export function scoreTechnician({
   requestedDuration,
   region,
   address,
+  availability,
 }:{
   technician:TechnicianRow;
   schedules:ScheduleRow[];
@@ -140,6 +195,7 @@ export function scoreTechnician({
   requestedDuration:number;
   region?:string|null;
   address?:string|null;
+  availability?:AvailabilityRow|null;
 }){
   const own=schedules.filter(row=>
     row.assignee===technician.name&&row.status!=='취소'
@@ -152,6 +208,7 @@ export function scoreTechnician({
   const nearestGap=gaps.length?Math.min(...gaps):null;
   const matchScore=regionMatchScore(technician,region,address);
   const overloaded=todayCount>=capacity;
+  const availabilityResult=availabilityCheck({technician,availability,requestedStart,requestedDuration});
 
   let score=0;
   score+=matchScore;
@@ -165,6 +222,7 @@ export function scoreTechnician({
   }
   if(overloaded)score-=80;
   if(conflict)score-=1000;
+  if(!availabilityResult.available)score-=1200;
 
   const reasons:string[]=[];
   if(matchScore>=80)reasons.push('담당지역 강하게 일치');
@@ -172,6 +230,7 @@ export function scoreTechnician({
   else reasons.push('담당지역 직접 일치 없음');
   reasons.push(`당일 ${todayCount}/${capacity}건`);
   reasons.push(conflict?'시간 충돌 있음':'시간 충돌 없음');
+  reasons.push(availabilityResult.reason);
   if(nearestGap!==null&&!conflict)reasons.push(`인접 일정과 최소 ${nearestGap}분 간격`);
 
   return {
@@ -184,8 +243,10 @@ export function scoreTechnician({
     has_conflict:conflict,
     is_over_capacity:overloaded,
     nearest_gap_minutes:nearestGap,
+    availability_type:availabilityResult.label,
+    is_available:availabilityResult.available,
     score,
     reasons,
-    eligible:!conflict&&!overloaded,
+    eligible:!conflict&&!overloaded&&availabilityResult.available,
   };
 }

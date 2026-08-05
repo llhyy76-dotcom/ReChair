@@ -16,6 +16,8 @@ type Candidate={
   eligible:boolean;
   score:number;
   reasons:string[];
+  availability_type?:string|null;
+  is_available?:boolean;
 };
 
 function defaultScheduledAt(){
