@@ -58,6 +58,28 @@ const time=(value?:string|null)=>{
   });
 };
 
+const shiftDate=(value:string,days:number)=>{
+  const base=new Date(`${value}T12:00:00+09:00`);
+  base.setDate(base.getDate()+days);
+  return iso(base);
+};
+
+function scheduleTiming(item:Assignment,nowMs:number){
+  const start=new Date(item.scheduled_at).getTime();
+  const end=start+(item.duration_minutes||60)*60*1000;
+  const minutes=Math.round((start-nowMs)/60000);
+
+  if(item.status==='완료') return {label:'현장 처리 완료',tone:'done'};
+  if(['이동중','방문중','작업중'].includes(item.status)){
+    const elapsed=Math.max(0,Math.round((nowMs-start)/60000));
+    return {label:`진행 ${elapsed}분`,tone:'active'};
+  }
+  if(nowMs>end) return {label:`${Math.max(1,Math.round((nowMs-start)/60000))}분 지연`,tone:'late'};
+  if(minutes<=30&&minutes>=0) return {label:`${minutes}분 후 방문`,tone:'soon'};
+  if(minutes>30) return {label:`${Math.floor(minutes/60)>0?`${Math.floor(minutes/60)}시간 `:''}${minutes%60}분 후`,tone:'upcoming'};
+  return {label:'방문시간 도래',tone:'soon'};
+}
+
 const STATUS_ORDER=['배정대기','배정완료','이동중','방문중','작업중','완료'];
 
 function approvalState(item:Assignment){
@@ -108,6 +130,9 @@ export default function TechnicianMobileApp(){
   const [loading,setLoading]=useState(false);
   const [workingId,setWorkingId]=useState<string|null>(null);
   const [reportScheduleId,setReportScheduleId]=useState<string|null>(null);
+  const [isOnline,setIsOnline]=useState(true);
+  const [nowMs,setNowMs]=useState(()=>Date.now());
+  const [gpsState,setGpsState]=useState<'unknown'|'granted'|'denied'|'unsupported'>('unknown');
 
   async function checkSession(){
     try{
@@ -175,6 +200,31 @@ export default function TechnicianMobileApp(){
     if(technician?.name) loadAssignments();
   },[date,technician?.name]);
 
+  useEffect(()=>{
+    setIsOnline(navigator.onLine);
+    const online=()=>setIsOnline(true);
+    const offline=()=>setIsOnline(false);
+    window.addEventListener('online',online);
+    window.addEventListener('offline',offline);
+
+    const timer=window.setInterval(()=>setNowMs(Date.now()),60_000);
+
+    if(!navigator.geolocation){
+      setGpsState('unsupported');
+    }else if('permissions' in navigator){
+      navigator.permissions.query({name:'geolocation'}).then(result=>{
+        setGpsState(result.state as 'granted'|'denied'|'unknown');
+        result.onchange=()=>setGpsState(result.state as 'granted'|'denied'|'unknown');
+      }).catch(()=>setGpsState('unknown'));
+    }
+
+    return ()=>{
+      window.removeEventListener('online',online);
+      window.removeEventListener('offline',offline);
+      window.clearInterval(timer);
+    };
+  },[]);
+
   const summary=useMemo(()=>({
     total:items.length,
     waiting:items.filter(item=>['배정대기','배정완료'].includes(item.status)).length,
@@ -204,19 +254,22 @@ export default function TechnicianMobileApp(){
   function getLocation():Promise<LocationPayload>{
     return new Promise(resolve=>{
       if(!navigator.geolocation){
+        setGpsState('unsupported');
         resolve({latitude:null,longitude:null,accuracy:null});
         return;
       }
 
       navigator.geolocation.getCurrentPosition(
         position=>{
+          setGpsState('granted');
           resolve({
             latitude:position.coords.latitude,
             longitude:position.coords.longitude,
             accuracy:position.coords.accuracy,
           });
         },
-        ()=>{
+        error=>{
+          if(error.code===error.PERMISSION_DENIED) setGpsState('denied');
           resolve({latitude:null,longitude:null,accuracy:null});
         },
         {
@@ -312,6 +365,12 @@ export default function TechnicianMobileApp(){
             <span className={styles.eyebrow}>RECHAIR FIELD</span>
             <h1>{technician?.name||'기사'}님, 오늘도 안전하게</h1>
             <p>{technician?.team_name||technician?.region||'현장 서비스팀'} 일정입니다.</p>
+            <div className={styles.connectionRow}>
+              <span data-ok={isOnline}>{isOnline?'온라인':'오프라인'}</span>
+              <span data-ok={gpsState==='granted'}>
+                {gpsState==='granted'?'GPS 허용':gpsState==='denied'?'GPS 차단':gpsState==='unsupported'?'GPS 미지원':'GPS 확인 중'}
+              </span>
+            </div>
           </div>
 
           <button className={styles.logout} type="button" onClick={logout}>
@@ -320,24 +379,36 @@ export default function TechnicianMobileApp(){
         </header>
 
         <section className={styles.toolbar}>
-          <label>
-            <span>업무일</span>
-            <input
-              type="date"
-              value={date}
-              onChange={event=>setDate(event.target.value)}
-            />
-          </label>
-
-          <button
-            className={styles.refresh}
-            type="button"
-            onClick={loadAssignments}
-            disabled={loading}
-          >
-            {loading?'불러오는 중':'새로고침'}
-          </button>
+          <div className={styles.dateNavigator}>
+            <button type="button" onClick={()=>setDate(shiftDate(date,-1))} aria-label="이전 날짜">‹</button>
+            <label>
+              <span>업무일</span>
+              <input
+                type="date"
+                value={date}
+                onChange={event=>setDate(event.target.value)}
+              />
+            </label>
+            <button type="button" onClick={()=>setDate(shiftDate(date,1))} aria-label="다음 날짜">›</button>
+          </div>
+          <div className={styles.toolbarActions}>
+            <button className={styles.todayButton} type="button" onClick={()=>setDate(iso())}>오늘</button>
+            <button
+              className={styles.refresh}
+              type="button"
+              onClick={loadAssignments}
+              disabled={loading||!isOnline}
+            >
+              {loading?'불러오는 중':'새로고침'}
+            </button>
+          </div>
         </section>
+
+        {!isOnline&&(
+          <div className={styles.offlineNotice} role="alert">
+            인터넷 연결이 끊겼습니다. 화면은 유지되지만 상태 저장은 연결 복구 후 진행해 주세요.
+          </div>
+        )}
 
         {message&&(
           <div className={styles.notice} role="status">
@@ -374,9 +445,14 @@ export default function TechnicianMobileApp(){
                 <span className={styles.heroLabel}>다음 방문</span>
                 <h2>{nextItem.customer_name} 고객</h2>
               </div>
-              <span className={styles.status} data-status={displayStatus(nextItem)}>
-                {statusLabel(nextItem)}
-              </span>
+              <div className={styles.heroBadges}>
+                <span className={styles.timing} data-tone={scheduleTiming(nextItem,nowMs).tone}>
+                  {scheduleTiming(nextItem,nowMs).label}
+                </span>
+                <span className={styles.status} data-status={displayStatus(nextItem)}>
+                  {statusLabel(nextItem)}
+                </span>
+              </div>
             </div>
 
             <div className={styles.heroMeta}>
@@ -419,7 +495,7 @@ export default function TechnicianMobileApp(){
               <button
                 className={styles.primaryAction}
                 type="button"
-                disabled={workingId===nextItem.id}
+                disabled={workingId===nextItem.id||!isOnline}
                 onClick={()=>runPrimaryAction(nextItem)}
               >
                 {workingId===nextItem.id?'처리 중…':nextActionLabel(nextItem)}
@@ -474,9 +550,14 @@ export default function TechnicianMobileApp(){
                           <span className={styles.time}>{time(item.scheduled_at)}</span>
                           <h3>{item.customer_name}</h3>
                         </div>
-                        <span className={styles.status} data-status={displayStatus(item)}>
-                          {statusLabel(item)}
-                        </span>
+                        <div className={styles.cardBadges}>
+                          <span className={styles.timing} data-tone={scheduleTiming(item,nowMs).tone}>
+                            {scheduleTiming(item,nowMs).label}
+                          </span>
+                          <span className={styles.status} data-status={displayStatus(item)}>
+                            {statusLabel(item)}
+                          </span>
+                        </div>
                       </div>
 
                       <p className={styles.service}>
@@ -525,7 +606,7 @@ export default function TechnicianMobileApp(){
                         </a>
                         <button
                           type="button"
-                          disabled={workingId===item.id}
+                          disabled={workingId===item.id||!isOnline}
                           onClick={()=>runPrimaryAction(item)}
                         >
                           {workingId===item.id?'처리 중…':nextActionLabel(item)}
