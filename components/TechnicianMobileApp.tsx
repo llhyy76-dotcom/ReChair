@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import TechnicianFieldReport from '@/components/TechnicianFieldReport';
 import styles from './TechnicianMobileApp.module.css';
@@ -133,6 +133,10 @@ export default function TechnicianMobileApp(){
   const [isOnline,setIsOnline]=useState(true);
   const [nowMs,setNowMs]=useState(()=>Date.now());
   const [gpsState,setGpsState]=useState<'unknown'|'granted'|'denied'|'unsupported'>('unknown');
+  const [locationSharing,setLocationSharing]=useState(false);
+  const [lastLocationAt,setLastLocationAt]=useState<string|null>(null);
+  const watchIdRef=useRef<number|null>(null);
+  const lastSentRef=useRef(0);
 
   async function checkSession(){
     try{
@@ -225,6 +229,17 @@ export default function TechnicianMobileApp(){
     };
   },[]);
 
+  useEffect(()=>{
+    if(checking||!technician)return;
+    if(localStorage.getItem('rechair_location_sharing')==='1')startLocationSharing();
+    return()=>{
+      if(watchIdRef.current!==null&&navigator.geolocation){
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current=null;
+      }
+    };
+  },[checking,technician?.id]);
+
   const summary=useMemo(()=>({
     total:items.length,
     waiting:items.filter(item=>['배정대기','배정완료'].includes(item.status)).length,
@@ -242,8 +257,68 @@ export default function TechnicianMobileApp(){
 
   const progress=summary.total===0?0:Math.round((summary.approved/summary.total)*100);
 
+  async function stopLocationSharing(silent=false){
+    if(watchIdRef.current!==null&&navigator.geolocation){
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current=null;
+    }
+    setLocationSharing(false);
+    localStorage.removeItem('rechair_location_sharing');
+    try{await fetch('/api/technician/location',{method:'DELETE'})}catch{}
+    if(!silent)setMessage('위치 공유를 종료했습니다.');
+  }
+
+  async function sendLiveLocation(position:GeolocationPosition){
+    const now=Date.now();
+    if(now-lastSentRef.current<25_000)return;
+    lastSentRef.current=now;
+    const response=await fetch('/api/technician/location',{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        latitude:position.coords.latitude,
+        longitude:position.coords.longitude,
+        accuracy:position.coords.accuracy,
+        heading:position.coords.heading,
+        speed:position.coords.speed,
+        captured_at:new Date(position.timestamp).toISOString(),
+      }),
+    });
+    if(!response.ok){
+      const result=await response.json().catch(()=>({}));
+      throw new Error(result.error||'위치 전송 오류');
+    }
+    setGpsState('granted');
+    setLastLocationAt(new Date().toISOString());
+  }
+
+  function startLocationSharing(){
+    if(!navigator.geolocation){
+      setGpsState('unsupported');
+      setMessage('이 기기는 GPS 위치공유를 지원하지 않습니다.');
+      return;
+    }
+    setMessage('위치 권한을 확인하고 있습니다.');
+    const id=navigator.geolocation.watchPosition(
+      position=>{
+        setLocationSharing(true);
+        localStorage.setItem('rechair_location_sharing','1');
+        sendLiveLocation(position).then(()=>setMessage('관리자 관제센터에 위치를 공유하고 있습니다.')).catch(error=>setMessage(error.message));
+      },
+      error=>{
+        if(error.code===error.PERMISSION_DENIED)setGpsState('denied');
+        setLocationSharing(false);
+        localStorage.removeItem('rechair_location_sharing');
+        setMessage('위치 권한을 허용해야 위치공유를 시작할 수 있습니다.');
+      },
+      {enableHighAccuracy:true,timeout:15000,maximumAge:20000}
+    );
+    watchIdRef.current=id;
+  }
+
   async function logout(){
     try{
+      if(locationSharing)await stopLocationSharing(true);
       await fetch('/api/technician/auth/logout',{method:'POST'});
     }finally{
       router.replace('/technician/login');
@@ -370,6 +445,18 @@ export default function TechnicianMobileApp(){
               <span data-ok={gpsState==='granted'}>
                 {gpsState==='granted'?'GPS 허용':gpsState==='denied'?'GPS 차단':gpsState==='unsupported'?'GPS 미지원':'GPS 확인 중'}
               </span>
+              <span data-ok={locationSharing}>{locationSharing?'위치 공유 중':'위치 미공유'}</span>
+            </div>
+            <div className={styles.locationShareRow}>
+              <button
+                type="button"
+                onClick={locationSharing?()=>stopLocationSharing():startLocationSharing}
+                disabled={!isOnline}
+                data-active={locationSharing}
+              >
+                {locationSharing?'위치 공유 종료':'위치 공유 시작'}
+              </button>
+              <small>{lastLocationAt?`마지막 전송 ${new Date(lastLocationAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`:'기사가 직접 시작한 경우에만 관리자에게 표시됩니다.'}</small>
             </div>
           </div>
 
