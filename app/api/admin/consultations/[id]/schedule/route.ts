@@ -32,6 +32,15 @@ export async function POST(
       15,
       Math.min(480,Number(body.duration_minutes||60))
     );
+    const requestedRegion=String(body.region||'').trim();
+    const requestedAddress=String(body.address||'').trim();
+
+    if(!requestedRegion||!requestedAddress){
+      return NextResponse.json(
+        {error:'정확한 자동배정을 위해 지역과 주소를 모두 입력해 주세요.'},
+        {status:400}
+      );
+    }
     const assignee=String(body.assignee||'').trim()||null;
     const supabase=getSupabaseServer();
 
@@ -45,6 +54,24 @@ export async function POST(
       return NextResponse.json(
         {error:'배정할 상담을 찾을 수 없습니다.'},
         {status:404}
+      );
+    }
+
+    const {data:duplicateSchedule,error:duplicateError}=await supabase
+      .from('service_schedules')
+      .select('id,status,scheduled_at')
+      .eq('consultation_id',id)
+      .neq('status','취소')
+      .maybeSingle();
+
+    if(duplicateError)throw duplicateError;
+    if(duplicateSchedule){
+      return NextResponse.json(
+        {
+          error:'이미 생성된 일정이 있습니다. AS 캘린더에서 기존 일정을 확인해 주세요.',
+          schedule_id:duplicateSchedule.id,
+        },
+        {status:409}
       );
     }
 
@@ -110,10 +137,10 @@ export async function POST(
         consultation.customer_name??consultation.name??'이름 없음',
       phone:consultation.phone??null,
       region:
-        String(body.region||consultation.region||'').trim()||null,
+        requestedRegion||String(consultation.region||'').trim()||null,
       address:
         String(
-          body.address||
+          requestedAddress||
           consultation.address||
           body.region||
           consultation.region||
@@ -142,7 +169,7 @@ export async function POST(
       .from('consultations')
       .update({
         region:
-          String(body.region||consultation.region||'').trim()||null,
+          requestedRegion||String(consultation.region||'').trim()||null,
         address:
           String(
             body.address||

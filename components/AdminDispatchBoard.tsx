@@ -52,7 +52,7 @@ export default function AdminDispatchBoard(){
     setWaiting(j.data?.waiting_consultations||[]);
   }
 
-  useEffect(()=>{void load()},[]);
+  useEffect(()=>{void load()},[scheduledAt]);
 
   const summary=useMemo(()=>({
     waiting:waiting.length,
@@ -75,6 +75,8 @@ export default function AdminDispatchBoard(){
   async function calculateRecommend(){
     if(!selected)return;
     if(!scheduledAt){setMessage('방문 일시를 입력해 주세요.');return;}
+    if(!regionInput.trim()){setMessage('정확한 자동배정을 위해 지역을 입력해 주세요.');return;}
+    if(!addressInput.trim()){setMessage('정확한 자동배정을 위해 주소를 입력해 주세요.');return;}
 
     try{
       setLoadingRecommend(true);
@@ -101,6 +103,10 @@ export default function AdminDispatchBoard(){
   async function assign(){
     if(!selected||!selectedCandidate?.name)return;
     if(!scheduledAt){setMessage('방문 일시를 입력해 주세요.');return;}
+    if(!regionInput.trim()||!addressInput.trim()){
+      setMessage('지역과 주소를 입력한 뒤 배정해 주세요.');
+      return;
+    }
 
     try{
       setAssigning(true);
@@ -135,7 +141,7 @@ export default function AdminDispatchBoard(){
     <header>
       <div>
         <p>RECHAIR ADMIN</p>
-        <h1>스마트 자동배정</h1>
+        <div className="dispatch-title-row"><h1>스마트 자동배정</h1><b className="dispatch-version">정확도 개선 v3</b></div>
         <span>담당지역·업무량·일정 충돌을 함께 계산해 배정 후보를 추천합니다.</span>
       </div>
       <nav>
@@ -264,7 +270,7 @@ export default function AdminDispatchBoard(){
           className="calculate-button"
           type="button"
           onClick={calculateRecommend}
-          disabled={loadingRecommend}
+          disabled={loadingRecommend||!regionInput.trim()||!addressInput.trim()}
         >
           {loadingRecommend?'추천 계산 중…':'기사 추천 계산'}
         </button>
@@ -303,7 +309,7 @@ export default function AdminDispatchBoard(){
           <button className="cancel" onClick={()=>setSelected(null)}>취소</button>
           <button
             onClick={assign}
-            disabled={!selectedCandidate||assigning}
+            disabled={!selectedCandidate||assigning||!regionInput.trim()||!addressInput.trim()}
           >
             {assigning?'배정 중…':selectedCandidate?`${selectedCandidate.name} 기사로 배정`:'기사를 선택하세요'}
           </button>

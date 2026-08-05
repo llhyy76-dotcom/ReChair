@@ -22,9 +22,9 @@ const KST_OFFSET_MS=9*60*60*1000;
 
 const REGION_ALIASES:Record<string,string[]>={
   '서울':['서울','서울시','서울특별시'],
-  '고양':['고양','고양시','덕양','일산동','일산서'],
-  '파주':['파주','파주시'],
-  '김포':['김포','김포시'],
+  '고양':['고양','고양시','덕양','덕양구','일산동','일산동구','일산서','일산서구','화정','행신','삼송'],
+  '파주':['파주','파주시','운정','금촌','문산'],
+  '김포':['김포','김포시','장기','구래','마산'],
   '경기 북부':['고양','파주','김포','의정부','양주','포천','동두천','연천','구리','남양주'],
   '경기 남부':['수원','용인','화성','오산','평택','안성','성남','광주','하남','이천','여주','의왕','군포','안양'],
 };
@@ -84,7 +84,14 @@ export function regionMatchScore(
   const matched=targetTokens.filter(token=>techText.includes(token));
   if(matched.length===0)return 0;
 
-  return Math.min(100,40+matched.length*20);
+  const exactRegion=normalize(technician.region);
+  const exactTeam=normalize(technician.team_name);
+  const targetText=normalize([region,address].filter(Boolean).join(' '));
+  let bonus=0;
+  if(exactRegion&&targetText.includes(exactRegion))bonus+=25;
+  if(exactTeam&&targetText.includes(exactTeam))bonus+=15;
+
+  return Math.min(100,40+matched.length*15+bonus);
 }
 
 export function overlaps(
@@ -160,7 +167,8 @@ export function scoreTechnician({
   if(conflict)score-=1000;
 
   const reasons:string[]=[];
-  if(matchScore>0)reasons.push('담당지역 일치');
+  if(matchScore>=80)reasons.push('담당지역 강하게 일치');
+  else if(matchScore>0)reasons.push('담당지역 일부 일치');
   else reasons.push('담당지역 직접 일치 없음');
   reasons.push(`당일 ${todayCount}/${capacity}건`);
   reasons.push(conflict?'시간 충돌 있음':'시간 충돌 없음');
