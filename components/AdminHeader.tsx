@@ -11,7 +11,6 @@ const menus=[
   {href:'/admin/schedule',label:'AS 캘린더'},
   {href:'/admin/dispatch',label:'자동배정'},
   {href:'/admin/routes',label:'방문동선'},
-  {href:'/admin/control-center',label:'관제센터'},
   {href:'/admin/technicians',label:'기사관리'},
   {href:'/admin/technician-access',label:'접근권한'},
   {href:'/admin/security',label:'보안기록'},
