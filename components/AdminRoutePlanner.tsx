@@ -21,6 +21,11 @@ type RouteItem={
   status:string;
   memo?:string|null;
   route_order:number;
+  departed_at?:string|null;
+  arrived_at?:string|null;
+  work_started_at?:string|null;
+  completed_at?:string|null;
+  report_approval_status?:string|null;
 };
 
 const iso=(d=new Date()) =>
@@ -37,6 +42,21 @@ const areaKey=(row:RouteItem)=>{
 
 const isClosed=(status:string)=>['완료','취소','승인'].includes(status);
 
+const minutesDiff=(later:number,earlier:number)=>Math.floor((later-earlier)/60000);
+
+function routeHealth(row:RouteItem,now:number){
+  if(isClosed(row.status))return {key:'done',label:'완료',detail:'처리 완료'};
+  if(row.work_started_at)return {key:'active',label:'작업중',detail:`작업 ${Math.max(0,minutesDiff(now,new Date(row.work_started_at).getTime()))}분`};
+  if(row.arrived_at)return {key:'active',label:'방문중',detail:`도착 ${Math.max(0,minutesDiff(now,new Date(row.arrived_at).getTime()))}분`};
+  if(row.departed_at)return {key:'moving',label:'이동중',detail:`출발 ${Math.max(0,minutesDiff(now,new Date(row.departed_at).getTime()))}분`};
+
+  const scheduled=new Date(row.scheduled_at).getTime();
+  const delta=minutesDiff(now,scheduled);
+  if(delta>=15)return {key:'late',label:'지연',detail:`${delta}분 지연`};
+  if(delta>=-30)return {key:'risk',label:'임박',detail:delta>=0?'방문시간 경과':`${Math.abs(delta)}분 후`};
+  return {key:'scheduled',label:'예정',detail:`${Math.abs(delta)}분 후`};
+}
+
 export default function AdminRoutePlanner(){
   const [date,setDate]=useState(iso());
   const [technicians,setTechnicians]=useState<Technician[]>([]);
@@ -47,6 +67,9 @@ export default function AdminRoutePlanner(){
   const [adjustTimes,setAdjustTimes]=useState(false);
   const [dayStart,setDayStart]=useState('09:00');
   const [travelBuffer,setTravelBuffer]=useState(30);
+  const [viewFilter,setViewFilter]=useState<'all'|'issues'|'open'>('all');
+  const [autoRefresh,setAutoRefresh]=useState(true);
+  const [now,setNow]=useState(()=>Date.now());
 
   async function loadTechnicians(){
     const r=await fetch('/api/admin/technicians',{cache:'no-store'});
@@ -68,6 +91,15 @@ export default function AdminRoutePlanner(){
 
   useEffect(()=>{loadTechnicians()},[]);
   useEffect(()=>{if(technician)loadRoutes()},[date,technician]);
+  useEffect(()=>{
+    const tick=window.setInterval(()=>setNow(Date.now()),30000);
+    return ()=>window.clearInterval(tick);
+  },[]);
+  useEffect(()=>{
+    if(!autoRefresh||!technician)return;
+    const refresh=window.setInterval(()=>loadRoutes(),60000);
+    return ()=>window.clearInterval(refresh);
+  },[autoRefresh,technician,date]);
 
   const diagnostics=useMemo(()=>{
     const conflicts:string[]=[];
@@ -94,7 +126,17 @@ export default function AdminRoutePlanner(){
     minutes:rows.reduce((s,r)=>s+Number(r.duration_minutes||0),0),
     completed:rows.filter(r=>isClosed(r.status)).length,
     remaining:rows.filter(r=>!isClosed(r.status)).length,
-  }),[rows]);
+    late:rows.filter(r=>routeHealth(r,now).key==='late').length,
+    risk:rows.filter(r=>routeHealth(r,now).key==='risk').length,
+    active:rows.filter(r=>['active','moving'].includes(routeHealth(r,now).key)).length,
+  }),[rows,now]);
+
+  const visibleRows=useMemo(()=>rows.filter(row=>{
+    const health=routeHealth(row,now);
+    if(viewFilter==='issues')return ['late','risk'].includes(health.key);
+    if(viewFilter==='open')return !isClosed(row.status);
+    return true;
+  }),[rows,viewFilter,now]);
 
   function move(index:number,direction:-1|1){
     const target=index+direction;
@@ -227,11 +269,23 @@ export default function AdminRoutePlanner(){
       </label>
     </section>
 
-    <section className="route-summary">
+    <section className="route-summary route-summary-live">
       <article><small>방문 건수</small><strong>{totals.count}건</strong></article>
-      <article><small>예상 작업시간</small><strong>{Math.floor(totals.minutes/60)}시간 {totals.minutes%60}분</strong></article>
+      <article><small>진행 중</small><strong>{totals.active}건</strong></article>
+      <article className={totals.risk?'warning-card':''}><small>방문 임박</small><strong>{totals.risk}건</strong></article>
+      <article className={totals.late?'danger-card':'dark'}><small>일정 지연</small><strong>{totals.late}건</strong></article>
       <article><small>주소 누락</small><strong>{diagnostics.missingAddress}건</strong></article>
-      <article className={diagnostics.conflicts.length?'warning-card':'dark'}><small>시간 충돌</small><strong>{diagnostics.conflicts.length}건</strong></article>
+      <article className={diagnostics.conflicts.length?'warning-card':''}><small>시간 충돌</small><strong>{diagnostics.conflicts.length}건</strong></article>
+    </section>
+
+    <section className="route-monitor">
+      <div className="monitor-filters">
+        <button className={viewFilter==='all'?'active':''} onClick={()=>setViewFilter('all')}>전체</button>
+        <button className={viewFilter==='open'?'active':''} onClick={()=>setViewFilter('open')}>미완료</button>
+        <button className={viewFilter==='issues'?'active':''} onClick={()=>setViewFilter('issues')}>지연·임박</button>
+      </div>
+      <label><input type="checkbox" checked={autoRefresh} onChange={e=>setAutoRefresh(e.target.checked)}/> 1분 자동 갱신</label>
+      <span>기준 시각 {new Date(now).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</span>
     </section>
 
     {(diagnostics.missingAddress>0||diagnostics.conflicts.length>0)&&<section className="route-alerts">
@@ -248,9 +302,9 @@ export default function AdminRoutePlanner(){
         <span>{date} · {diagnostics.areas}개 권역</span>
       </div>
 
-      {rows.length===0?<p className="empty">선택한 날짜에 배정된 일정이 없습니다.</p>:
+      {visibleRows.length===0?<p className="empty">{rows.length?'선택한 조건에 해당하는 일정이 없습니다.':'선택한 날짜에 배정된 일정이 없습니다.'}</p>:
         <div className="route-list">
-          {rows.map((item,index)=><article key={item.id} className={!(item.address||item.region)?'missing-address':''}>
+          {visibleRows.map((item,index)=>{const health=routeHealth(item,now);const rowIndex=rows.findIndex(r=>r.id===item.id);return <article key={item.id} className={`${!(item.address||item.region)?'missing-address ':''}health-${health.key}`.trim()}>
             <div className="order">{index+1}</div>
 
             <div className="visit-info">
@@ -259,26 +313,29 @@ export default function AdminRoutePlanner(){
                 <b>{item.customer_name}</b>
                 <small>{item.status}</small>
                 <small className="area-chip">{areaKey(item)}</small>
+                <small className={`health-chip ${health.key}`}>{health.label}</small>
               </div>
               <span>{item.service_type||'서비스 미입력'} · 예상 {item.duration_minutes||60}분</span>
               <em>{item.address||item.region||'주소 미입력'}</em>
+              <strong className={`health-detail ${health.key}`}>{health.detail}</strong>
               {item.memo&&<p>{item.memo}</p>}
             </div>
 
             <div className="route-actions">
-              <button onClick={()=>move(index,-1)} disabled={index===0}>↑</button>
-              <button onClick={()=>move(index,1)} disabled={index===rows.length-1}>↓</button>
+              <button onClick={()=>move(rowIndex,-1)} disabled={rowIndex===0}>↑</button>
+              <button onClick={()=>move(rowIndex,1)} disabled={rowIndex===rows.length-1}>↓</button>
               <a href={mapUrl(item.address||item.region)} target="_blank">지도</a>
               <a href={'tel:'+(item.phone||'')}>전화</a>
+              <a href={`/admin/schedule?date=${date}`}>캘린더</a>
             </div>
-          </article>)}
+          </article>})}
         </div>
       }
     </section>
 
     <section className="route-guide">
       <h3>운영 방법</h3>
-      <p>‘권장 순서 계산’은 현재 주소의 권역과 기존 방문시간을 기준으로 가까운 지역끼리 묶습니다. 실제 도로 이동시간 API는 다음 지도 연동 단계에서 추가합니다.</p>
+      <p>‘권장 순서 계산’은 주소 권역과 기존 방문시간을 기준으로 가까운 지역끼리 묶습니다. 지연은 예정시간 15분 경과 후에도 출발·도착·작업 기록이 없는 일정이며, 임박은 방문 30분 전부터 표시됩니다.</p>
     </section>
   </div>
 }
