@@ -1,8 +1,11 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
+import {requireAdmin} from '@/lib/adminAuth';
 
 export async function GET(req:NextRequest){
   try{
+    await requireAdmin();
+
     const u=new URL(req.url);
     const date=u.searchParams.get('date');
     const assignee=u.searchParams.get('assignee');
@@ -33,6 +36,9 @@ export async function GET(req:NextRequest){
       }))
     });
   }catch(e:any){
+    if(e?.message==='ADMIN_UNAUTHORIZED'){
+      return NextResponse.json({error:'관리자 로그인이 필요합니다.'},{status:401});
+    }
     return NextResponse.json({error:e?.message||'동선 조회 오류'},{status:500});
   }
 }

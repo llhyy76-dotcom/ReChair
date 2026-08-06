@@ -29,6 +29,14 @@ const iso=(d=new Date()) =>
 const fmtTime=(value:string) =>
   new Date(value).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
 
+const areaKey=(row:RouteItem)=>{
+  const text=`${row.region||''} ${row.address||''}`.replace(/\s+/g,' ').trim();
+  const tokens=['강남','서초','송파','강동','마포','은평','고양','덕양','일산','파주','김포','부천','광명','안양','군포','의왕','수원','용인','화성','평택','광주','성남','하남','남양주','의정부','양주','포천'];
+  return tokens.find(token=>text.includes(token))||text.split(' ').slice(0,2).join(' ')||'미입력';
+};
+
+const isClosed=(status:string)=>['완료','취소','승인'].includes(status);
+
 export default function AdminRoutePlanner(){
   const [date,setDate]=useState(iso());
   const [technicians,setTechnicians]=useState<Technician[]>([]);
@@ -36,6 +44,9 @@ export default function AdminRoutePlanner(){
   const [rows,setRows]=useState<RouteItem[]>([]);
   const [message,setMessage]=useState('');
   const [saving,setSaving]=useState(false);
+  const [adjustTimes,setAdjustTimes]=useState(false);
+  const [dayStart,setDayStart]=useState('09:00');
+  const [travelBuffer,setTravelBuffer]=useState(30);
 
   async function loadTechnicians(){
     const r=await fetch('/api/admin/technicians',{cache:'no-store'});
@@ -58,11 +69,31 @@ export default function AdminRoutePlanner(){
   useEffect(()=>{loadTechnicians()},[]);
   useEffect(()=>{if(technician)loadRoutes()},[date,technician]);
 
+  const diagnostics=useMemo(()=>{
+    const conflicts:string[]=[];
+    const sorted=[...rows].sort((a,b)=>new Date(a.scheduled_at).getTime()-new Date(b.scheduled_at).getTime());
+    for(let i=0;i<sorted.length-1;i++){
+      const current=sorted[i];
+      const next=sorted[i+1];
+      const end=new Date(current.scheduled_at).getTime()+Number(current.duration_minutes||60)*60000;
+      const nextStart=new Date(next.scheduled_at).getTime();
+      if(end>nextStart){
+        conflicts.push(`${current.customer_name} → ${next.customer_name}`);
+      }
+    }
+    return {
+      missingAddress:rows.filter(r=>!(r.address||r.region)).length,
+      conflicts,
+      open:rows.filter(r=>!isClosed(r.status)).length,
+      areas:new Set(rows.map(areaKey)).size,
+    };
+  },[rows]);
+
   const totals=useMemo(()=>({
     count:rows.length,
     minutes:rows.reduce((s,r)=>s+Number(r.duration_minutes||0),0),
-    completed:rows.filter(r=>r.status==='완료').length,
-    remaining:rows.filter(r=>r.status!=='완료'&&r.status!=='취소').length,
+    completed:rows.filter(r=>isClosed(r.status)).length,
+    remaining:rows.filter(r=>!isClosed(r.status)).length,
   }),[rows]);
 
   function move(index:number,direction:-1|1){
@@ -74,18 +105,47 @@ export default function AdminRoutePlanner(){
     setRows(copy.map((r,i)=>({...r,route_order:i+1})));
   }
 
+  function recommendOrder(){
+    const completed=rows.filter(r=>isClosed(r.status));
+    const open=rows.filter(r=>!isClosed(r.status));
+
+    open.sort((a,b)=>{
+      const areaCompare=areaKey(a).localeCompare(areaKey(b),'ko');
+      if(areaCompare!==0)return areaCompare;
+      return new Date(a.scheduled_at).getTime()-new Date(b.scheduled_at).getTime();
+    });
+
+    const next=[...completed,...open].map((r,i)=>({...r,route_order:i+1}));
+    setRows(next);
+    setMessage('주소 권역과 기존 방문시간을 기준으로 권장 순서를 계산했습니다. 저장 전 순서를 확인하세요.');
+  }
+
+  function buildSchedulePayload(){
+    if(!adjustTimes)return rows.map((r,i)=>({id:r.id,route_order:i+1}));
+
+    const [hour,minute]=dayStart.split(':').map(Number);
+    const cursor=new Date(`${date}T00:00:00`);
+    cursor.setHours(hour,minute,0,0);
+
+    return rows.map((r,i)=>{
+      const scheduled_at=cursor.toISOString();
+      cursor.setMinutes(cursor.getMinutes()+Number(r.duration_minutes||60)+travelBuffer);
+      return {id:r.id,route_order:i+1,scheduled_at};
+    });
+  }
+
   async function saveOrder(){
     setSaving(true);
     const r=await fetch('/api/admin/routes/reorder',{
       method:'PATCH',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({items:rows.map((r,i)=>({id:r.id,route_order:i+1}))}),
+      body:JSON.stringify({items:buildSchedulePayload()}),
     });
     const j=await r.json();
     setSaving(false);
 
     if(!r.ok){setMessage(j.error||'동선 저장 오류');return;}
-    setMessage('방문 순서가 저장되었습니다.');
+    setMessage(adjustTimes?'방문 순서와 방문시간이 함께 저장되었습니다.':'방문 순서가 저장되었습니다.');
     await loadRoutes();
   }
 
@@ -115,7 +175,7 @@ export default function AdminRoutePlanner(){
       <div>
         <p>RECHAIR ADMIN</p>
         <h1>기사 방문 동선</h1>
-        <span>기사별 하루 방문 순서를 정리하고 지도에서 주소를 확인합니다.</span>
+        <span>일정 충돌과 주소 누락을 확인하고 권장 방문 순서를 적용합니다.</span>
       </div>
       <nav>
         <a href="/admin/dashboard">대시보드</a>
@@ -140,18 +200,44 @@ export default function AdminRoutePlanner(){
       </label>
 
       <button onClick={()=>loadRoutes()}>새로고침</button>
+      <button className="recommend" onClick={recommendOrder} disabled={rows.length<2}>권장 순서 계산</button>
       <button className="copy" onClick={copyPlan}>동선 복사</button>
       <button className="save" onClick={saveOrder} disabled={saving}>
         {saving?'저장 중':'방문 순서 저장'}
       </button>
     </section>
 
+    <section className="route-options">
+      <label className="check-row">
+        <input type="checkbox" checked={adjustTimes} onChange={e=>setAdjustTimes(e.target.checked)}/>
+        <span>저장할 때 순서에 맞춰 방문시간도 재배치</span>
+      </label>
+      <label>
+        <span>업무 시작</span>
+        <input type="time" value={dayStart} onChange={e=>setDayStart(e.target.value)} disabled={!adjustTimes}/>
+      </label>
+      <label>
+        <span>이동 여유</span>
+        <select value={travelBuffer} onChange={e=>setTravelBuffer(Number(e.target.value))} disabled={!adjustTimes}>
+          <option value={15}>15분</option>
+          <option value={30}>30분</option>
+          <option value={45}>45분</option>
+          <option value={60}>60분</option>
+        </select>
+      </label>
+    </section>
+
     <section className="route-summary">
       <article><small>방문 건수</small><strong>{totals.count}건</strong></article>
       <article><small>예상 작업시간</small><strong>{Math.floor(totals.minutes/60)}시간 {totals.minutes%60}분</strong></article>
-      <article><small>완료</small><strong>{totals.completed}건</strong></article>
-      <article className="dark"><small>남은 일정</small><strong>{totals.remaining}건</strong></article>
+      <article><small>주소 누락</small><strong>{diagnostics.missingAddress}건</strong></article>
+      <article className={diagnostics.conflicts.length?'warning-card':'dark'}><small>시간 충돌</small><strong>{diagnostics.conflicts.length}건</strong></article>
     </section>
+
+    {(diagnostics.missingAddress>0||diagnostics.conflicts.length>0)&&<section className="route-alerts">
+      {diagnostics.missingAddress>0&&<p>주소 또는 지역이 없는 일정이 {diagnostics.missingAddress}건 있습니다. 실제 거리 기반 동선 계산 전에 주소를 보완하세요.</p>}
+      {diagnostics.conflicts.map(item=><p key={item}>시간 충돌: {item}</p>)}
+    </section>}
 
     <section className="route-board">
       <div className="route-head">
@@ -159,12 +245,12 @@ export default function AdminRoutePlanner(){
           <p>DAILY ROUTE</p>
           <h2>{technician||'기사 미선택'}</h2>
         </div>
-        <span>{date}</span>
+        <span>{date} · {diagnostics.areas}개 권역</span>
       </div>
 
       {rows.length===0?<p className="empty">선택한 날짜에 배정된 일정이 없습니다.</p>:
         <div className="route-list">
-          {rows.map((item,index)=><article key={item.id}>
+          {rows.map((item,index)=><article key={item.id} className={!(item.address||item.region)?'missing-address':''}>
             <div className="order">{index+1}</div>
 
             <div className="visit-info">
@@ -172,6 +258,7 @@ export default function AdminRoutePlanner(){
                 <time>{fmtTime(item.scheduled_at)}</time>
                 <b>{item.customer_name}</b>
                 <small>{item.status}</small>
+                <small className="area-chip">{areaKey(item)}</small>
               </div>
               <span>{item.service_type||'서비스 미입력'} · 예상 {item.duration_minutes||60}분</span>
               <em>{item.address||item.region||'주소 미입력'}</em>
@@ -191,7 +278,7 @@ export default function AdminRoutePlanner(){
 
     <section className="route-guide">
       <h3>운영 방법</h3>
-      <p>위·아래 버튼으로 방문 순서를 정한 뒤 ‘방문 순서 저장’을 누릅니다. 주소의 ‘지도’ 버튼을 누르면 카카오맵 검색 화면이 열립니다.</p>
+      <p>‘권장 순서 계산’은 현재 주소의 권역과 기존 방문시간을 기준으로 가까운 지역끼리 묶습니다. 실제 도로 이동시간 API는 다음 지도 연동 단계에서 추가합니다.</p>
     </section>
   </div>
 }
