@@ -5,6 +5,7 @@ import {
   kstDayRange,
   scoreTechnician,
 } from '@/lib/dispatchRecommendation';
+import {dispatchConfidence} from '@/lib/dispatch/scoreEngine';
 
 export const dynamic='force-dynamic';
 
@@ -93,12 +94,18 @@ export async function GET(req:NextRequest){
         return a.today_count-b.today_count;
       });
 
-    const best=candidates.find(candidate=>candidate.eligible)||null;
+    const eligibleCandidates=candidates.filter(candidate=>candidate.eligible);
+    const best=eligibleCandidates[0]||null;
+    const confidence=best
+      ?dispatchConfidence(best.score,eligibleCandidates[1]?.score)
+      :{level:'검토필요',reason:'추천 가능한 기사가 없습니다.'};
 
     return NextResponse.json({
       data:{
         technician:best,
         candidates:candidates.slice(0,8),
+        top3:eligibleCandidates.slice(0,3),
+        confidence,
         requested_at:requestedStart.toISOString(),
         duration_minutes:durationMinutes,
         reason:best

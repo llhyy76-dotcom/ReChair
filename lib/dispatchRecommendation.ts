@@ -1,3 +1,5 @@
+import {buildDispatchScore} from '@/lib/dispatch/scoreEngine';
+
 export type TechnicianRow={
   id:string;
   name:string;
@@ -210,19 +212,20 @@ export function scoreTechnician({
   const overloaded=todayCount>=capacity;
   const availabilityResult=availabilityCheck({technician,availability,requestedStart,requestedDuration});
 
-  let score=0;
-  score+=matchScore;
-  score+=remainingCapacity*12;
-  score-=todayCount*5;
-  if(nearestGap!==null){
-    if(nearestGap>=60&&nearestGap<=180)score+=12;
-    else if(nearestGap>180)score+=5;
-  }else{
-    score+=10;
-  }
-  if(overloaded)score-=80;
+  const scoreBreakdown=buildDispatchScore({
+    regionMatchScore:matchScore,
+    todayCount,
+    dailyCapacity:capacity,
+    nearestGapMinutes:nearestGap,
+    hasConflict:conflict,
+    isAvailable:availabilityResult.available,
+    isOverCapacity:overloaded,
+  });
+
+  let score=scoreBreakdown.total;
   if(conflict)score-=1000;
   if(!availabilityResult.available)score-=1200;
+  if(overloaded)score-=500;
 
   const reasons:string[]=[];
   if(matchScore>=80)reasons.push('담당지역 강하게 일치');
@@ -246,6 +249,7 @@ export function scoreTechnician({
     availability_type:availabilityResult.label,
     is_available:availabilityResult.available,
     score,
+    score_breakdown:scoreBreakdown,
     reasons,
     eligible:!conflict&&!overloaded&&availabilityResult.available,
   };
