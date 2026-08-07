@@ -1,11 +1,11 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
 import {requireAdmin} from '@/lib/adminAuth';
+import {dispatchConfidence} from '@/lib/dispatch/scoreEngine';
 import {
   kstDayRange,
   scoreTechnician,
 } from '@/lib/dispatchRecommendation';
-import {dispatchConfidence} from '@/lib/dispatch/scoreEngine';
 
 export const dynamic='force-dynamic';
 
@@ -33,6 +33,13 @@ export async function GET(req:NextRequest){
     if(Number.isNaN(requestedStart.getTime())){
       return NextResponse.json(
         {error:'올바른 방문 일시가 아닙니다.'},
+        {status:400}
+      );
+    }
+
+    if(!region||!address){
+      return NextResponse.json(
+        {error:'정확한 추천을 위해 지역과 주소를 모두 입력해 주세요.'},
         {status:400}
       );
     }
@@ -94,23 +101,34 @@ export async function GET(req:NextRequest){
         return a.today_count-b.today_count;
       });
 
-    const eligibleCandidates=candidates.filter(candidate=>candidate.eligible);
-    const best=eligibleCandidates[0]||null;
+    const eligible=candidates.filter(candidate=>candidate.eligible);
+    const top3=eligible.slice(0,3);
+    const best=top3[0]||null;
+    const second=top3[1]||null;
     const confidence=best
-      ?dispatchConfidence(best.score,eligibleCandidates[1]?.score)
-      :{level:'검토필요',reason:'추천 가능한 기사가 없습니다.'};
+      ?dispatchConfidence(
+        Number(best.score_breakdown?.total??best.score),
+        second?Number(second.score_breakdown?.total??second.score):null,
+      )
+      :{
+        level:'검토필요',
+        reason:'시간 충돌, 휴무 또는 처리한도 때문에 배정 가능한 기사가 없습니다.',
+      };
 
     return NextResponse.json({
       data:{
+        // 기존 자동배정 화면 호환
         technician:best,
         candidates:candidates.slice(0,8),
-        top3:eligibleCandidates.slice(0,3),
-        confidence,
-        requested_at:requestedStart.toISOString(),
-        duration_minutes:durationMinutes,
         reason:best
           ?best.reasons.join(' · ')
           :'시간 충돌 또는 처리한도 초과로 추천 가능한 기사가 없습니다.',
+
+        // AI 자동배정센터 v0.6+
+        top3,
+        confidence,
+        requested_at:requestedStart.toISOString(),
+        duration_minutes:durationMinutes,
       },
     });
   }catch(error:any){

@@ -35,12 +35,21 @@ export default function AdminDispatchAI(){
   const [scheduledAt,setScheduledAt]=useState(defaultDateTime());
   const [duration,setDuration]=useState(60);
   const [result,setResult]=useState<any>(null);
+  const [selectedCandidateId,setSelectedCandidateId]=useState('');
   const [message,setMessage]=useState('');
+  const [messageType,setMessageType]=useState<'error'|'success'>('error');
   const [loading,setLoading]=useState(false);
+  const [assigning,setAssigning]=useState(false);
+  const [assignedSchedule,setAssignedSchedule]=useState<any>(null);
 
   const selected=useMemo(
     ()=>waiting.find(item=>item.id===selectedId)||null,
     [waiting,selectedId]
+  );
+
+  const selectedCandidate=useMemo(
+    ()=>(result?.top3||[]).find((item:Candidate)=>item.id===selectedCandidateId)||null,
+    [result,selectedCandidateId]
   );
 
   async function load(){
@@ -50,10 +59,16 @@ export default function AdminDispatchAI(){
       {cache:'no-store'}
     );
     const json=await response.json();
-    if(!response.ok){setMessage(json.error||'배정대기 조회 오류');return;}
+    if(!response.ok){
+      setMessageType('error');
+      setMessage(json.error||'배정대기 조회 오류');
+      return;
+    }
     const items=json.data?.waiting_consultations||[];
     setWaiting(items);
-    setSelectedId(current=>current||items[0]?.id||'');
+    setSelectedId(current=>items.some((item:any)=>item.id===current)
+      ?current
+      :(items[0]?.id||''));
   }
 
   useEffect(()=>{void load()},[scheduledAt]);
@@ -61,6 +76,7 @@ export default function AdminDispatchAI(){
   async function simulate(){
     if(!selected)return;
     if(!selected.region||!selected.address){
+      setMessageType('error');
       setMessage('상담 CRM에서 지역과 주소를 먼저 입력해 주세요.');
       return;
     }
@@ -68,7 +84,9 @@ export default function AdminDispatchAI(){
     try{
       setLoading(true);
       setMessage('');
+      setAssignedSchedule(null);
       setResult(null);
+      setSelectedCandidateId('');
       const params=new URLSearchParams({
         region:selected.region,
         address:selected.address,
@@ -80,24 +98,79 @@ export default function AdminDispatchAI(){
         {cache:'no-store'}
       );
       const json=await response.json();
-      if(!response.ok){setMessage(json.error||'AI 추천 계산 오류');return;}
+      if(!response.ok){
+        setMessageType('error');
+        setMessage(json.error||'AI 추천 계산 오류');
+        return;
+      }
       setResult(json.data);
+      setSelectedCandidateId(json.data?.top3?.[0]?.id||'');
     }finally{
       setLoading(false);
+    }
+  }
+
+  async function confirmAssignment(){
+    if(!selected||!selectedCandidate)return;
+
+    const confirmed=window.confirm(
+      `${selected.customer_name} 고객을 ${selectedCandidate.name} 기사에게 배정하시겠습니까?\n`+
+      `방문일시: ${scheduledAt.replace('T',' ')} / ${duration}분`
+    );
+    if(!confirmed)return;
+
+    try{
+      setAssigning(true);
+      setMessage('');
+      const response=await fetch(
+        `/api/admin/consultations/${encodeURIComponent(selected.id)}/schedule`,
+        {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            scheduled_at:new Date(scheduledAt).toISOString(),
+            duration_minutes:duration,
+            region:selected.region,
+            address:selected.address,
+            assignee:selectedCandidate.name,
+            memo:`AI 자동배정 v0.6.1 · 추천점수 ${selectedCandidate.score_breakdown?.total??selectedCandidate.score}점`,
+          }),
+        }
+      );
+      const json=await response.json();
+      if(!response.ok){
+        setMessageType('error');
+        setMessage(json.error||'배정 확정 오류');
+        return;
+      }
+
+      setAssignedSchedule(json.data);
+      setMessageType('success');
+      setMessage(
+        `${selectedCandidate.name} 기사 배정이 완료되었습니다. AS 캘린더와 기사 일정에 자동 반영됩니다.`
+      );
+      setResult(null);
+      setSelectedCandidateId('');
+      await load();
+    }finally{
+      setAssigning(false);
     }
   }
 
   return <main className="dispatch-ai-page">
     <section className="dispatch-ai-hero">
       <div>
-        <p>RECHAIR OMS v0.6</p>
+        <p>RECHAIR OMS v0.6.1</p>
         <h1>AI 자동배정센터</h1>
-        <span>지역·업무량·일정 여유·근무 가능 여부를 점수로 비교합니다.</span>
+        <span>AI 추천 → 관리자 선택 → 배정 확정 → AS 캘린더까지 한 번에 연결합니다.</span>
       </div>
       <a href="/admin/dispatch">기존 자동배정 열기</a>
     </section>
 
-    {message&&<aside className="dispatch-ai-message">{message}</aside>}
+    {message&&<aside className={'dispatch-ai-message '+(messageType==='success'?'success':'')}>
+      <span>{message}</span>
+      {messageType==='success'&&<a href="/admin/schedule">AS 캘린더 확인</a>}
+    </aside>}
 
     <section className="dispatch-ai-summary">
       <article><small>배정대기</small><strong>{waiting.length}건</strong></article>
@@ -111,7 +184,12 @@ export default function AdminDispatchAI(){
         <header><p>SIMULATION INPUT</p><h2>배정 시뮬레이션</h2></header>
         <label>
           <span>배정대기 상담</span>
-          <select value={selectedId} onChange={event=>{setSelectedId(event.target.value);setResult(null)}}>
+          <select value={selectedId} onChange={event=>{
+            setSelectedId(event.target.value);
+            setResult(null);
+            setSelectedCandidateId('');
+            setAssignedSchedule(null);
+          }}>
             {waiting.length===0&&<option value="">배정대기 상담 없음</option>}
             {waiting.map(item=><option key={item.id} value={item.id}>
               {item.customer_name} · {item.region||'지역 미입력'}
@@ -123,8 +201,16 @@ export default function AdminDispatchAI(){
           <span>{selected?.phone||'-'}</span>
           <p>{selected?.address||'주소 미입력'}</p>
         </div>
-        <label><span>방문일시</span><input type="datetime-local" value={scheduledAt} onChange={event=>{setScheduledAt(event.target.value);setResult(null)}}/></label>
-        <label><span>예상 소요시간</span><select value={duration} onChange={event=>{setDuration(Number(event.target.value));setResult(null)}}>
+        <label><span>방문일시</span><input type="datetime-local" value={scheduledAt} onChange={event=>{
+          setScheduledAt(event.target.value);
+          setResult(null);
+          setSelectedCandidateId('');
+        }}/></label>
+        <label><span>예상 소요시간</span><select value={duration} onChange={event=>{
+          setDuration(Number(event.target.value));
+          setResult(null);
+          setSelectedCandidateId('');
+        }}>
           {[30,45,60,90,120,180].map(value=><option key={value} value={value}>{value}분</option>)}
         </select></label>
         <button onClick={simulate} disabled={loading||!selected}>{loading?'AI 계산 중…':'AI 추천 실행'}</button>
@@ -137,22 +223,45 @@ export default function AdminDispatchAI(){
             신뢰도 {result.confidence.level}
           </span>}
         </header>
-        {!result&&<div className="dispatch-ai-empty">상담과 방문일시를 선택한 뒤 AI 추천을 실행하세요.</div>}
+        {!result&&<div className="dispatch-ai-empty">
+          {assignedSchedule?'배정이 완료되었습니다. 다음 배정대기 상담을 선택하세요.':'상담과 방문일시를 선택한 뒤 AI 추천을 실행하세요.'}
+        </div>}
         {result&&<>
           <p className="confidence-reason">{result.confidence?.reason}</p>
           <div className="dispatch-ai-ranking">
-            {(result.top3||[]).map((candidate:Candidate,index:number)=><CandidateCard key={candidate.id} candidate={candidate} rank={index+1}/>) }
+            {(result.top3||[]).map((candidate:Candidate,index:number)=><CandidateCard
+              key={candidate.id}
+              candidate={candidate}
+              rank={index+1}
+              selected={candidate.id===selectedCandidateId}
+              onSelect={()=>setSelectedCandidateId(candidate.id)}
+            />)}
             {(result.top3||[]).length===0&&<div className="dispatch-ai-empty">배정 가능한 기사가 없습니다.</div>}
           </div>
+          {selectedCandidate&&<div className="dispatch-ai-confirm">
+            <div>
+              <small>선택 기사</small>
+              <strong>{selectedCandidate.name}</strong>
+              <span>추천점수 {selectedCandidate.score_breakdown?.total??selectedCandidate.score}점 · 당일 {selectedCandidate.today_count}/{selectedCandidate.daily_capacity}건</span>
+            </div>
+            <button onClick={confirmAssignment} disabled={assigning}>
+              {assigning?'배정 처리 중…':'선택 기사로 배정 확정'}
+            </button>
+          </div>}
         </>}
       </article>
     </section>
   </main>;
 }
 
-function CandidateCard({candidate,rank}:{candidate:Candidate;rank:number}){
+function CandidateCard({candidate,rank,selected,onSelect}:{
+  candidate:Candidate;
+  rank:number;
+  selected:boolean;
+  onSelect:()=>void;
+}){
   const breakdown=candidate.score_breakdown;
-  return <section className={'ai-candidate rank-'+rank}>
+  return <section className={'ai-candidate rank-'+rank+(selected?' selected':'')}>
     <div className="ai-candidate-head">
       <span>{rank}위</span>
       <div><b>{candidate.name}</b><small>{candidate.region||candidate.team_name||'담당지역 미입력'}</small></div>
@@ -166,7 +275,10 @@ function CandidateCard({candidate,rank}:{candidate:Candidate;rank:number}){
       <Score label="처리여력" value={breakdown.capacity} max={10}/>
     </div>}
     <p>{candidate.reasons.join(' · ')}</p>
-    <footer>당일 {candidate.today_count}/{candidate.daily_capacity}건</footer>
+    <footer>
+      <span>당일 {candidate.today_count}/{candidate.daily_capacity}건</span>
+      <button type="button" onClick={onSelect}>{selected?'선택됨':'이 기사 선택'}</button>
+    </footer>
   </section>;
 }
 
