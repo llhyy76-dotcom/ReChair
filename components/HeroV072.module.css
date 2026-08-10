@@ -39,71 +39,104 @@
   .shellFix{
     width:100%!important;
     max-width:100%!important;
-    padding:30px 16px 24px!important;
+    padding:18px 14px 16px!important;
     margin:0!important;
   }
   .mainFix{display:block!important;min-height:0!important}
   .copyFix{width:100%!important;max-width:100%!important}
+  .copyFix :global(.rc-final-eyebrow){
+    margin:0 0 12px!important;
+    padding:8px 13px!important;
+    font-size:12px!important;
+    line-height:1.1!important;
+  }
   .copyFix h1{
     max-width:100%!important;
-    font-size:clamp(34px,9.8vw,42px)!important;
-    line-height:1.14!important;
-    letter-spacing:-2px!important;
+    font-size:clamp(27px,7.8vw,31px)!important;
+    line-height:1.1!important;
+    letter-spacing:-1.45px!important;
     word-break:keep-all!important;
     overflow-wrap:normal!important;
   }
   .copyFix p{max-width:100%!important;word-break:keep-all!important}
+  .copyFix :global(.rc-final-desc){
+    margin-top:10px!important;
+    font-size:13px!important;
+    line-height:1.42!important;
+  }
   .chairFix{display:none!important}
   .serviceGridFix{
     grid-template-columns:repeat(3,minmax(0,1fr))!important;
-    gap:8px!important;
+    gap:6px!important;
     width:100%!important;
     max-width:100%!important;
-    margin-top:24px!important;
+    margin-top:13px!important;
   }
   .serviceCardFix{
     width:100%!important;
     min-width:0!important;
-    min-height:112px!important;
-    padding:12px 5px!important;
-    border-radius:13px!important;
+    min-height:82px!important;
+    padding:8px 4px!important;
+    border-radius:11px!important;
+  }
+  .serviceCardFix :global(.rc-final-icon){
+    font-size:29px!important;
+    line-height:1!important;
   }
   .serviceCardFix strong{
-    font-size:15px!important;
-    line-height:1.25!important;
+    font-size:13.5px!important;
+    line-height:1.18!important;
     white-space:normal!important;
     word-break:keep-all!important;
   }
   .rentalBanner{
     width:100%;
-    min-height:0;
-    grid-template-columns:48px minmax(0,1fr) 20px;
-    gap:11px;
-    margin-top:12px;
-    padding:17px 15px;
-    border-radius:14px;
+    min-height:64px;
+    grid-template-columns:34px minmax(0,1fr) 17px;
+    gap:8px;
+    margin-top:8px;
+    padding:9px 11px;
+    border-radius:12px;
   }
-  .rentalIcon{font-size:32px}
-  .rentalCopy strong{font-size:20px}
-  .rentalCopy p{font-size:12px;line-height:1.42}
-  .rentalTypes{grid-column:2 / 3;justify-content:flex-start;margin-top:2px}
-  .rentalTypes span{font-size:11px;padding:6px 8px}
-  .rentalBanner>b{grid-column:3;grid-row:1 / span 2;font-size:30px}
+  .rentalIcon{font-size:25px}
+  .rentalCopy small{font-size:9px;line-height:1.1}
+  .rentalCopy strong{margin:2px 0 0;font-size:16px;line-height:1.1}
+  .rentalCopy p{display:none}
+  .rentalTypes{grid-column:2 / 3;justify-content:flex-start;gap:5px;margin-top:1px}
+  .rentalTypes span{font-size:9px;padding:4px 6px}
+  .rentalBanner>b{grid-column:3;grid-row:1 / span 2;font-size:24px}
   .ctaRowFix{
-    grid-template-columns:1fr!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
     width:100%!important;
     max-width:100%!important;
-    gap:10px!important;
+    gap:7px!important;
+    margin-top:8px!important;
+    margin-bottom:0!important;
   }
-  .ctaRowFix>a{width:100%!important;max-width:100%!important;box-sizing:border-box!important}
+  .ctaRowFix>a{
+    width:100%!important;
+    max-width:100%!important;
+    min-height:58px!important;
+    box-sizing:border-box!important;
+    grid-template-columns:30px minmax(0,1fr)!important;
+    gap:6px!important;
+    padding:0 10px!important;
+    border-radius:11px!important;
+  }
+  .ctaRowFix>a>span{font-size:24px!important}
+  .ctaRowFix>a strong{font-size:14px!important;line-height:1.15!important;white-space:nowrap}
+  .ctaRowFix>a small,.ctaRowFix>a>b{display:none!important}
 }
 
 @media(max-width:390px){
-  .shellFix{padding:26px 12px 20px!important}
-  .copyFix h1{font-size:32px!important;letter-spacing:-1.7px!important}
-  .serviceGridFix{gap:6px!important}
-  .serviceCardFix{min-height:100px!important;padding:10px 3px!important}
-  .serviceCardFix strong{font-size:14px!important}
-  .rentalCopy p{display:none}
-  .rentalTypes span{font-size:10px}
+  .shellFix{padding:16px 11px 14px!important}
+  .copyFix h1{font-size:27px!important;letter-spacing:-1.25px!important}
+  .copyFix :global(.rc-final-desc){font-size:12px!important}
+  .serviceGridFix{gap:5px!important;margin-top:11px!important}
+  .serviceCardFix{min-height:76px!important;padding:7px 2px!important}
+  .serviceCardFix :global(.rc-final-icon){font-size:27px!important}
+  .serviceCardFix strong{font-size:12.5px!important}
+  .rentalTypes span{font-size:8.5px}
+  .ctaRowFix>a{min-height:54px!important;padding:0 8px!important}
+  .ctaRowFix>a strong{font-size:13px!important}
 }

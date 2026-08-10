@@ -1,15 +1,28 @@
-ReChair OMS v0.7.2 적용 순서
+ReChair OMS v0.7.3 모바일 첫 화면 최적화 패치
 
-1. C:\ReChair 폴더 전체를 삭제하지 마세요.
-2. 이 압축 안의 파일/폴더만 C:\ReChair에 같은 경로로 덮어씁니다.
-3. Supabase SQL 실행은 이번 버전에 필요하지 않습니다.
-4. GitHub Desktop에서 변경 파일을 확인합니다.
-5. Summary: Fix AI dispatch target, rental CTA and mobile responsive v0.7.2
-6. Commit to main -> Push origin
-7. Vercel Production이 Ready가 된 후 테스트합니다.
+적용 전제
+- ReChair OMS v0.7.2가 먼저 적용된 프로젝트용입니다.
+- Supabase SQL 실행이나 환경변수 변경은 필요하지 않습니다.
 
-중요:
-- CRM에서 서울시 종로구 관철동을 입력한 '그 상담 건'을 AI 배정하고 싶다면,
-  상담 CRM 상세의 새 [AI 배정] 버튼을 누르세요.
-- 동일 이름/전화번호로 상담이 여러 건 존재하면 기존 AI 배정 화면의 '배정대기' 목록은
-  다른 상담 레코드를 보여줄 수 있습니다. v0.7.2는 consultation_id로 정확한 상담 건을 전달합니다.
+적용 방법
+1. 이 압축파일을 풉니다.
+2. 압축을 푼 폴더 안의 components 폴더를 C:\ReChair에 붙여넣습니다.
+3. 같은 이름의 파일 2개를 모두 덮어씁니다.
+   - components/HeroV072.module.css
+   - components/HeaderV072.module.css
+4. C:\ReChair 폴더와 .git 폴더는 삭제하지 마세요.
+5. GitHub Desktop에서 변경 파일 2개를 확인합니다.
+6. Summary에 아래 내용을 입력합니다.
+
+Optimize mobile first view and hero typography v0.7.3
+
+7. Commit to main을 누른 뒤 Push origin을 누릅니다.
+8. Vercel 배포가 Ready가 되면 휴대전화에서 새로고침하여 확인합니다.
+
+확인 사항
+- 제목이 기존보다 작게 표시되는지
+- 6개 서비스 카드가 3열 x 2행으로 유지되는지
+- 큰 렌탈 상자가 보이는지
+- 무료 견적 신청과 판매상품 보기가 가로 한 줄로 표시되는지
+- 첫 화면에서 최소한 무료 견적 신청 버튼까지 보이는지
+

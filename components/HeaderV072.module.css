@@ -13,9 +13,9 @@
 
 @media(max-width:700px){
   .innerFix{
-    min-height:86px!important;
+    min-height:76px!important;
     height:auto!important;
-    padding:10px 14px!important;
+    padding:8px 12px!important;
     display:grid!important;
     grid-template-columns:minmax(0,1fr) auto auto!important;
     align-items:center!important;
@@ -24,16 +24,16 @@
   .brandFix{
     display:flex!important;
     align-items:center!important;
-    width:148px!important;
+    width:136px!important;
     min-width:0!important;
     overflow:visible!important;
-    transform:scale(.82)!important;
+    transform:scale(.76)!important;
     transform-origin:left center!important;
   }
   .ctaFix{
     margin:0!important;
-    padding:12px 15px!important;
-    min-height:46px!important;
+    padding:11px 14px!important;
+    min-height:44px!important;
     border-radius:10px!important;
     font-size:15px!important;
     line-height:1!important;
@@ -48,8 +48,8 @@
 }
 
 @media(max-width:390px){
-  .innerFix{padding:9px 10px!important;gap:6px!important}
-  .brandFix{width:126px!important;transform:scale(.73)!important}
-  .ctaFix{padding:11px 12px!important;font-size:14px!important;min-height:42px!important}
-  .menuFix{width:40px!important;height:40px!important;min-width:40px!important}
+  .innerFix{min-height:72px!important;padding:7px 9px!important;gap:5px!important}
+  .brandFix{width:122px!important;transform:scale(.7)!important}
+  .ctaFix{padding:10px 11px!important;font-size:14px!important;min-height:44px!important}
+  .menuFix{width:44px!important;height:44px!important;min-width:44px!important}
 }
