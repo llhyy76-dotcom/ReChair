@@ -13,7 +13,16 @@ export async function GET(request:NextRequest){
     if(rentalType==='personal'||rentalType==='commercial')query=query.eq('rental_type',rentalType);
     const {data,error}=await query;
     if(error)throw error;
-    return NextResponse.json({data});
+    const normalized=(data||[]).map((product:any)=>({
+      ...product,
+      title:product.title||product.name||[product.brand,product.model_name||product.model].filter(Boolean).join(' ')||'안마의자',
+      name:product.name||product.title||null,
+      model_name:product.model_name||product.model||null,
+      model:product.model||product.model_name||null,
+      thumbnail_url:product.thumbnail_url||product.image_url||null,
+      image_url:product.image_url||product.thumbnail_url||null,
+    }));
+    return NextResponse.json({data:normalized});
   }catch(error){
     const message=error instanceof Error?error.message:'상품 조회 오류';
     console.error('products GET error',error);

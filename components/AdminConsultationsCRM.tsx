@@ -2,9 +2,9 @@
 import {useEffect,useState} from 'react';
 import AdminRentalCRMPanel from './AdminRentalCRMPanel';
 const STATUS=['신규','상담중','견적발송','예약완료','방문완료','판매완료','계약완료','운영중','계약종료','종료'];
-const SERVICE=['전체','중고구매','중고판매','이전설치','폐기수거','출장수리','부품구매','개인용 안마의자 렌탈','영업용(코인형) 안마의자 렌탈'];
-export default function AdminConsultationsCRM(){
- const [rows,setRows]=useState<any[]>([]),[selected,setSelected]=useState<any>(null),[status,setStatus]=useState('전체'),[service,setService]=useState('전체'),[q,setQ]=useState(''),[message,setMessage]=useState(''),[scheduleOpen,setScheduleOpen]=useState(false);
+const SERVICE=['전체','렌탈 전체','중고구매','중고판매','이전설치','폐기수거','출장수리','부품구매','개인용 안마의자 렌탈','영업용(코인형) 안마의자 렌탈'];
+export default function AdminConsultationsCRM({initialService='전체'}:{initialService?:string}){
+ const [rows,setRows]=useState<any[]>([]),[selected,setSelected]=useState<any>(null),[status,setStatus]=useState('전체'),[service,setService]=useState(initialService),[q,setQ]=useState(''),[message,setMessage]=useState(''),[scheduleOpen,setScheduleOpen]=useState(false);
  const [schedule,setSchedule]=useState({scheduled_at:'',assignee:'',duration_minutes:60,region:'',address:'',memo:''});
  async function load(){const p=new URLSearchParams();if(status!=='전체')p.set('status',status);if(service!=='전체')p.set('service',service);if(q.trim())p.set('q',q.trim());const r=await fetch('/api/admin/consultations?'+p.toString(),{cache:'no-store'});const j=await r.json();if(!r.ok){setMessage(j.error||'조회 오류');return;}setRows(j.data||[]);if(selected){const f=(j.data||[]).find((x:any)=>x.id===selected.id);if(f)setSelected(f)}}
  useEffect(()=>{load()},[status,service]);
@@ -33,8 +33,9 @@ export default function AdminConsultationsCRM(){
   const script=document.createElement('script');script.id='daum-postcode-script';script.src='https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';script.onload=launch;script.onerror=()=>setMessage('주소 검색 서비스를 불러오지 못했습니다. 주소를 직접 입력해 주세요.');document.head.appendChild(script);
  }
 
+ const rentalOnly=initialService==='렌탈 전체';
  const patch=(k:string,v:any)=>setSelected((s:any)=>({...s,[k]:v}));const photos=selected?[['앞면',selected.photo_front_url],['측면',selected.photo_side_url],['라벨',selected.photo_label_url],['후면',selected.photo_back_url]]:[];
- return <div className="crm"><header><div><p>RECHAIR ADMIN</p><h1>상담 CRM</h1><span>상담 접수부터 일정 배정과 완료까지 관리합니다.</span></div><div className="crm-top-links"><a href="/admin/dashboard">운영 대시보드</a><a href="/admin/schedule">AS 일정</a></div></header>
+ return <div className="crm"><header><div><p>{rentalOnly?'RECHAIR RENTAL ADMIN':'RECHAIR ADMIN'}</p><h1>{rentalOnly?'렌탈 상담 관리':'상담 CRM'}</h1><span>{rentalOnly?'렌탈 상담부터 견적·계약·설치·운영까지 관리합니다.':'상담 접수부터 일정 배정과 완료까지 관리합니다.'}</span></div><div className="crm-top-links"><a href="/admin/dashboard">운영 대시보드</a><a href="/admin/schedule">AS 일정</a></div></header>
  <div className="toolbar"><div><input value={q} onChange={e=>setQ(e.target.value)} placeholder="이름, 연락처, 지역, 모델명 검색" onKeyDown={e=>e.key==='Enter'&&load()}/><button onClick={load}>검색</button></div><select value={service} onChange={e=>setService(e.target.value)}>{SERVICE.map(v=><option key={v}>{v}</option>)}</select></div>
  <nav><button className={status==='전체'?'on':''} onClick={()=>setStatus('전체')}>전체</button>{STATUS.map(v=><button className={status===v?'on':''} onClick={()=>setStatus(v)} key={v}>{v}</button>)}</nav>{message&&<aside>{message}</aside>}
  <main><section className="list">{rows.length?rows.map(r=><button className={selected?.id===r.id?'on':''} onClick={()=>setSelected(r)} key={r.id}><div><b>{r.customer_name||'이름 없음'}</b><span>{r.phone}</span><em>{r.region||'지역 미입력'}</em></div><div><strong>{r.service_type}</strong><small>{r.rental_stage||r.status}</small></div></button>):<p>조건에 맞는 상담이 없습니다.</p>}</section>

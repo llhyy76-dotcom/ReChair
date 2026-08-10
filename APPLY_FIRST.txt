@@ -1,45 +1,52 @@
-ReChair OMS v0.7.9 적용 안내
+ReChair OMS v0.8.0 적용 안내
 ================================
 
-이번 버전은 렌탈 상담을 관리자 CRM에서
-상담접수 → 견적발송 → 계약완료 → 설치예약 → 운영중까지 관리하는 기능입니다.
+이번 버전은 아래 두 가지를 수정합니다.
 
-[중요] 반드시 SQL을 먼저 실행한 뒤 파일을 덮어쓰세요.
+1. PC 렌탈 상품카드에서 이미지가 상품명·모델명 글씨를 가리는 문제
+2. 관리자 화면에서 렌탈 9단계 관리 위치를 찾기 어려운 문제
 
-1. Supabase SQL Editor 실행
+적용 전 확인
 --------------------------------
-압축파일 안의 아래 파일을 메모장으로 열어 전체 내용을 복사합니다.
+- v0.7.9 SQL을 이미 실행했다면 이번에는 SQL을 다시 실행하지 않아도 됩니다.
+- v0.7.9 SQL을 아직 실행하지 않았다면 압축 안의
+  supabase/v079_rental_quote_contract_crm.sql을 Supabase SQL Editor에서 먼저 실행하세요.
 
-supabase/v079_rental_quote_contract_crm.sql
-
-Supabase → SQL Editor → New query에 붙여넣고 Run을 누릅니다.
-Success. No rows returned가 나오면 정상입니다.
-
-2. 프로젝트 파일 덮어쓰기
+1. 프로젝트 파일 덮어쓰기
 --------------------------------
-압축을 푼 폴더 안의 app, components 폴더와 파일을
+압축을 푼 뒤 폴더 안의 app, components 폴더를
 기존 C:\ReChair에 같은 위치로 덮어씁니다.
 
 C:\ReChair 폴더 전체나 .git 폴더는 삭제하지 마세요.
 
-3. GitHub Desktop 반영
+2. GitHub Desktop 반영
 --------------------------------
 Summary에는 아래 문구를 입력하세요.
 
-Add rental quote and contract CRM workflow v0.7.9
+Fix PC rental card and add rental admin menu v0.8.0
 
 Commit to main → Push origin 순서로 진행합니다.
 
-4. Vercel 배포 확인
+3. 배포 후 확인
 --------------------------------
-Vercel 배포가 Ready가 된 후 아래 주소에서 테스트합니다.
+Vercel 배포가 Ready가 된 후 아래 두 화면을 확인합니다.
 
-https://re-chair.vercel.app/admin/consultations
+고객 렌탈 상품 화면
+https://re-chair.vercel.app/rental
 
-렌탈 상담을 선택했을 때 파란색 '렌탈 견적·계약 관리' 영역이 보여야 합니다.
+관리자 렌탈관리 화면
+https://re-chair.vercel.app/admin/rental
 
-주의
+관리자 상단 메뉴에 '렌탈관리'가 새로 표시됩니다.
+렌탈관리 화면 왼쪽에서 상담 건을 선택하면 오른쪽에
+'렌탈 견적·계약 관리'와 9단계 버튼이 나타납니다.
+
+9단계
 --------------------------------
-- 이 패치는 v0.7.8이 적용된 최신 ReChair 프로젝트 기준입니다.
-- 기존 상담, AS 일정, 기사 화면, 상품 관리 기능은 삭제하지 않습니다.
-- SQL을 실행하지 않고 코드부터 배포하면 rental_stage 컬럼 오류가 발생합니다.
+상담접수 → 조건확인 → 견적발송 → 계약대기 → 계약완료
+→ 설치예약 → 운영중 → 계약종료 → 취소
+
+참고
+--------------------------------
+- 첨부하신 /admin/schedule 화면은 AS 캘린더이므로 렌탈 9단계가 표시되지 않습니다.
+- 렌탈 9단계는 /admin/rental 또는 /admin/consultations에서 렌탈 상담을 선택해야 표시됩니다.

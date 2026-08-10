@@ -6,11 +6,14 @@ type RentalType = 'personal' | 'commercial';
 
 type RentalProduct = {
   id: string;
-  title: string;
-  brand: string;
-  model_name: string;
+  title?: string | null;
+  name?: string | null;
+  brand?: string | null;
+  model_name?: string | null;
+  model?: string | null;
   status: string;
   thumbnail_url?: string | null;
+  image_url?: string | null;
   monthly_fee?: number | null;
   deposit_amount?: number | null;
   setup_fee?: number | null;
@@ -98,12 +101,16 @@ export default function RentalCatalog() {
           {visibleProducts.map((product) => {
             const service = product.rental_type === 'commercial' ? 'rental-commercial' : 'rental-personal';
             const hasMonthlyFee = Number(product.monthly_fee || 0) > 0;
+            const modelName = product.model_name || product.model || '';
+            const productTitle = product.title || product.name || [product.brand, modelName].filter(Boolean).join(' ') || '렌탈 안마의자';
+            const productIdentity = [product.brand, modelName].filter(Boolean).join(' · ') || typeLabel(product.rental_type);
+            const thumbnail = product.thumbnail_url || product.image_url;
 
             return (
               <article className="rental-product-card" key={product.id}>
                 <div className="rental-product-image">
-                  {product.thumbnail_url ? (
-                    <img src={product.thumbnail_url} alt={product.title} />
+                  {thumbnail ? (
+                    <img src={thumbnail} alt={productTitle} />
                   ) : (
                     <span>💺</span>
                   )}
@@ -111,8 +118,10 @@ export default function RentalCatalog() {
                 </div>
 
                 <div className="rental-product-body">
-                  <small>{product.brand} · {product.model_name}</small>
-                  <h3>{product.title}</h3>
+                  <div className="rental-product-identity">
+                    <small>{productIdentity}</small>
+                    <h3>{productTitle}</h3>
+                  </div>
                   <div className="rental-product-price">
                     {hasMonthlyFee ? <><strong>{money(product.monthly_fee)}원</strong><span>/월</span></> : <strong>렌탈료 상담</strong>}
                   </div>
@@ -136,4 +145,3 @@ export default function RentalCatalog() {
     </section>
   );
 }
-

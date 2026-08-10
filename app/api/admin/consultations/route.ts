@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
       .limit(300);
 
     if (status) query = query.eq('status', status);
-    if (service) query = query.eq('service_type', service);
+    if (service === '렌탈 전체') query = query.ilike('service_type', '%렌탈%');
+    else if (service) query = query.eq('service_type', service);
 
     if (keyword) {
       const safeKeyword = keyword.replace(/[%_,]/g, ' ');
