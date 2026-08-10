@@ -1,10 +1,11 @@
 import ReChairLogo from './ReChairLogo';
+import styles from './HeaderV072.module.css';
 
 export default function Header() {
   return (
-    <header className="site-header rc-final-header">
-      <div className="header-inner rc-final-header-inner">
-        <a href="/" className="brand rc-final-brand" aria-label="ReChair 홈">
+    <header className={`site-header rc-final-header ${styles.headerFix}`}>
+      <div className={`header-inner rc-final-header-inner ${styles.innerFix}`}>
+        <a href="/" className={`brand rc-final-brand ${styles.brandFix}`} aria-label="ReChair 홈">
           <ReChairLogo />
         </a>
 
@@ -16,11 +17,11 @@ export default function Header() {
           <a href="/admin">관리자</a>
         </nav>
 
-        <a className="header-cta rc-final-header-cta" href="/consult">
+        <a className={`header-cta rc-final-header-cta ${styles.ctaFix}`} href="/consult">
           상담 신청
         </a>
 
-        <button className="rc-final-menu" type="button" aria-label="메뉴">
+        <button className={`rc-final-menu ${styles.menuFix}`} type="button" aria-label="메뉴">
           <span />
           <span />
           <span />

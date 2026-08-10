@@ -1,3 +1,4 @@
+import styles from './HeroV072.module.css';
 export default function Hero() {
   const services = [
     { key: 'buy', label: '중고 구매', desc: '검증된 제품을 합리적인 가격으로', icon: '🛒' },
@@ -9,10 +10,10 @@ export default function Hero() {
   ];
 
   return (
-    <section className="rc-final-hero rc-balanced-hero">
-      <div className="rc-final-shell rc-balanced-shell">
-        <div className="rc-balanced-main">
-          <div className="rc-balanced-copy">
+    <section className={`rc-final-hero rc-balanced-hero ${styles.heroFix}`}>
+      <div className={`rc-final-shell rc-balanced-shell ${styles.shellFix}`}>
+        <div className={`rc-balanced-main ${styles.mainFix}`}>
+          <div className={`rc-balanced-copy ${styles.copyFix}`}>
             <p className="rc-final-eyebrow">중고 안마의자 전문 고객센터</p>
             <h1>
               중고 안마의자,<br />
@@ -25,15 +26,15 @@ export default function Hero() {
             </p>
           </div>
 
-          <div className="rc-balanced-chair" aria-hidden="true">
+          <div className={`rc-balanced-chair ${styles.chairFix}`} aria-hidden="true">
             <img src="/rechair-chair-sharp.png" alt="" />
           </div>
         </div>
 
-        <div className="rc-final-service-grid rc-balanced-service-grid" id="service-menu">
+        <div className={`rc-final-service-grid rc-balanced-service-grid ${styles.serviceGridFix}`} id="service-menu">
           {services.map((service) => (
             <a
-              className="rc-final-service-card rc-balanced-service-card"
+              className={`rc-final-service-card rc-balanced-service-card ${styles.serviceCardFix}`}
               href={`/consult?service=${service.key}`}
               key={service.key}
             >
@@ -45,7 +46,21 @@ export default function Hero() {
           ))}
         </div>
 
-        <div className="rc-final-cta-row rc-balanced-cta-row">
+        <a className={styles.rentalBanner} href="/rental">
+          <span className={styles.rentalIcon}>🪑</span>
+          <div className={styles.rentalCopy}>
+            <small>RECHAIR RENTAL</small>
+            <strong>안마의자 렌탈</strong>
+            <p>개인용 · 영업용(코인형) 렌탈을 한 번에 상담하세요.</p>
+          </div>
+          <div className={styles.rentalTypes}>
+            <span>개인용</span>
+            <span>영업용 · 코인형</span>
+          </div>
+          <b>›</b>
+        </a>
+
+        <div className={`rc-final-cta-row rc-balanced-cta-row ${styles.ctaRowFix}`}>
           <a className="rc-final-quote" href="/consult">
             <span>📝</span>
             <div>

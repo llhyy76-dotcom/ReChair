@@ -3,6 +3,7 @@ import Header from '@/components/Header';
 import ScrollToTopOnLoad from '@/components/ScrollToTopOnLoad';
 
 export const metadata = { title: 'ReChair', description: '중고 안마의자 통합 서비스 플랫폼' };
+export const viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' as const };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -64,11 +64,35 @@ export default function AdminDispatchAI(){
       setMessage(json.error||'배정대기 조회 오류');
       return;
     }
-    const items=json.data?.waiting_consultations||[];
+    let items=json.data?.waiting_consultations||[];
+
+    // CRM 상세에서 AI 배정 버튼으로 넘어온 경우, '배정대기' 필터와 관계없이
+    // 사용자가 보고 있던 정확한 consultation id를 배정 대상으로 우선 표시합니다.
+    // 같은 이름/전화번호의 중복 상담이 있을 때 다른 레코드가 선택되는 문제를 방지합니다.
+    const directId=typeof window!=='undefined'
+      ?new URLSearchParams(window.location.search).get('consultation_id')
+      :null;
+    if(directId){
+      try{
+        const directResponse=await fetch(
+          '/api/admin/consultations/'+encodeURIComponent(directId),
+          {cache:'no-store'}
+        );
+        const directJson=await directResponse.json();
+        if(directResponse.ok&&directJson.data){
+          const direct={...directJson.data,_direct_from_crm:true};
+          items=[direct,...items.filter((item:any)=>item.id!==direct.id)];
+          setSelectedId(direct.id);
+        }
+      }catch(error){
+        console.error('direct consultation load error',error);
+      }
+    }
+
     setWaiting(items);
-    setSelectedId(current=>items.some((item:any)=>item.id===current)
-      ?current
-      :(items[0]?.id||''));
+    setSelectedId(current=>directId
+      ?(items.some((item:any)=>item.id===directId)?directId:(items[0]?.id||''))
+      :(items.some((item:any)=>item.id===current)?current:(items[0]?.id||'')));
   }
 
   useEffect(()=>{void load()},[scheduledAt]);
@@ -192,7 +216,7 @@ export default function AdminDispatchAI(){
           }}>
             {waiting.length===0&&<option value="">배정대기 상담 없음</option>}
             {waiting.map(item=><option key={item.id} value={item.id}>
-              {item.customer_name} · {item.region||'지역 미입력'}
+              {item.customer_name} · {item.region||'지역 미입력'}{item._direct_from_crm?' · CRM 직접선택':''}
             </option>)}
           </select>
         </label>

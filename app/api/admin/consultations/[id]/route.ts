@@ -2,6 +2,23 @@ import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
 const STATUS=['신규','상담중','견적발송','예약완료','방문완료','판매완료','종료'];
 
+
+export async function GET(_req:NextRequest,{params}:{params:Promise<{id:string}>}){
+  try{
+    const {id}=await params;
+    const {data,error}=await getSupabaseServer()
+      .from('consultations')
+      .select('*')
+      .eq('id',id)
+      .single();
+    if(error)throw error;
+    return NextResponse.json({data});
+  }catch(e:any){
+    console.error('admin consultation get error',e);
+    return NextResponse.json({error:e?.message||'상담 조회 오류'},{status:500});
+  }
+}
+
 export async function PATCH(req:NextRequest,{params}:{params:Promise<{id:string}>}){
   try{
     const {id}=await params;
