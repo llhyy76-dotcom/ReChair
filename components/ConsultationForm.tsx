@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import privacyStyles from './ConsultationPrivacyV075.module.css';
+import resultStyles from './ConsultationResultV076.module.css';
 
 const SERVICE_OPTIONS = [
   { key: 'buy', label: '중고구매' },
@@ -276,21 +277,34 @@ export default function ConsultationForm() {
   }
 
   if (receiptNumber) {
+    const displayReceiptNumber = receiptNumber.startsWith('RC-')
+      ? receiptNumber
+      : `RC-${receiptNumber.split('-')[0].toUpperCase()}`;
+
     return (
-      <section className="consult-section rc-consult-section" id="consult">
-        <div className="container">
-          <div className="rc-consult-success">
-            <span className="rc-success-icon">✓</span>
-            <p className="eyebrow">CONSULTATION COMPLETE</p>
-            <h2>상담 신청이 완료되었습니다.</h2>
-            <p>담당자가 접수 내용을 확인한 뒤 순차적으로 연락드리겠습니다.</p>
-            <div className="rc-receipt-number">
-              <small>접수번호</small>
-              <strong>{receiptNumber}</strong>
+      <section className={`consult-section rc-consult-section ${resultStyles.section}`} id="consult">
+        <div className={resultStyles.shell}>
+          <div className={resultStyles.card}>
+            <div className={resultStyles.statusLine}>
+              <span className={resultStyles.icon}>✓</span>
+              <p className={resultStyles.kicker}>CONSULTATION COMPLETE</p>
             </div>
-            <button type="button" onClick={() => setReceiptNumber('')}>
-              추가 상담 신청
-            </button>
+            <h2>상담 신청이 완료되었습니다.</h2>
+            <p className={resultStyles.description}>
+              담당자가 접수 내용을 확인한 뒤 순차적으로 연락드리겠습니다.
+            </p>
+            <div className={resultStyles.receipt}>
+              <small>접수번호</small>
+              <strong title={receiptNumber}>{displayReceiptNumber}</strong>
+            </div>
+            <div className={resultStyles.actions}>
+              <a href={isRentalService ? '/rental' : '/'}>
+                {isRentalService ? '렌탈 상품 보기' : '홈으로'}
+              </a>
+              <button type="button" onClick={() => setReceiptNumber('')}>
+                추가 상담 신청
+              </button>
+            </div>
           </div>
         </div>
       </section>

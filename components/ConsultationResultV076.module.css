@@ -1,0 +1,193 @@
+.section {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 520px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  padding: 44px 20px 76px !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  place-items: start center !important;
+  background: #f3f7fc !important;
+  color: #071126 !important;
+}
+
+/* 기존 상담 페이지의 높은 우선순위 여백 규칙보다 완료 화면 규칙을 우선합니다. */
+:global(.rc-consult-page) .section.section {
+  padding: 44px 20px 76px !important;
+}
+
+.shell {
+  width: min(680px, 100%);
+  margin: 0 auto;
+}
+
+.card {
+  width: 100%;
+  border: 1px solid #dfe8f3;
+  border-radius: 26px;
+  padding: 38px;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 22px 58px rgba(15, 39, 75, .1);
+}
+
+.statusLine {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 62px;
+  height: 62px;
+  place-items: center;
+  border-radius: 50%;
+  background: #1766ff;
+  color: #fff;
+  font-size: 32px;
+  font-weight: 1000;
+  box-shadow: 0 12px 25px rgba(23, 102, 255, .24);
+}
+
+.kicker {
+  margin: 0 0 0 -9px;
+  border-radius: 0 999px 999px 0;
+  padding: 10px 18px 10px 22px;
+  background: #0b2856;
+  color: #b9d8ff;
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: .08em;
+}
+
+.card h2 {
+  margin: 26px 0 10px;
+  font-size: 34px;
+  line-height: 1.2;
+  letter-spacing: -1.8px;
+}
+
+.description {
+  margin: 0;
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.receipt {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 18px;
+  border-radius: 15px;
+  padding: 15px 18px;
+  background: #eef5ff;
+  text-align: left;
+}
+
+.receipt small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.receipt strong {
+  min-width: 0;
+  color: #0e5bff;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.actions a,
+.actions button {
+  min-height: 50px;
+  border: 0;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 1000;
+  cursor: pointer;
+}
+
+.actions a {
+  background: #eef5ff;
+  color: #0e5bff;
+}
+
+.actions button {
+  background: #0e5bff;
+  color: #fff;
+}
+
+@media (max-width: 700px) {
+  .section,
+  :global(.rc-consult-page) .section.section {
+    min-height: 0 !important;
+    padding: 24px 14px calc(54px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .card {
+    border-radius: 20px;
+    padding: 26px 18px 20px;
+  }
+
+  .icon {
+    width: 52px;
+    height: 52px;
+    font-size: 27px;
+  }
+
+  .kicker {
+    padding: 9px 13px 9px 18px;
+    font-size: 9px;
+  }
+
+  .card h2 {
+    margin: 20px 0 8px;
+    font-size: 26px;
+    letter-spacing: -1.3px;
+  }
+
+  .description {
+    font-size: 13px;
+  }
+
+  .receipt {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    margin: 18px 0 14px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+
+  .receipt strong {
+    font-size: 12px;
+  }
+
+  .actions a,
+  .actions button {
+    min-height: 46px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 360px) {
+  .actions {
+    grid-template-columns: 1fr;
+  }
+}
