@@ -3,6 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import privacyStyles from './ConsultationPrivacyV075.module.css';
 import resultStyles from './ConsultationResultV076.module.css';
+import compactStyles from './ConsultationCompactV078.module.css';
 
 const SERVICE_OPTIONS = [
   { key: 'buy', label: '중고구매' },
@@ -312,19 +313,19 @@ export default function ConsultationForm() {
   }
 
   return (
-    <section className="consult-section rc-consult-section" id="consult">
-      <div className="container rc-consult-container">
+    <section className={`consult-section rc-consult-section ${compactStyles.section}`} id="consult">
+      <div className={`container rc-consult-container ${compactStyles.container}`}>
         <div className="rc-consult-heading">
           <p className="eyebrow">FREE CONSULTATION</p>
           <h2>무료 상담 신청</h2>
           <p>필요한 정보를 남겨주시면 담당자가 확인 후 연락드립니다.</p>
         </div>
 
-        {productLoading && <div className="rc-selected-product loading">상품 정보를 불러오는 중입니다.</div>}
+        {productLoading && <div className={`rc-selected-product loading ${compactStyles.selectedProduct}`}>상품 정보를 불러오는 중입니다.</div>}
 
         {selectedProduct && (
-          <div className="rc-selected-product">
-            <div className="rc-selected-product-image">
+          <div className={`rc-selected-product ${compactStyles.selectedProduct}`}>
+            <div className={`rc-selected-product-image ${compactStyles.selectedProductImage}`}>
               {selectedProduct.thumbnail_url ? (
                 <img src={selectedProduct.thumbnail_url} alt={selectedProduct.title} />
               ) : (
@@ -340,8 +341,8 @@ export default function ConsultationForm() {
           </div>
         )}
 
-        <form key={selectedProduct?.id || 'general'} ref={formRef} className="rc-consult-form" onSubmit={handleSubmit}>
-          <div className="rc-form-grid">
+        <form key={selectedProduct?.id || 'general'} ref={formRef} className={`rc-consult-form ${compactStyles.form}`} onSubmit={handleSubmit}>
+          <div className={`rc-form-grid ${compactStyles.formGrid}`}>
             <label>
               <span>이름</span>
               <input name="customer_name" required placeholder="이름을 입력해 주세요" />
@@ -354,7 +355,7 @@ export default function ConsultationForm() {
 
             <label className="rc-full">
               <span>방문 주소</span>
-              <div className="rc-address-input-row">
+              <div className={`rc-address-input-row ${compactStyles.addressRow}`}>
                 <input
                   name="address"
                   required
@@ -381,7 +382,7 @@ export default function ConsultationForm() {
               <span>서비스</span>
               {hasFixedService ? (
                 <>
-                  <div className="rc-fixed-service">
+                  <div className={`rc-fixed-service ${compactStyles.fixedService}`}>
                     <b>{fixedService}</b>
                     <small>선택한 서비스로 접수됩니다.</small>
                   </div>
@@ -434,13 +435,13 @@ export default function ConsultationForm() {
           </div>
 
           {!isRentalService && (
-            <div className="rc-photo-section">
+            <div className={`rc-photo-section ${compactStyles.photoSection}`}>
               <div className="rc-photo-title">
                 <h3>제품 사진 업로드 <small className={privacyStyles.optionalLabel}>(선택)</small></h3>
                 <p>중고 판매·수리·부품 문의 시 필요한 경우에만 사진을 올려주세요.</p>
               </div>
 
-              <div className="rc-upload-grid">
+              <div className={`rc-upload-grid ${compactStyles.uploadGrid}`}>
                 {PHOTO_ITEMS.map((item) => (
                   <label className="rc-upload-card" key={item.key}>
                     <input
@@ -469,7 +470,7 @@ export default function ConsultationForm() {
             </div>
           )}
 
-          <section className={privacyStyles.privacyConsent} aria-labelledby="privacy-consent-title">
+          <section className={`${privacyStyles.privacyConsent} ${compactStyles.privacyConsent}`} aria-labelledby="privacy-consent-title">
             <div className={privacyStyles.privacyConsentHead}>
               <h3 id="privacy-consent-title">개인정보 수집·이용 안내</h3>
               <b>필수 확인</b>
@@ -506,7 +507,7 @@ export default function ConsultationForm() {
 
           {errorMessage && <p className="rc-form-error">{errorMessage}</p>}
 
-          <button className="rc-submit-button" type="submit" disabled={submitting}>
+          <button className={`rc-submit-button ${compactStyles.submitButton}`} type="submit" disabled={submitting}>
             {submitting ? '사진 압축 및 접수 중...' : '무료 상담 신청'}
           </button>
         </form>

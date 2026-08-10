@@ -1,0 +1,30 @@
+.page {
+  overflow-x: clip;
+}
+
+@media (max-width: 700px) {
+  .hero {
+    padding: 22px 15px 24px !important;
+  }
+
+  .eyebrow {
+    padding: 7px 13px !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+
+  .hero h1 {
+    margin: 12px 0 7px !important;
+    font-size: 30px !important;
+    line-height: 1.14 !important;
+    letter-spacing: -1.5px !important;
+  }
+
+  .hero > div > p:last-child {
+    max-width: 340px;
+    margin: 0 auto !important;
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+  }
+}
+
