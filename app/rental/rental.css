@@ -86,3 +86,83 @@
   .rental-guide b{grid-column:2;margin:0;font-size:15px}
   .rental-guide span{grid-column:2;font-size:12px;line-height:1.4}
 }
+
+/* ReChair v0.7.7 - prevent rental image from covering product price */
+@media(max-width:760px){
+  .rental-product-card{
+    display:flex;
+    flex-direction:column;
+    isolation:isolate;
+    overflow:hidden
+  }
+
+  .rental-product-image{
+    position:relative;
+    z-index:1;
+    flex:0 0 170px;
+    width:100%;
+    height:170px;
+    min-height:170px;
+    overflow:hidden
+  }
+
+  .rental-product-image img{
+    position:absolute;
+    inset:0;
+    z-index:1;
+    display:block;
+    width:100%!important;
+    height:100%!important;
+    max-width:100%!important;
+    max-height:100%!important;
+    object-fit:cover!important
+  }
+
+  .rental-product-image>b{
+    z-index:2
+  }
+
+  .rental-product-body{
+    position:relative;
+    z-index:3;
+    flex:1 0 auto;
+    width:100%;
+    margin:0;
+    border-top:1px solid #e6edf6;
+    padding:18px 16px 16px;
+    overflow:visible;
+    background:#fff;
+    transform:translateZ(0)
+  }
+
+  .rental-product-body>small{
+    display:block;
+    min-height:15px;
+    line-height:1.35
+  }
+
+  .rental-product-body h3{
+    display:block;
+    min-height:25px;
+    line-height:1.25
+  }
+
+  .rental-product-price{
+    position:relative;
+    z-index:4;
+    min-height:34px;
+    margin:0 0 12px;
+    padding:2px 0 0;
+    align-items:baseline;
+    overflow:visible;
+    line-height:1.2
+  }
+
+  .rental-product-price strong,
+  .rental-product-price span{
+    position:relative;
+    display:block;
+    padding-bottom:0;
+    line-height:1.2
+  }
+}

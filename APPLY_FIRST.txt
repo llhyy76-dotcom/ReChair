@@ -1,41 +1,28 @@
-ReChair OMS v0.7.6 적용 순서
+ReChair OMS v0.7.7 적용 순서
 ========================================
 
-이 패치는 v0.7.5 개인정보 보호 및 렌탈 사진 제외 패치가 반영된 최신 소스를 기준으로 합니다.
-이번 버전은 SQL을 실행할 필요가 없습니다.
+이 패치는 v0.7.6 모바일 렌탈 화면 개선본이 적용된 소스를 기준으로 합니다.
+Supabase SQL 실행은 필요하지 않습니다.
 
 1. 압축을 풉니다.
 
-2. 패치 폴더 안의 app, components 폴더를 C:\ReChair에 복사합니다.
-   같은 경로의 파일만 덮어씁니다.
-   C:\ReChair 폴더 자체와 .git 폴더는 삭제하지 않습니다.
+2. 아래 파일을 C:\ReChair의 같은 위치에 덮어씁니다.
 
-3. 새 파일이 반드시 생성되었는지 확인합니다.
+   app/rental/rental.css
 
-   components/ConsultationResultV076.module.css
+3. GitHub Desktop Summary에 아래 문구를 입력합니다.
 
-4. GitHub Desktop Summary에 아래 문구를 입력합니다.
+   Fix mobile rental price hidden by product image v0.7.7
 
-   Improve consultation completion and compact rental mobile UI v0.7.6
+4. Commit to main → Push origin
 
-5. Commit to main → Push origin
-
-6. Vercel 배포 상태가 Ready가 된 후 새로고침합니다.
-
-확인 주소
-----------------------------------------
-- /rental
-- /consult?service=rental-personal
-- /consult?service=rental-commercial
+5. Vercel 배포 상태가 Ready가 된 후 휴대전화에서 /rental을 새로고침합니다.
 
 반영 내용
 ----------------------------------------
-- PC 접수 완료 카드를 화면 중앙으로 이동
-- 접수 완료 카드와 여백을 간결하게 조정
-- 긴 내부 접수 ID를 화면에서는 짧은 `RC-XXXXXXXX` 형식으로 표시
-- 렌탈 상담 완료 시 '렌탈 상품 보기' 버튼 제공
-- 모바일 렌탈 상단 소개 영역 높이 축소
-- 개인용·영업용 렌탈 카드를 압축형 정보 카드로 변경
-- 모바일 렌탈 상품 사진·본문·버튼 간격 축소
-- 렌탈 진행 절차를 짧은 가로 정보 행 형태로 정리
-- 기존 로고, 상담 신청 버튼, 햄버거 메뉴 유지
+- 모바일 상품 이미지를 170px 영역 안에서만 표시
+- 이미지가 카드 본문을 덮지 않도록 경계와 레이어 분리
+- 브랜드·상품명·월 렌탈료가 이미지 아래에서 순서대로 표시
+- 가격 줄의 최소 높이와 줄간격 확보
+- 기존 상품 이미지 크기, 렌탈 카드 간격, 상담 기능 유지
+
