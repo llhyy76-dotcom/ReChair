@@ -1,4 +1,5 @@
 import './rental.css';
+import RentalCatalog from '@/components/RentalCatalog';
 
 const plans=[
   {
@@ -41,6 +42,8 @@ export default function RentalPage(){
         <a href={plan.href}>{plan.cta}</a>
       </article>)}
     </section>
+
+    <RentalCatalog />
 
     <section className="rental-guide">
       <div><small>01</small><b>렌탈 유형 선택</b><span>개인용 또는 영업용을 선택합니다.</span></div>

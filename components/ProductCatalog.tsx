@@ -18,7 +18,7 @@ export default function ProductCatalog(){
   const [sort,setSort]=useState('featured');
 
   useEffect(()=>{
-    fetch('/api/products?visible=true')
+    fetch('/api/products?visible=true&listing_type=sale')
       .then(async r=>{const j=await r.json();if(!r.ok)throw new Error(j?.error||'조회 오류');setProducts(j.data||[])})
       .catch(console.error).finally(()=>setLoading(false));
   },[]);

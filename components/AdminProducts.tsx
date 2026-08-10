@@ -19,9 +19,19 @@ type Product = {
   is_featured: boolean;
   thumbnail_url?: string | null;
   photo_urls?: string[] | null;
+  listing_type?: 'sale' | 'rental';
+  rental_type?: 'personal' | 'commercial' | null;
+  monthly_fee?: number | null;
+  deposit_amount?: number | null;
+  setup_fee?: number | null;
+  contract_months?: number | null;
+  installation_regions?: string | null;
+  rental_notes?: string | null;
 };
 
 type ProductForm = {
+  listing_type: 'sale' | 'rental';
+  rental_type: 'personal' | 'commercial';
   title: string;
   brand: string;
   model_name: string;
@@ -36,9 +46,17 @@ type ProductForm = {
   is_visible: boolean;
   is_featured: boolean;
   photo_urls: string[];
+  monthly_fee: string;
+  deposit_amount: string;
+  setup_fee: string;
+  contract_months: string;
+  installation_regions: string;
+  rental_notes: string;
 };
 
 const emptyForm: ProductForm = {
+  listing_type: 'sale',
+  rental_type: 'personal',
   title: '',
   brand: '',
   model_name: '',
@@ -53,6 +71,12 @@ const emptyForm: ProductForm = {
   is_visible: true,
   is_featured: false,
   photo_urls: [],
+  monthly_fee: '',
+  deposit_amount: '',
+  setup_fee: '',
+  contract_months: '36',
+  installation_regions: '',
+  rental_notes: '',
 };
 
 function toForm(product?: Product): ProductForm {
@@ -65,6 +89,8 @@ function toForm(product?: Product): ProductForm {
       : [];
 
   return {
+    listing_type: product.listing_type === 'rental' ? 'rental' : 'sale',
+    rental_type: product.rental_type === 'commercial' ? 'commercial' : 'personal',
     title: product.title || '',
     brand: product.brand || '',
     model_name: product.model_name || '',
@@ -79,6 +105,12 @@ function toForm(product?: Product): ProductForm {
     is_visible: product.is_visible !== false,
     is_featured: product.is_featured === true,
     photo_urls: photos,
+    monthly_fee: String(product.monthly_fee || ''),
+    deposit_amount: String(product.deposit_amount || ''),
+    setup_fee: String(product.setup_fee || ''),
+    contract_months: String(product.contract_months || 36),
+    installation_regions: product.installation_regions || '',
+    rental_notes: product.rental_notes || '',
   };
 }
 
@@ -194,6 +226,8 @@ export default function AdminProducts() {
       const photos = [...form.photo_urls, ...uploaded];
 
       const payload = {
+        listing_type: form.listing_type,
+        rental_type: form.listing_type === 'rental' ? form.rental_type : null,
         title: form.title.trim(),
         brand: form.brand.trim(),
         model_name: form.model_name.trim(),
@@ -209,6 +243,12 @@ export default function AdminProducts() {
         is_featured: form.is_featured,
         photo_urls: photos,
         thumbnail_url: photos[0] || null,
+        monthly_fee: Number(form.monthly_fee || 0),
+        deposit_amount: Number(form.deposit_amount || 0),
+        setup_fee: Number(form.setup_fee || 0),
+        contract_months: Number(form.contract_months || 0),
+        installation_regions: form.installation_regions || null,
+        rental_notes: form.rental_notes || null,
       };
 
       const response = await fetch(
@@ -278,10 +318,17 @@ export default function AdminProducts() {
               onClick={() => setSelectedId(product.id)}
               key={product.id}
             >
-              <strong>{product.title}</strong>
+              <strong>
+                <em className={product.listing_type === 'rental' ? 'rental' : 'sale'}>
+                  {product.listing_type === 'rental' ? '렌탈' : '판매'}
+                </em>
+                {product.title}
+              </strong>
               <span>{product.brand} · {product.model_name}</span>
               <small>
-                {Number(product.price || 0).toLocaleString('ko-KR')}원 · {product.status}
+                {product.listing_type === 'rental'
+                  ? `${Number(product.monthly_fee || 0).toLocaleString('ko-KR')}원/월`
+                  : `${Number(product.price || 0).toLocaleString('ko-KR')}원`} · {product.status}
               </small>
             </button>
           ))}
@@ -308,6 +355,40 @@ export default function AdminProducts() {
 
         <form onSubmit={saveProduct}>
           <div className="rc-admin-product-fields">
+            <label>
+              <span>상품 구분</span>
+              <select
+                value={form.listing_type}
+                onChange={(event) => {
+                  const listingType = event.target.value === 'rental' ? 'rental' : 'sale';
+                  setForm({
+                    ...form,
+                    listing_type: listingType,
+                    status: listingType === 'rental' ? '렌탈가능' : '판매중',
+                  });
+                }}
+              >
+                <option value="sale">중고·리퍼 판매상품</option>
+                <option value="rental">렌탈상품</option>
+              </select>
+            </label>
+
+            {form.listing_type === 'rental' && (
+              <label>
+                <span>렌탈 유형</span>
+                <select
+                  value={form.rental_type}
+                  onChange={(event) => setForm({
+                    ...form,
+                    rental_type: event.target.value === 'commercial' ? 'commercial' : 'personal',
+                  })}
+                >
+                  <option value="personal">개인용 안마의자</option>
+                  <option value="commercial">영업용(코인형) 안마의자</option>
+                </select>
+              </label>
+            )}
+
             <label>
               <span>상품명</span>
               <input
@@ -336,7 +417,7 @@ export default function AdminProducts() {
             </label>
 
             <label>
-              <span>판매가격</span>
+              <span>{form.listing_type === 'rental' ? '제품 구매가 (선택)' : '판매가격'}</span>
               <input
                 inputMode="numeric"
                 value={form.price}
@@ -359,17 +440,107 @@ export default function AdminProducts() {
             </label>
 
             <label>
-              <span>판매상태</span>
+              <span>{form.listing_type === 'rental' ? '렌탈상태' : '판매상태'}</span>
               <select
                 value={form.status}
                 onChange={(event) => setForm({ ...form, status: event.target.value })}
               >
-                <option>판매중</option>
-                <option>상담가능</option>
-                <option>예약중</option>
-                <option>판매완료</option>
+                {form.listing_type === 'rental' ? (
+                  <>
+                    <option>렌탈가능</option>
+                    <option>상담가능</option>
+                    <option>예약중</option>
+                    <option>렌탈중</option>
+                    <option>노출종료</option>
+                  </>
+                ) : (
+                  <>
+                    <option>판매중</option>
+                    <option>상담가능</option>
+                    <option>예약중</option>
+                    <option>판매완료</option>
+                  </>
+                )}
               </select>
             </label>
+
+            {form.listing_type === 'rental' && (
+              <>
+                <label>
+                  <span>월 렌탈료</span>
+                  <input
+                    inputMode="numeric"
+                    value={form.monthly_fee}
+                    onChange={(event) => setForm({
+                      ...form,
+                      monthly_fee: event.target.value.replace(/\D/g, ''),
+                    })}
+                    placeholder="예: 99000"
+                  />
+                </label>
+
+                <label>
+                  <span>계약기간 (개월)</span>
+                  <input
+                    inputMode="numeric"
+                    value={form.contract_months}
+                    onChange={(event) => setForm({
+                      ...form,
+                      contract_months: event.target.value.replace(/\D/g, ''),
+                    })}
+                    placeholder="예: 36"
+                  />
+                </label>
+
+                <label>
+                  <span>보증금</span>
+                  <input
+                    inputMode="numeric"
+                    value={form.deposit_amount}
+                    onChange={(event) => setForm({
+                      ...form,
+                      deposit_amount: event.target.value.replace(/\D/g, ''),
+                    })}
+                    placeholder="없으면 0"
+                  />
+                </label>
+
+                <label>
+                  <span>설치비</span>
+                  <input
+                    inputMode="numeric"
+                    value={form.setup_fee}
+                    onChange={(event) => setForm({
+                      ...form,
+                      setup_fee: event.target.value.replace(/\D/g, ''),
+                    })}
+                    placeholder="없으면 0"
+                  />
+                </label>
+
+                <label className="rc-admin-product-full">
+                  <span>설치 가능지역</span>
+                  <input
+                    value={form.installation_regions}
+                    onChange={(event) => setForm({
+                      ...form,
+                      installation_regions: event.target.value,
+                    })}
+                    placeholder="예: 서울·경기 / 전국 / 수도권"
+                  />
+                </label>
+
+                <label className="rc-admin-product-full">
+                  <span>렌탈 조건 안내</span>
+                  <textarea
+                    rows={3}
+                    value={form.rental_notes}
+                    onChange={(event) => setForm({ ...form, rental_notes: event.target.value })}
+                    placeholder="중도해지, 소유권 이전, 관리 조건 등 고객 안내 내용을 입력하세요."
+                  />
+                </label>
+              </>
+            )}
 
             <label>
               <span>연식</span>

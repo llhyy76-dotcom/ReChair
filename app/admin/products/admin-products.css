@@ -88,6 +88,26 @@
   display: block;
 }
 
+.rc-admin-product-menu strong em {
+  display: inline-flex;
+  margin-right: 7px;
+  border-radius: 999px;
+  padding: 3px 7px;
+  color: #fff;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1;
+  vertical-align: 2px;
+}
+
+.rc-admin-product-menu strong em.sale {
+  background: #0e5bff;
+}
+
+.rc-admin-product-menu strong em.rental {
+  background: #0b9a72;
+}
+
 .rc-admin-product-menu span {
   margin-top: 4px;
   color: #526070;

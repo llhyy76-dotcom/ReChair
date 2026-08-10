@@ -23,6 +23,10 @@ type ProductSummary = {
   model_name: string;
   price: number;
   thumbnail_url?: string | null;
+  listing_type?: 'sale' | 'rental';
+  rental_type?: 'personal' | 'commercial' | null;
+  monthly_fee?: number | null;
+  contract_months?: number | null;
 };
 
 type PreviewMap = Partial<Record<PhotoKey, string>>;
@@ -41,6 +45,19 @@ function serviceLabel(key: string | null): string {
 
 function formatPrice(value: number) {
   return `${Number(value || 0).toLocaleString('ko-KR')}원`;
+}
+
+function productConsultLabel(product: ProductSummary) {
+  return product.listing_type === 'rental' ? '선택한 렌탈상담 상품' : '선택한 구매상담 상품';
+}
+
+function productPriceLabel(product: ProductSummary) {
+  if (product.listing_type === 'rental') {
+    return Number(product.monthly_fee || 0) > 0
+      ? `월 ${formatPrice(Number(product.monthly_fee))}`
+      : '렌탈료 상담';
+  }
+  return formatPrice(product.price);
 }
 
 async function compressImage(file: File, maxDimension = 1600, quality = 0.82): Promise<File> {
@@ -290,15 +307,15 @@ export default function ConsultationForm() {
               )}
             </div>
             <div>
-              <small>선택한 구매상담 상품</small>
+              <small>{productConsultLabel(selectedProduct)}</small>
               <strong>{selectedProduct.title}</strong>
               <p>{selectedProduct.brand} · {selectedProduct.model_name}</p>
-              <b>{formatPrice(selectedProduct.price)}</b>
+              <b>{productPriceLabel(selectedProduct)}</b>
             </div>
           </div>
         )}
 
-        <form ref={formRef} className="rc-consult-form" onSubmit={handleSubmit}>
+        <form key={selectedProduct?.id || 'general'} ref={formRef} className="rc-consult-form" onSubmit={handleSubmit}>
           <div className="rc-form-grid">
             <label>
               <span>이름</span>
@@ -378,7 +395,9 @@ export default function ConsultationForm() {
               <textarea
                 name="message"
                 rows={6}
-                defaultValue={selectedProduct ? `${selectedProduct.title} 구매 상담을 신청합니다.` : ''}
+                defaultValue={selectedProduct
+                  ? `${selectedProduct.title} ${selectedProduct.listing_type === 'rental' ? '렌탈' : '구매'} 상담을 신청합니다.`
+                  : ''}
                 placeholder="자세한 문의 내용을 적어 주세요"
               />
             </label>

@@ -1,28 +1,37 @@
-ReChair OMS v0.7.3 모바일 첫 화면 최적화 패치
+ReChair OMS v0.7.4 렌탈 상품관리 패치
 
 적용 전제
-- ReChair OMS v0.7.2가 먼저 적용된 프로젝트용입니다.
-- Supabase SQL 실행이나 환경변수 변경은 필요하지 않습니다.
+- v0.7.1, v0.7.2, v0.7.3까지 반영된 C:\ReChair 프로젝트용입니다.
 
-적용 방법
-1. 이 압축파일을 풉니다.
-2. 압축을 푼 폴더 안의 components 폴더를 C:\ReChair에 붙여넣습니다.
-3. 같은 이름의 파일 2개를 모두 덮어씁니다.
-   - components/HeroV072.module.css
-   - components/HeaderV072.module.css
-4. C:\ReChair 폴더와 .git 폴더는 삭제하지 마세요.
-5. GitHub Desktop에서 변경 파일 2개를 확인합니다.
-6. Summary에 아래 내용을 입력합니다.
+중요: 반드시 SQL을 먼저 실행하세요.
 
-Optimize mobile first view and hero typography v0.7.3
+1. 압축을 풉니다.
+2. Supabase 프로젝트의 SQL Editor를 엽니다.
+3. 아래 파일을 메모장으로 열어 전체 내용을 복사합니다.
+   supabase/v074_rental_product_management.sql
+4. SQL Editor의 새 쿼리 창에 붙여넣고 Run을 누릅니다.
+5. Success 표시를 확인합니다.
 
-7. Commit to main을 누른 뒤 Push origin을 누릅니다.
-8. Vercel 배포가 Ready가 되면 휴대전화에서 새로고침하여 확인합니다.
+소스 적용
 
-확인 사항
-- 제목이 기존보다 작게 표시되는지
-- 6개 서비스 카드가 3열 x 2행으로 유지되는지
-- 큰 렌탈 상자가 보이는지
-- 무료 견적 신청과 판매상품 보기가 가로 한 줄로 표시되는지
-- 첫 화면에서 최소한 무료 견적 신청 버튼까지 보이는지
+6. 압축을 푼 폴더 안의 app, components, supabase 폴더를 C:\ReChair에 붙여넣습니다.
+7. 같은 이름의 파일은 모두 덮어씁니다.
+8. C:\ReChair 폴더 전체와 .git 폴더는 삭제하지 마세요.
+9. GitHub Desktop에서 변경 파일을 확인합니다.
+10. Summary에 아래 문구를 입력합니다.
+
+Add rental product management and catalog v0.7.4
+
+11. Commit to main을 누른 뒤 Push origin을 누릅니다.
+12. Vercel 배포 상태가 Ready가 될 때까지 기다립니다.
+
+첫 테스트
+
+1. /admin/products에 접속합니다.
+2. + 신규를 누릅니다.
+3. 상품 구분에서 렌탈상품을 선택합니다.
+4. 개인용 또는 영업용을 선택하고 월 렌탈료, 계약기간, 설치지역을 입력합니다.
+5. 홈페이지에 노출을 체크하고 저장합니다.
+6. /rental에 접속해 방금 등록한 상품이 표시되는지 확인합니다.
+7. 이 상품 렌탈 상담을 눌러 상품명과 렌탈상담이 신청서에 표시되는지 확인합니다.
 

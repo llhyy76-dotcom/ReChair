@@ -6,6 +6,10 @@ export async function GET(request:NextRequest){
     const supabase=getSupabaseServer();
     let query=supabase.from('products').select('*').order('is_featured',{ascending:false}).order('created_at',{ascending:false});
     if(request.nextUrl.searchParams.get('visible')==='true')query=query.eq('is_visible',true);
+    const listingType=request.nextUrl.searchParams.get('listing_type');
+    const rentalType=request.nextUrl.searchParams.get('rental_type');
+    if(listingType==='sale'||listingType==='rental')query=query.eq('listing_type',listingType);
+    if(rentalType==='personal'||rentalType==='commercial')query=query.eq('rental_type',rentalType);
     const {data,error}=await query;
     if(error)throw error;
     return NextResponse.json({data});
@@ -28,6 +32,8 @@ export async function POST(request:NextRequest){
     }
     const photos=Array.isArray(b.photo_urls)?b.photo_urls.filter(Boolean):[];
     const thumbnail=String(b.thumbnail_url||photos[0]||'').trim()||null;
+    const listingType=b.listing_type==='rental'?'rental':'sale';
+    const rentalType=listingType==='rental'&&b.rental_type==='commercial'?'commercial':listingType==='rental'?'personal':null;
     const payload={
       title,
       brand,
@@ -44,6 +50,14 @@ export async function POST(request:NextRequest){
       stock_qty:Math.max(0,Number(b.stock_qty??1)),
       is_visible:b.is_visible!==false,
       is_featured:b.is_featured===true,
+      listing_type:listingType,
+      rental_type:rentalType,
+      monthly_fee:Math.max(0,Number(b.monthly_fee||0)),
+      deposit_amount:Math.max(0,Number(b.deposit_amount||0)),
+      setup_fee:Math.max(0,Number(b.setup_fee||0)),
+      contract_months:Math.max(0,Math.trunc(Number(b.contract_months||0))),
+      installation_regions:String(b.installation_regions||'').trim()||null,
+      rental_notes:String(b.rental_notes||'').trim()||null,
       updated_at:new Date().toISOString(),
       // legacy compatibility
       name:title,
