@@ -1,37 +1,49 @@
-ReChair OMS v0.7.4 렌탈 상품관리 패치
+ReChair OMS v0.7.5 적용 순서
+========================================
 
-적용 전제
-- v0.7.1, v0.7.2, v0.7.3까지 반영된 C:\ReChair 프로젝트용입니다.
+이 패치는 v0.7.4 렌탈 상품 관리 패치가 반영된 최신 ReChair 소스를 기준으로 합니다.
 
-중요: 반드시 SQL을 먼저 실행하세요.
+1. 안전 확인
+----------------------------------------
+- C:\ReChair 폴더와 Supabase DB를 먼저 백업합니다.
+- C:\ReChair 폴더 자체와 .git 폴더는 삭제하지 않습니다.
 
-1. 압축을 풉니다.
-2. Supabase 프로젝트의 SQL Editor를 엽니다.
-3. 아래 파일을 메모장으로 열어 전체 내용을 복사합니다.
-   supabase/v074_rental_product_management.sql
-4. SQL Editor의 새 쿼리 창에 붙여넣고 Run을 누릅니다.
-5. Success 표시를 확인합니다.
+2. Supabase SQL을 가장 먼저 실행
+----------------------------------------
+- Supabase Dashboard → SQL Editor → New query
+- 아래 파일을 열어 전체 내용을 붙여넣고 Run을 누릅니다.
 
-소스 적용
+  supabase/v075_privacy_security_hardening.sql
 
-6. 압축을 푼 폴더 안의 app, components, supabase 폴더를 C:\ReChair에 붙여넣습니다.
-7. 같은 이름의 파일은 모두 덮어씁니다.
-8. C:\ReChair 폴더 전체와 .git 폴더는 삭제하지 마세요.
-9. GitHub Desktop에서 변경 파일을 확인합니다.
-10. Summary에 아래 문구를 입력합니다.
+- Success가 확인된 후에만 다음 단계로 이동합니다.
 
-Add rental product management and catalog v0.7.4
+3. 소스 덮어쓰기
+----------------------------------------
+- 이 패치 폴더 안의 app, components, lib, supabase 폴더를 C:\ReChair에 복사합니다.
+- 같은 경로의 파일만 덮어씁니다.
+- app/globals.css는 이번 패치에서 수정하지 않습니다.
 
-11. Commit to main을 누른 뒤 Push origin을 누릅니다.
-12. Vercel 배포 상태가 Ready가 될 때까지 기다립니다.
+4. GitHub 반영
+----------------------------------------
+GitHub Desktop Summary:
 
-첫 테스트
+Harden customer privacy and remove rental photo upload v0.7.5
 
-1. /admin/products에 접속합니다.
-2. + 신규를 누릅니다.
-3. 상품 구분에서 렌탈상품을 선택합니다.
-4. 개인용 또는 영업용을 선택하고 월 렌탈료, 계약기간, 설치지역을 입력합니다.
-5. 홈페이지에 노출을 체크하고 저장합니다.
-6. /rental에 접속해 방금 등록한 상품이 표시되는지 확인합니다.
-7. 이 상품 렌탈 상담을 눌러 상품명과 렌탈상담이 신청서에 표시되는지 확인합니다.
+Commit to main → Push origin
+
+5. Vercel 배포 후 확인
+----------------------------------------
+- /consult?service=rental-personal : 제품 사진 업로드 영역이 없어야 합니다.
+- /consult?service=rental-commercial : 제품 사진 업로드 영역이 없어야 합니다.
+- 렌탈 상품에서 상담 신청 : 선택한 상품 정보가 표시되고 사진 영역은 없어야 합니다.
+- 중고판매 또는 출장수리 상담 : 선택형 사진 영역은 유지되어야 합니다.
+- 개인정보 동의 체크 없이 접수하면 접수가 차단되어야 합니다.
+- /api/consultations 주소를 브라우저에서 열면 405가 나와야 합니다.
+- 관리자 로그인 후 상담 목록과 기존 상담사진은 정상적으로 보여야 합니다.
+
+중요
+----------------------------------------
+- SQL은 기존 상담을 즉시 삭제하지 않습니다. 기존 건에는 생성일 기준 1년의 보유 만료일을 표시합니다.
+- 실제 만료일 자동 삭제 작업은 별도 운영 기능으로 추가해야 합니다.
+- 개인정보처리방침 공개 페이지는 사업자·담당자 정보가 확정된 뒤 작성해야 합니다.
 

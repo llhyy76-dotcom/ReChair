@@ -1,5 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
+import {requireAdmin} from '@/lib/adminAuth';
 
 export async function GET(_request:NextRequest,{params}:{params:Promise<{id:string}>}){
   try{
@@ -14,6 +15,7 @@ export async function GET(_request:NextRequest,{params}:{params:Promise<{id:stri
 
 export async function PATCH(request:NextRequest,{params}:{params:Promise<{id:string}>}){
   try{
+    await requireAdmin();
     const {id}=await params;
     const b=await request.json();
     const title=String(b.title||'').trim();
@@ -41,6 +43,7 @@ export async function PATCH(request:NextRequest,{params}:{params:Promise<{id:str
     if(error)throw error;
     return NextResponse.json({data});
   }catch(error){
+    if(error instanceof Error&&error.message==='ADMIN_UNAUTHORIZED')return NextResponse.json({error:'관리자 로그인이 필요합니다.'},{status:401});
     const message=error instanceof Error?error.message:'상품 수정 오류';
     console.error('product PATCH error',error);
     return NextResponse.json({error:message},{status:500});
@@ -49,11 +52,13 @@ export async function PATCH(request:NextRequest,{params}:{params:Promise<{id:str
 
 export async function DELETE(_request:NextRequest,{params}:{params:Promise<{id:string}>}){
   try{
+    await requireAdmin();
     const {id}=await params;
     const {error}=await getSupabaseServer().from('products').delete().eq('id',id);
     if(error)throw error;
     return NextResponse.json({success:true});
   }catch(error){
+    if(error instanceof Error&&error.message==='ADMIN_UNAUTHORIZED')return NextResponse.json({error:'관리자 로그인이 필요합니다.'},{status:401});
     return NextResponse.json({error:error instanceof Error?error.message:'상품 삭제 오류'},{status:500});
   }
 }

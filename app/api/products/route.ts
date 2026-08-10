@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/supabaseServer';
+import { requireAdmin } from '@/lib/adminAuth';
 
 export async function GET(request:NextRequest){
   try{
@@ -22,6 +23,7 @@ export async function GET(request:NextRequest){
 
 export async function POST(request:NextRequest){
   try{
+    await requireAdmin();
     const b=await request.json();
     const supabase=getSupabaseServer();
     const title=String(b.title||'').trim();
@@ -71,6 +73,9 @@ export async function POST(request:NextRequest){
     }
     return NextResponse.json({data},{status:201});
   }catch(error){
+    if(error instanceof Error&&error.message==='ADMIN_UNAUTHORIZED'){
+      return NextResponse.json({error:'관리자 로그인이 필요합니다.'},{status:401});
+    }
     const message=error instanceof Error?error.message:'상품 등록 오류';
     console.error('products POST error',error);
     return NextResponse.json({error:message},{status:500});

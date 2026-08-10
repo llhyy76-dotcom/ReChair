@@ -1,0 +1,106 @@
+.optionalLabel {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.photoPrivacyNote {
+  margin: 14px 0 0;
+  border-radius: 12px;
+  padding: 11px 14px;
+  background: #f3f7fc;
+  color: #526070;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.privacyConsent {
+  margin-top: 28px;
+  border: 1px solid #ccd9e8;
+  border-radius: 18px;
+  padding: 20px;
+  background: #f8fbff;
+}
+
+.privacyConsentHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.privacyConsentHead h3 {
+  margin: 0;
+  color: #071126;
+  font-size: 19px;
+}
+
+.privacyConsentHead b {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #eaf2ff;
+  color: #0e5bff;
+  font-size: 11px;
+}
+
+.privacyConsent dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 16px 0 0;
+}
+
+.privacyConsent dl > div {
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+
+.privacyConsent dt {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.privacyConsent dd {
+  margin: 5px 0 0;
+  color: #142033;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.privacyConsent > p {
+  margin: 13px 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.privacyConsent > label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: #071126;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.privacyConsent > label input {
+  width: 19px;
+  height: 19px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: #0e5bff;
+}
+
+@media (max-width: 700px) {
+  .privacyConsent {
+    padding: 16px;
+  }
+
+  .privacyConsent dl {
+    grid-template-columns: 1fr;
+  }
+}

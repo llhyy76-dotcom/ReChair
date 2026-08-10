@@ -1,6 +1,7 @@
 'use client';
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import privacyStyles from './ConsultationPrivacyV075.module.css';
 
 const SERVICE_OPTIONS = [
   { key: 'buy', label: '중고구매' },
@@ -97,6 +98,7 @@ async function compressImage(file: File, maxDimension = 1600, quality = 0.82): P
 export default function ConsultationForm() {
   const formRef = useRef<HTMLFormElement | null>(null);
   const [fixedService, setFixedService] = useState('');
+  const [chosenService, setChosenService] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<ProductSummary | null>(null);
   const [productLoading, setProductLoading] = useState(false);
   const [files, setFiles] = useState<FileMap>({});
@@ -112,7 +114,9 @@ export default function ConsultationForm() {
     const service = params.get('service');
     const productId = params.get('product');
 
-    setFixedService(serviceLabel(service));
+    const resolvedService = serviceLabel(service);
+    setFixedService(resolvedService);
+    setChosenService(resolvedService);
 
     if (productId) {
       setProductLoading(true);
@@ -138,6 +142,13 @@ export default function ConsultationForm() {
   }, [previews]);
 
   const hasFixedService = useMemo(() => Boolean(fixedService), [fixedService]);
+  const isRentalService = useMemo(
+    () =>
+      fixedService.includes('렌탈') ||
+      chosenService.includes('렌탈') ||
+      selectedProduct?.listing_type === 'rental',
+    [chosenService, fixedService, selectedProduct]
+  );
 
   function inferRegion(value: string) {
     const parts = String(value || '').trim().split(/\s+/).filter(Boolean);
@@ -363,7 +374,12 @@ export default function ConsultationForm() {
                   <input type="hidden" name="service_type" value={fixedService} />
                 </>
               ) : (
-                <select name="service_type" required defaultValue="">
+                <select
+                  name="service_type"
+                  required
+                  value={chosenService}
+                  onChange={(event) => setChosenService(event.target.value)}
+                >
                   <option value="" disabled>원하는 서비스를 선택해 주세요</option>
                   {SERVICE_OPTIONS.map((item) => (
                     <option value={item.label} key={item.key}>{item.label}</option>
@@ -403,35 +419,76 @@ export default function ConsultationForm() {
             </label>
           </div>
 
-          <div className="rc-photo-section">
-            <div className="rc-photo-title">
-              <h3>제품 사진 업로드</h3>
-              <p>중고 판매·수리·부품 문의 시 사진을 올려주시면 더욱 빠르게 확인할 수 있습니다.</p>
+          {!isRentalService && (
+            <div className="rc-photo-section">
+              <div className="rc-photo-title">
+                <h3>제품 사진 업로드 <small className={privacyStyles.optionalLabel}>(선택)</small></h3>
+                <p>중고 판매·수리·부품 문의 시 필요한 경우에만 사진을 올려주세요.</p>
+              </div>
+
+              <div className="rc-upload-grid">
+                {PHOTO_ITEMS.map((item) => (
+                  <label className="rc-upload-card" key={item.key}>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      capture="environment"
+                      onChange={(event) => handlePhotoChange(item.key, event)}
+                    />
+                    <div className="rc-upload-preview">
+                      {previews[item.key] ? (
+                        <img src={previews[item.key]} alt={`${item.title} 미리보기`} />
+                      ) : (
+                        <span>＋</span>
+                      )}
+                    </div>
+                    <strong>{item.title}</strong>
+                    <small>{item.guide}</small>
+                    <em>{previews[item.key] ? '사진 변경' : '사진 선택'}</em>
+                  </label>
+                ))}
+              </div>
+
+              <p className={privacyStyles.photoPrivacyNote}>
+                주소, 사람 얼굴, 문서 등 상담과 무관한 개인정보가 사진에 포함되지 않도록 확인해 주세요.
+              </p>
+            </div>
+          )}
+
+          <section className={privacyStyles.privacyConsent} aria-labelledby="privacy-consent-title">
+            <div className={privacyStyles.privacyConsentHead}>
+              <h3 id="privacy-consent-title">개인정보 수집·이용 안내</h3>
+              <b>필수 확인</b>
             </div>
 
-            <div className="rc-upload-grid">
-              {PHOTO_ITEMS.map((item) => (
-                <label className="rc-upload-card" key={item.key}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={(event) => handlePhotoChange(item.key, event)}
-                  />
-                  <div className="rc-upload-preview">
-                    {previews[item.key] ? (
-                      <img src={previews[item.key]} alt={`${item.title} 미리보기`} />
-                    ) : (
-                      <span>＋</span>
-                    )}
-                  </div>
-                  <strong>{item.title}</strong>
-                  <small>{item.guide}</small>
-                  <em>{previews[item.key] ? '사진 변경' : '사진 선택'}</em>
-                </label>
-              ))}
-            </div>
-          </div>
+            <dl>
+              <div>
+                <dt>수집 목적</dt>
+                <dd>상담 접수, 견적 안내, 방문 일정 조정 및 요청 서비스 제공</dd>
+              </div>
+              <div>
+                <dt>필수 항목</dt>
+                <dd>이름, 연락처, 방문·설치 주소와 지역, 서비스 유형</dd>
+              </div>
+              <div>
+                <dt>선택 항목</dt>
+                <dd>브랜드, 모델명, 문의내용, 제품사진(입력·첨부하지 않아도 신청 가능하며 렌탈 상담에서는 수집하지 않음)</dd>
+              </div>
+              <div>
+                <dt>보유 기간</dt>
+                <dd>상담 접수일로부터 1년. 계약 또는 분쟁 관련 기록은 관계 법령에 따른 기간까지 보관</dd>
+              </div>
+            </dl>
+
+            <p>
+              동의를 거부할 권리가 있으나, 필수 항목 수집에 동의하지 않으면 온라인 상담 접수가 어렵습니다.
+            </p>
+
+            <label>
+              <input type="checkbox" name="privacy_consent" value="agreed" required />
+              <span>위 개인정보 수집·이용 내용을 확인하고 동의합니다.</span>
+            </label>
+          </section>
 
           {errorMessage && <p className="rc-form-error">{errorMessage}</p>}
 

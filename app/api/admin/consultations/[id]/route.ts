@@ -1,18 +1,20 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
+import {signConsultationPhotoRow} from '@/lib/consultationPhotoAccess';
 const STATUS=['신규','상담중','견적발송','예약완료','방문완료','판매완료','종료'];
 
 
 export async function GET(_req:NextRequest,{params}:{params:Promise<{id:string}>}){
   try{
     const {id}=await params;
-    const {data,error}=await getSupabaseServer()
+    const supabase=getSupabaseServer();
+    const {data,error}=await supabase
       .from('consultations')
       .select('*')
       .eq('id',id)
       .single();
     if(error)throw error;
-    return NextResponse.json({data});
+    return NextResponse.json({data:await signConsultationPhotoRow(supabase,data)});
   }catch(e:any){
     console.error('admin consultation get error',e);
     return NextResponse.json({error:e?.message||'상담 조회 오류'},{status:500});
@@ -36,14 +38,15 @@ export async function PATCH(req:NextRequest,{params}:{params:Promise<{id:string}
     if(b.region!==undefined)payload.region=String(b.region||'').trim()||null;
     if(b.address!==undefined)payload.address=String(b.address||'').trim()||null;
 
-    const {data,error}=await getSupabaseServer()
+    const supabase=getSupabaseServer();
+    const {data,error}=await supabase
       .from('consultations')
       .update(payload)
       .eq('id',id)
       .select('*')
       .single();
     if(error)throw error;
-    return NextResponse.json({data});
+    return NextResponse.json({data:await signConsultationPhotoRow(supabase,data)});
   }catch(e:any){
     console.error('admin consultation patch error',e);
     return NextResponse.json({error:e?.message||'상담 저장 오류'},{status:500});
