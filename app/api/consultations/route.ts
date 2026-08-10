@@ -59,6 +59,10 @@ export async function POST(request: NextRequest) {
     const brand = String(form.get('brand') || '').trim();
     const modelName = String(form.get('model_name') || '').trim();
     const privacyConsent = String(form.get('privacy_consent') || '') === 'agreed';
+    const rawProductId = String(form.get('product_id') || '').trim();
+    const productId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawProductId)
+      ? rawProductId
+      : null;
 
     if (!customerName || !phone || !address || !region || !serviceType) {
       return NextResponse.json(
@@ -75,6 +79,26 @@ export async function POST(request: NextRequest) {
     }
 
     const isRental = RENTAL_SERVICES.has(serviceType);
+    let rentalProduct: {
+      title: string | null;
+      monthly_fee: number | null;
+      deposit_amount: number | null;
+      setup_fee: number | null;
+      contract_months: number | null;
+    } | null = null;
+
+    if (isRental && productId) {
+      const { data, error } = await supabase
+        .from('products')
+        .select('title,monthly_fee,deposit_amount,setup_fee,contract_months')
+        .eq('id', productId)
+        .eq('listing_type', 'rental')
+        .maybeSingle();
+
+      if (error) throw error;
+      rentalProduct = data;
+    }
+
     const [photoFrontUrl, photoSideUrl, photoLabelUrl, photoBackUrl] = isRental
       ? [null, null, null, null]
       : await Promise.all([
@@ -96,8 +120,8 @@ export async function POST(request: NextRequest) {
       service_type: serviceType,
       brand: brand || null,
       model_name: modelName || null,
-      product_id: String(form.get('product_id') || '').trim() || null,
-      product_title: String(form.get('product_title') || '').trim() || null,
+      product_id: productId,
+      product_title: rentalProduct?.title || String(form.get('product_title') || '').trim() || null,
       message: String(form.get('message') || '').trim() || null,
       photo_front_url: photoFrontUrl,
       photo_side_url: photoSideUrl,
@@ -107,6 +131,12 @@ export async function POST(request: NextRequest) {
       privacy_consent_at: consentedAt.toISOString(),
       privacy_policy_version: PRIVACY_POLICY_VERSION,
       retention_expires_at: retentionExpiresAt.toISOString(),
+      rental_stage: isRental ? '상담접수' : null,
+      rental_stage_updated_at: isRental ? consentedAt.toISOString() : null,
+      rental_monthly_fee: isRental ? Number(rentalProduct?.monthly_fee || 0) : 0,
+      rental_deposit_amount: isRental ? Number(rentalProduct?.deposit_amount || 0) : 0,
+      rental_setup_fee: isRental ? Number(rentalProduct?.setup_fee || 0) : 0,
+      rental_contract_months: isRental ? Number(rentalProduct?.contract_months || 0) : 0,
       status: '신규',
       updated_at: consentedAt.toISOString(),
 
@@ -137,4 +167,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

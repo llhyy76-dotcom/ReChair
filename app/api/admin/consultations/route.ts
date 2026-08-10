@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/supabaseServer';
 import { signConsultationPhotoRows } from '@/lib/consultationPhotoAccess';
+import { requireAdmin } from '@/lib/adminAuth';
 
 export async function GET(request: NextRequest) {
   try {
+    await requireAdmin();
     const supabase = getSupabaseServer();
     const status = request.nextUrl.searchParams.get('status');
     const service = request.nextUrl.searchParams.get('service');
@@ -55,16 +57,21 @@ export async function GET(request: NextRequest) {
       assignee: item.assignee ?? item.manager ?? null,
       estimate_amount: Number(item.estimate_amount ?? item.quote ?? 0),
       status: item.status ?? '신규',
+      rental_stage: item.rental_stage ?? (
+        String(item.service_type ?? item.service ?? '').includes('렌탈') ? '상담접수' : null
+      ),
       schedule_count: scheduleCounts[item.id] || 0,
     }));
 
     const securedRows = await signConsultationPhotoRows(supabase, normalized);
     return NextResponse.json({ data: securedRows });
   } catch (error) {
+    if (error instanceof Error && error.message === 'ADMIN_UNAUTHORIZED') {
+      return NextResponse.json({ error: '관리자 로그인이 필요합니다.' }, { status: 401 });
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : '상담 조회 오류' },
       { status: 500 }
     );
   }
 }
-
