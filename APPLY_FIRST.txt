@@ -1,0 +1,14 @@
+ReChair OMS v0.7.1 적용 순서
+
+1) Supabase > SQL Editor에서
+   supabase/v071_crm_products_rental_integration.sql 전체 실행
+
+2) 이 패치 폴더 안의 파일/폴더를 C:\ReChair 에 덮어쓰기
+   - C:\ReChair 자체를 삭제하지 마세요.
+   - .git 폴더를 건드리지 마세요.
+
+3) GitHub Desktop
+   Summary: Fix CRM product registration and add rental v0.7.1
+   Commit to main -> Push origin
+
+4) Vercel Production이 Ready가 된 뒤 TEST_CHECKLIST_V071.md 순서대로 확인

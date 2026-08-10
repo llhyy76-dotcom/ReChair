@@ -49,25 +49,37 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseServer();
     const form = await request.formData();
 
-    const [
-      photoFrontUrl,
-      photoSideUrl,
-      photoLabelUrl,
-      photoBackUrl,
-    ] = await Promise.all([
+    const [photoFrontUrl, photoSideUrl, photoLabelUrl, photoBackUrl] = await Promise.all([
       uploadPhoto(supabase, form.get('photo_front') as File | null, 'front'),
       uploadPhoto(supabase, form.get('photo_side') as File | null, 'side'),
       uploadPhoto(supabase, form.get('photo_label') as File | null, 'label'),
       uploadPhoto(supabase, form.get('photo_back') as File | null, 'back'),
     ]);
 
+    const customerName = String(form.get('customer_name') || '').trim();
+    const phone = String(form.get('phone') || '').trim();
+    const address = String(form.get('address') || '').trim();
+    const region = String(form.get('region') || '').trim();
+    const serviceType = String(form.get('service_type') || '').trim();
+    const brand = String(form.get('brand') || '').trim();
+    const modelName = String(form.get('model_name') || '').trim();
+
+    if (!customerName || !phone || !address || !region || !serviceType) {
+      return NextResponse.json(
+        { error: '이름, 연락처, 방문 주소, 지역, 서비스는 필수입니다.' },
+        { status: 400 }
+      );
+    }
+
     const payload = {
-      customer_name: String(form.get('customer_name') || '').trim(),
-      phone: String(form.get('phone') || '').trim(),
-      region: String(form.get('region') || '').trim(),
-      service_type: String(form.get('service_type') || '').trim(),
-      brand: String(form.get('brand') || '').trim() || null,
-      model_name: String(form.get('model_name') || '').trim() || null,
+      // canonical fields
+      customer_name: customerName,
+      phone,
+      address,
+      region,
+      service_type: serviceType,
+      brand: brand || null,
+      model_name: modelName || null,
       product_id: String(form.get('product_id') || '').trim() || null,
       product_title: String(form.get('product_title') || '').trim() || null,
       message: String(form.get('message') || '').trim() || null,
@@ -76,14 +88,16 @@ export async function POST(request: NextRequest) {
       photo_label_url: photoLabelUrl,
       photo_back_url: photoBackUrl,
       status: '신규',
-    };
+      updated_at: new Date().toISOString(),
 
-    if (!payload.customer_name || !payload.phone || !payload.region || !payload.service_type) {
-      return NextResponse.json(
-        { error: '이름, 연락처, 지역, 서비스는 필수입니다.' },
-        { status: 400 }
-      );
-    }
+      // legacy compatibility fields retained by the normalized migration
+      name: customerName,
+      model: modelName || null,
+      front_photo_url: photoFrontUrl,
+      side_photo_url: photoSideUrl,
+      label_photo_url: photoLabelUrl,
+      back_photo_url: photoBackUrl,
+    };
 
     const { data, error } = await supabase
       .from('consultations')
@@ -91,13 +105,15 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('consultation insert error', error);
+      throw new Error(`상담 DB 저장 오류: ${error.message}`);
+    }
 
     return NextResponse.json({ data }, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : '상담 등록 오류' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : '상담 등록 오류';
+    console.error('consultation POST error', error);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

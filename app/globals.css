@@ -4719,3 +4719,5 @@ input:disabled{
   color:#64748b;
   font-size:11px;
 }
+
+.rc-address-input-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}.rc-address-input-row button{border:0;border-radius:14px;padding:0 18px;background:#071126;color:#fff;font-weight:900;cursor:pointer}@media(max-width:700px){.rc-address-input-row{grid-template-columns:1fr}.rc-address-input-row button{min-height:48px}}

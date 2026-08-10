@@ -9,6 +9,8 @@ const SERVICE_OPTIONS = [
   { key: 'dispose', label: '폐기수거' },
   { key: 'repair', label: '출장수리' },
   { key: 'parts', label: '부품구매' },
+  { key: 'rental-personal', label: '개인용 안마의자 렌탈' },
+  { key: 'rental-commercial', label: '영업용(코인형) 안마의자 렌탈' },
 ] as const;
 
 type ServiceKey = (typeof SERVICE_OPTIONS)[number]['key'];
@@ -85,6 +87,8 @@ export default function ConsultationForm() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [receiptNumber, setReceiptNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [region, setRegion] = useState('');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -117,6 +121,54 @@ export default function ConsultationForm() {
   }, [previews]);
 
   const hasFixedService = useMemo(() => Boolean(fixedService), [fixedService]);
+
+  function inferRegion(value: string) {
+    const parts = String(value || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '';
+    const metro = ['서울특별시','부산광역시','대구광역시','인천광역시','광주광역시','대전광역시','울산광역시','세종특별자치시'];
+    if (metro.includes(parts[0])) {
+      const city = parts[0].replace('특별시','').replace('광역시','').replace('특별자치시','');
+      return [city, parts[1] || ''].filter(Boolean).join(' ');
+    }
+    if (parts[0].endsWith('도')) {
+      return [parts[1] || '', parts[2] && /(구|군)$/.test(parts[2]) ? parts[2] : ''].filter(Boolean).join(' ');
+    }
+    return parts.slice(0, 2).join(' ');
+  }
+
+  function applyAddress(value: string) {
+    setAddress(value);
+    const nextRegion = inferRegion(value);
+    if (nextRegion) setRegion(nextRegion);
+  }
+
+  function openAddressSearch() {
+    const w = window as any;
+    const launch = () => new w.daum.Postcode({
+      oncomplete: (data: any) => {
+        const nextAddress = data.roadAddress || data.jibunAddress || data.address || '';
+        applyAddress(nextAddress);
+      },
+    }).open();
+
+    if (w.daum?.Postcode) {
+      launch();
+      return;
+    }
+
+    const existing = document.getElementById('daum-postcode-script') as HTMLScriptElement | null;
+    if (existing) {
+      existing.addEventListener('load', launch, { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'daum-postcode-script';
+    script.src = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+    script.onload = launch;
+    script.onerror = () => setErrorMessage('주소 검색을 불러오지 못했습니다. 주소를 직접 입력해 주세요.');
+    document.head.appendChild(script);
+  }
 
   function handlePhotoChange(key: PhotoKey, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -186,6 +238,8 @@ export default function ConsultationForm() {
 
       setFiles({});
       setPreviews({});
+      setAddress('');
+      setRegion('');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '상담 신청 중 오류가 발생했습니다.');
     } finally {
@@ -256,9 +310,29 @@ export default function ConsultationForm() {
               <input name="phone" required inputMode="tel" placeholder="010-0000-0000" />
             </label>
 
+            <label className="rc-full">
+              <span>방문 주소</span>
+              <div className="rc-address-input-row">
+                <input
+                  name="address"
+                  required
+                  value={address}
+                  onChange={(event) => applyAddress(event.target.value)}
+                  placeholder="도로명 주소를 검색하거나 직접 입력해 주세요"
+                />
+                <button type="button" onClick={openAddressSearch}>주소 검색</button>
+              </div>
+            </label>
+
             <label>
-              <span>지역</span>
-              <input name="region" required placeholder="시·군·구까지 입력해 주세요" />
+              <span>지역 (자동 입력)</span>
+              <input
+                name="region"
+                required
+                value={region}
+                onChange={(event) => setRegion(event.target.value)}
+                placeholder="예: 고양시 덕양구"
+              />
             </label>
 
             <label>
