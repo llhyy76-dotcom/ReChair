@@ -7,6 +7,7 @@ import styles from './TechnicianMobileApp.module.css';
 
 type Assignment={
   id:string;
+  schedule_kind?:'service'|'rental_installation'|'rental_retrieval'|string;
   consultation_id?:string|null;
   customer_name:string;
   phone?:string|null;
@@ -118,6 +119,12 @@ function nextActionLabel(item:Assignment){
   if(approvalState(item)==='반려') return '작업보고 수정';
   if(approvalState(item)==='재방문') return '재방문 내용 확인';
   return '작업보고 보기';
+}
+
+function jobKindLabel(item:Assignment){
+  if(item.schedule_kind==='rental_installation')return '렌탈 설치';
+  if(item.schedule_kind==='rental_retrieval')return '렌탈 회수';
+  return '';
 }
 
 export default function TechnicianMobileApp(){
@@ -443,6 +450,7 @@ export default function TechnicianMobileApp(){
             <div className={styles.heroTop}>
               <div>
                 <span className={styles.heroLabel}>다음 방문</span>
+                {jobKindLabel(nextItem)&&<span className={styles.jobKind}>{jobKindLabel(nextItem)}</span>}
                 <h2>{nextItem.customer_name} 고객</h2>
               </div>
               <div className={styles.heroBadges}>
@@ -547,6 +555,7 @@ export default function TechnicianMobileApp(){
                     <div className={styles.timelineCard}>
                       <div className={styles.cardTop}>
                         <div>
+                          {jobKindLabel(item)&&<span className={styles.jobKind}>{jobKindLabel(item)}</span>}
                           <span className={styles.time}>{time(item.scheduled_at)}</span>
                           <h3>{item.customer_name}</h3>
                         </div>

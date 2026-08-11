@@ -1,52 +1,44 @@
-ReChair OMS v0.8.0 적용 안내
-================================
+ReChair OMS v0.8.1 적용 순서
+========================================
 
-이번 버전은 아래 두 가지를 수정합니다.
+이번 버전은 렌탈 설치일정과 현장기사 업무를 연결합니다.
+반드시 SQL을 먼저 실행한 뒤 소스파일을 업로드하세요.
 
-1. PC 렌탈 상품카드에서 이미지가 상품명·모델명 글씨를 가리는 문제
-2. 관리자 화면에서 렌탈 9단계 관리 위치를 찾기 어려운 문제
+1. Supabase SQL Editor 열기
 
-적용 전 확인
---------------------------------
-- v0.7.9 SQL을 이미 실행했다면 이번에는 SQL을 다시 실행하지 않아도 됩니다.
-- v0.7.9 SQL을 아직 실행하지 않았다면 압축 안의
-  supabase/v079_rental_quote_contract_crm.sql을 Supabase SQL Editor에서 먼저 실행하세요.
+2. 아래 파일의 전체 내용을 붙여넣고 Run 실행
+   supabase/v081_rental_installation_operations.sql
 
-1. 프로젝트 파일 덮어쓰기
---------------------------------
-압축을 푼 뒤 폴더 안의 app, components 폴더를
-기존 C:\ReChair에 같은 위치로 덮어씁니다.
+3. 화면 하단에 Error 없이 Success가 표시되는지 확인
 
-C:\ReChair 폴더 전체나 .git 폴더는 삭제하지 마세요.
+4. 이 압축파일의 폴더 구조를 그대로 유지한 채
+   C:\ReChair 폴더에 덮어쓰기
+   - C:\ReChair 폴더 자체를 삭제하지 마세요.
+   - C:\ReChair\.git 폴더를 삭제하지 마세요.
 
-2. GitHub Desktop 반영
---------------------------------
-Summary에는 아래 문구를 입력하세요.
+5. GitHub Desktop Summary 입력
+   Connect rental installation calendar and technician workflow v0.8.1
 
-Fix PC rental card and add rental admin menu v0.8.0
+6. Commit to main → Push origin
 
-Commit to main → Push origin 순서로 진행합니다.
+7. Vercel 배포가 Ready가 된 뒤 테스트
 
-3. 배포 후 확인
---------------------------------
-Vercel 배포가 Ready가 된 후 아래 두 화면을 확인합니다.
+확인 위치
+----------------------------------------
+- 렌탈 9단계: /admin/rental → 고객 상담 선택
+- 설치일정: 렌탈 상세의 "설치 일정·기사 연동"
+- 전체 일정: /admin/schedule (현장 캘린더)
+- 기사 화면: /technician
 
-고객 렌탈 상품 화면
-https://re-chair.vercel.app/rental
+중요한 상태 전환
+----------------------------------------
+계약완료
+→ 설치 일정 생성
+→ 설치예약
+→ 기사 현장보고 최종 제출
+→ 검토대기
+→ 관리자 승인
+→ 운영중 자동 전환
 
-관리자 렌탈관리 화면
-https://re-chair.vercel.app/admin/rental
-
-관리자 상단 메뉴에 '렌탈관리'가 새로 표시됩니다.
-렌탈관리 화면 왼쪽에서 상담 건을 선택하면 오른쪽에
-'렌탈 견적·계약 관리'와 9단계 버튼이 나타납니다.
-
-9단계
---------------------------------
-상담접수 → 조건확인 → 견적발송 → 계약대기 → 계약완료
-→ 설치예약 → 운영중 → 계약종료 → 취소
-
-참고
---------------------------------
-- 첨부하신 /admin/schedule 화면은 AS 캘린더이므로 렌탈 9단계가 표시되지 않습니다.
-- 렌탈 9단계는 /admin/rental 또는 /admin/consultations에서 렌탈 상담을 선택해야 표시됩니다.
+관리자가 반려하면 렌탈 상태는 설치예약으로 유지되며,
+기사 화면에서 반려 사유를 확인하고 작업보고를 보완할 수 있습니다.

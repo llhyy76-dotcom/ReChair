@@ -64,6 +64,10 @@ function statusLabel(item:any):DisplayStatus{
   return getDisplayStatus(item);
 }
 
+function isRentalInstallation(item:any){
+  return item?.schedule_kind==='rental_installation';
+}
+
 export default function AdminScheduleCalendar(){
   const [date,setDate]=useState(isoDate());
   const [view,setView]=useState<ViewMode>('day');
@@ -100,11 +104,16 @@ export default function AdminScheduleCalendar(){
       setTechs(technicianResult.data||[]);
     }catch(error){
       console.error('admin schedule load error',error);
-      setMessage('AS 운영 캘린더를 불러오지 못했습니다.');
+      setMessage('현장 운영 캘린더를 불러오지 못했습니다.');
     }finally{
       setLoading(false);
     }
   },[date,view]);
+
+  useEffect(()=>{
+    const queryDate=new URLSearchParams(window.location.search).get('date');
+    if(queryDate&&/^\d{4}-\d{2}-\d{2}$/.test(queryDate))setDate(queryDate);
+  },[]);
 
   useEffect(()=>{void load()},[load]);
 
@@ -184,8 +193,8 @@ export default function AdminScheduleCalendar(){
     <header className="ops-title-row">
       <div>
         <p>RECHAIR ADMIN</p>
-        <h1>AS 운영 캘린더</h1>
-        <span>월·주·일 단위로 기사 일정과 작업보고 상태를 관리합니다.</span>
+        <h1>현장 운영 캘린더</h1>
+        <span>AS와 렌탈 설치 일정을 월·주·일 단위로 관리합니다.</span>
       </div>
       <nav>
         <a href="/admin/dispatch">자동배정</a>
@@ -258,8 +267,8 @@ export default function AdminScheduleCalendar(){
           return <article key={key} className={`${muted?'muted ':''}${today?'today':''}`}>
             <button className="month-date" onClick={()=>openDay(day)}>{day.getDate()}</button>
             <div className="month-events">
-              {dayItems.slice(0,4).map(item=><button key={item.id} className={`month-event ${getDisplayStatusClass(item)}`} onClick={()=>setSelected({...item})}>
-                <time>{formatTime(item.scheduled_at)}</time><span>{item.customer_name}</span>
+              {dayItems.slice(0,4).map(item=><button key={item.id} className={`month-event ${getDisplayStatusClass(item)} ${isRentalInstallation(item)?'rental-installation-event':''}`} onClick={()=>setSelected({...item})}>
+                <time>{formatTime(item.scheduled_at)}</time><span>{item.customer_name}</span>{isRentalInstallation(item)&&<em>설치</em>}
               </button>)}
               {dayItems.length>4&&<button className="month-more" onClick={()=>openDay(day)}>+{dayItems.length-4}건 더보기</button>}
             </div>
@@ -271,7 +280,7 @@ export default function AdminScheduleCalendar(){
     {selected&&<div className="ops-backdrop" onClick={()=>setSelected(null)}>
       <div className="ops-modal" onClick={event=>event.stopPropagation()}>
         <div className="ops-modal-head">
-          <div><p>{selected.service_type||'서비스'}</p><h2>{selected.customer_name}</h2><span>{selected.phone||'-'}</span></div>
+          <div><p>{selected.service_type||'서비스'} {isRentalInstallation(selected)&&<b className="schedule-kind-badge">렌탈 설치</b>}</p><h2>{selected.customer_name}</h2><span>{selected.phone||'-'}</span></div>
           <button type="button" onClick={()=>setSelected(null)}>×</button>
         </div>
         <div className="selected-status-line">
@@ -302,7 +311,7 @@ export default function AdminScheduleCalendar(){
 function ScheduleButton({item,onClick}:{item:any;onClick:()=>void}){
   return <button type="button" onClick={onClick}>
     <time>{formatTime(item.scheduled_at)}</time>
-    <div><b>{item.customer_name}</b><span>{item.region||'지역 미입력'} · {item.service_type||'서비스 미입력'}</span><em>{item.address||'주소 미입력'}</em></div>
+    <div><b>{item.customer_name} {isRentalInstallation(item)&&<i className="schedule-kind-badge">렌탈 설치</i>}</b><span>{item.region||'지역 미입력'} · {item.service_type||'서비스 미입력'}</span><em>{item.address||'주소 미입력'}</em></div>
     <div className="schedule-status-group"><small className={`status-pill ${getDisplayStatusClass(item)}`}>{statusLabel(item)}</small></div>
   </button>;
 }
@@ -310,7 +319,7 @@ function ScheduleButton({item,onClick}:{item:any;onClick:()=>void}){
 function ScheduleMini({item,onClick}:{item:any;onClick:()=>void}){
   return <button type="button" className={`schedule-mini ${getDisplayStatusClass(item)}`} onClick={onClick}>
     <div><time>{formatTime(item.scheduled_at)}</time><b>{item.customer_name}</b></div>
-    <span>{item.assignee||'미배정'}</span>
+    <span>{item.assignee||'미배정'}{isRentalInstallation(item)?' · 렌탈 설치':''}</span>
     <small>{statusLabel(item)}</small>
   </button>;
 }

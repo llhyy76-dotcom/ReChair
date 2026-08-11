@@ -9,7 +9,7 @@ const menus=[
   {href:'/admin/consultations',label:'상담 CRM'},
   {href:'/admin/rental',label:'렌탈관리'},
   {href:'/admin/products',label:'상품관리'},
-  {href:'/admin/schedule',label:'AS 캘린더'},
+  {href:'/admin/schedule',label:'현장 캘린더'},
   {href:'/admin/dispatch',label:'자동배정'},
   {href:'/admin/routes',label:'방문동선'},
   {href:'/admin/technicians',label:'기사관리'},

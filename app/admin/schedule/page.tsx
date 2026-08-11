@@ -1,1 +1,1 @@
-import AdminScheduleCalendar from '@/components/AdminScheduleCalendar';import './schedule.css';export default function Page(){return <main className="ops-page"><AdminScheduleCalendar/></main>}
+import AdminScheduleCalendar from '@/components/AdminScheduleCalendar';import './schedule.css';import './schedule-v081.css';export default function Page(){return <main className="ops-page"><AdminScheduleCalendar/></main>}

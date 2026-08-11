@@ -64,6 +64,8 @@ export async function PATCH(
       .from('service_schedules')
       .select(`
         id,
+        consultation_id,
+        schedule_kind,
         customer_name,
         status,
         symptom_text,
@@ -170,9 +172,46 @@ export async function PATCH(
       );
     }
 
+    let consultationUpdated=false;
+    if(
+      schedule.schedule_kind==='rental_installation'&&
+      schedule.consultation_id
+    ){
+      const consultationPayload:Record<string,unknown>={
+        updated_at:now,
+        rental_stage_updated_at:now,
+      };
+
+      if(approvalStatus==='승인'){
+        consultationPayload.rental_stage='운영중';
+        consultationPayload.status='운영중';
+        consultationPayload.rental_installation_completed_at=
+          schedule.completed_at||now;
+        consultationPayload.rental_operating_started_at=now;
+        consultationPayload.next_action_at=null;
+      }else{
+        consultationPayload.rental_stage='설치예약';
+        consultationPayload.status='예약완료';
+      }
+
+      const {error:consultationError}=await supabase
+        .from('consultations')
+        .update(consultationPayload)
+        .eq('id',schedule.consultation_id);
+
+      if(consultationError){
+        console.error('rental consultation stage sync error',consultationError);
+        return NextResponse.json({
+          error:`작업보고는 저장되었지만 렌탈 단계 연동에 실패했습니다: ${consultationError.message}`,
+        },{status:500});
+      }
+      consultationUpdated=true;
+    }
+
     return NextResponse.json({
       success:true,
       data,
+      consultation_updated:consultationUpdated,
     });
   }catch(error:any){
     if(

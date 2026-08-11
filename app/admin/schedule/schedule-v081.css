@@ -1,0 +1,31 @@
+/* ReChair OMS v0.8.1 - rental installation job type */
+.schedule-kind-badge{
+  display:inline-flex!important;
+  align-items:center;
+  width:max-content;
+  margin-left:5px;
+  border-radius:999px;
+  padding:3px 7px;
+  background:#e0f2fe;
+  color:#0369a1;
+  font-size:10px!important;
+  font-style:normal;
+  font-weight:1000;
+  vertical-align:middle;
+  white-space:nowrap;
+}
+
+.month-event.rental-installation-event{
+  box-shadow:inset 3px 0 #0284c7;
+}
+
+.month-event em{
+  margin-left:auto;
+  border-radius:999px;
+  padding:1px 4px;
+  background:#fff;
+  color:#0369a1;
+  font-style:normal;
+  font-weight:1000;
+  white-space:nowrap;
+}

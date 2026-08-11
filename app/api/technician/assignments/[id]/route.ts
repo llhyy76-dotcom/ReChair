@@ -132,16 +132,21 @@ export async function PATCH(
 
     if(data?.consultation_id){
       const consultationPayload:any={updated_at:now};
+      const isRentalInstallation=data.schedule_kind==='rental_installation';
 
-      if(body.status==='방문중'){
+      if(isRentalInstallation){
+        consultationPayload.status='예약완료';
+        consultationPayload.rental_stage='설치예약';
+        consultationPayload.rental_stage_updated_at=now;
+      }else if(body.status==='방문중'){
         consultationPayload.status='방문완료';
       }
 
-      if(body.status==='작업중'){
+      if(!isRentalInstallation&&body.status==='작업중'){
         consultationPayload.status='상담중';
       }
 
-      if(body.status==='완료'){
+      if(!isRentalInstallation&&body.status==='완료'){
         consultationPayload.status='종료';
         consultationPayload.memo=[
           data.memo,
