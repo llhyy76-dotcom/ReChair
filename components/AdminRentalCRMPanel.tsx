@@ -17,8 +17,9 @@ const RENTAL_STAGES = [
 type RentalPanelProps = {
   consultation: any;
   onChange: (key: string, value: unknown) => void;
-  onSave: () => void | Promise<void>;
+  onSave: () => boolean | Promise<boolean>;
   onRefresh?: () => void | Promise<void>;
+  saving?: boolean;
 };
 
 function formatMoney(value: unknown) {
@@ -67,12 +68,15 @@ export default function AdminRentalCRMPanel({
   onChange,
   onSave,
   onRefresh,
+  saving=false,
 }: RentalPanelProps) {
   const [technicians,setTechnicians]=useState<any[]>([]);
   const [installationSchedule,setInstallationSchedule]=useState<any>(null);
   const [durationMinutes,setDurationMinutes]=useState(120);
   const [scheduleMessage,setScheduleMessage]=useState('');
   const [scheduleLoading,setScheduleLoading]=useState(false);
+  const [panelSaving,setPanelSaving]=useState(false);
+  const [panelSaveMessage,setPanelSaveMessage]=useState('');
   const stage = consultation.rental_stage || '상담접수';
   const stageIndex = Math.max(0, RENTAL_STAGES.findIndex((item) => item.value === stage));
   const isClosed = stage === '계약종료' || stage === '취소';
@@ -129,6 +133,26 @@ export default function AdminRentalCRMPanel({
     if (calculatedEnd) onChange('rental_end_date', calculatedEnd);
   }
 
+  async function saveRentalInfo(){
+    try{
+      setPanelSaving(true);
+      setPanelSaveMessage('저장 중…');
+      const saved=await onSave();
+      setPanelSaveMessage(
+        saved
+          ?`저장 완료 · ${new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`
+          :'저장되지 않았습니다. 화면 하단 오류 안내를 확인해 주세요.'
+      );
+      return saved;
+    }catch(error){
+      console.error('rental info save error',error);
+      setPanelSaveMessage('저장 요청 중 오류가 발생했습니다.');
+      return false;
+    }finally{
+      setPanelSaving(false);
+    }
+  }
+
   async function syncInstallation(){
     if(!consultation.rental_installation_at){
       setScheduleMessage('설치 예정일을 입력해 주세요.');
@@ -146,7 +170,11 @@ export default function AdminRentalCRMPanel({
     try{
       setScheduleLoading(true);
       setScheduleMessage('렌탈 정보와 설치 일정을 저장하고 있습니다.');
-      await onSave();
+      const saved=await onSave();
+      if(!saved){
+        setScheduleMessage('렌탈 정보 저장에 실패하여 설치 일정을 생성하지 않았습니다. 화면 하단 오류 안내를 확인해 주세요.');
+        return;
+      }
       const localDate=new Date(consultation.rental_installation_at);
       const response=await fetch(
         `/api/admin/consultations/${consultation.id}/rental-installation`,
@@ -336,8 +364,9 @@ export default function AdminRentalCRMPanel({
         <div>
           <span>견적 발송 {formatDateTime(consultation.rental_quote_sent_at)}</span>
           <span>계약 완료 {formatDateTime(consultation.rental_contract_signed_at)}</span>
+          {panelSaveMessage&&<strong className="rental-save-result">{panelSaveMessage}</strong>}
         </div>
-        <button type="button" onClick={() => void onSave()}>렌탈 정보 저장</button>
+        <button type="button" disabled={saving||panelSaving} onClick={() => void saveRentalInfo()}>{saving||panelSaving?'저장 중…':'렌탈 정보 저장'}</button>
       </div>
     </section>
   );
