@@ -366,7 +366,10 @@ export default function AdminRentalCRMPanel({
           <span>계약 완료 {formatDateTime(consultation.rental_contract_signed_at)}</span>
           {panelSaveMessage&&<strong className="rental-save-result">{panelSaveMessage}</strong>}
         </div>
-        <button type="button" disabled={saving||panelSaving} onClick={() => void saveRentalInfo()}>{saving||panelSaving?'저장 중…':'렌탈 정보 저장'}</button>
+        <div className="rental-crm-foot-actions">
+          <a href={`/admin/rental/operations?consultation_id=${consultation.id}`}>운영·납부 보기</a>
+          <button type="button" disabled={saving||panelSaving} onClick={() => void saveRentalInfo()}>{saving||panelSaving?'저장 중…':'렌탈 정보 저장'}</button>
+        </div>
       </div>
     </section>
   );
