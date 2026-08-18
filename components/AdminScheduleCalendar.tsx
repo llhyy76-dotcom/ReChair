@@ -6,6 +6,7 @@ import {
   getDisplayStatusClass,
   type DisplayStatus,
 } from '@/lib/scheduleDisplayStatus';
+import {normalizeScheduleKind} from '@/lib/scheduleKind';
 import {useCallback,useEffect,useMemo,useState} from 'react';
 
 const STATES=['배정대기','배정완료','이동중','방문중','작업중','완료','취소'];
@@ -65,11 +66,11 @@ function statusLabel(item:any):DisplayStatus{
 }
 
 function isRentalInstallation(item:any){
-  return item?.schedule_kind==='rental_installation';
+  return normalizeScheduleKind(item)==='rental_installation';
 }
 
 function isRentalRetrieval(item:any){
-  return item?.schedule_kind==='rental_retrieval';
+  return normalizeScheduleKind(item)==='rental_retrieval';
 }
 
 function rentalJobLabel(item:any){
@@ -314,7 +315,11 @@ export default function AdminScheduleCalendar(){
       </div>
     </div>}
 
-    {reportScheduleId&&<AdminFieldReport scheduleId={reportScheduleId} onClose={()=>{setReportScheduleId(null);void load()}}/>}
+    {reportScheduleId&&<AdminFieldReport
+      scheduleId={reportScheduleId}
+      onUpdated={()=>void load()}
+      onClose={()=>{setReportScheduleId(null);void load()}}
+    />}
   </div>;
 }
 

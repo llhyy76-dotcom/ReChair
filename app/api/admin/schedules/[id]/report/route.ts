@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
 import {requireAdmin} from '@/lib/adminAuth';
+import {normalizeScheduleKind} from '@/lib/scheduleKind';
 
 export const dynamic='force-dynamic';
 
@@ -19,6 +20,7 @@ export async function GET(
       .select(`
         id,
         consultation_id,
+        schedule_kind,
         customer_name,
         phone,
         address,
@@ -42,7 +44,9 @@ export async function GET(
         report_approval_status,
         report_rejection_reason,
         report_reviewed_at,
-        report_reviewed_by
+        report_reviewed_by,
+        rental_return_condition,
+        rental_return_disposition
       `)
       .eq('id',id)
       .single();
@@ -110,6 +114,7 @@ export async function GET(
         {},
         schedule,
         {
+          schedule_kind:normalizeScheduleKind(schedule),
           service_schedule_photos:photos||[],
         }
       ),

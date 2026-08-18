@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
 import {requireAdmin} from '@/lib/adminAuth';
+import {normalizeScheduleKind} from '@/lib/scheduleKind';
 
 export const dynamic='force-dynamic';
 
@@ -66,10 +67,12 @@ export async function PATCH(
         id,
         consultation_id,
         schedule_kind,
+        service_type,
         customer_name,
         status,
         symptom_text,
         action_text,
+        customer_confirmation,
         customer_signature_url,
         completed_at,
         field_report_updated_at,
@@ -103,6 +106,8 @@ export async function PATCH(
       schedule.customer_signature_url
     );
 
+    const scheduleKind=normalizeScheduleKind(schedule);
+
     if(!hasSubmittedReport){
       return NextResponse.json(
         {
@@ -115,7 +120,7 @@ export async function PATCH(
     }
 
     if(
-      schedule.schedule_kind==='rental_retrieval'&&
+      scheduleKind==='rental_retrieval'&&
       approvalStatus==='승인'&&
       (!schedule.rental_return_condition||!schedule.rental_return_disposition)
     ){
@@ -124,10 +129,23 @@ export async function PATCH(
       },{status:400});
     }
 
+    if(
+      scheduleKind==='rental_installation'&&
+      approvalStatus==='승인'&&
+      (!schedule.symptom_text||!schedule.action_text||
+        !schedule.customer_confirmation||!schedule.customer_signature_url)
+    ){
+      return NextResponse.json({
+        error:'설치환경, 설치·작동시험, 고객 안내, 고객 서명이 모두 기록되어야 승인할 수 있습니다.',
+      },{status:400});
+    }
+
     const now=new Date().toISOString();
 
     const payload={
       status:'완료',
+
+      schedule_kind:scheduleKind,
 
       completed_at:
         schedule.completed_at||now,
@@ -187,7 +205,7 @@ export async function PATCH(
     let consultationUpdated=false;
     let productUpdated=false;
     if(
-      schedule.schedule_kind==='rental_installation'&&
+      scheduleKind==='rental_installation'&&
       schedule.consultation_id
     ){
       const consultationPayload:Record<string,unknown>={
@@ -238,7 +256,7 @@ export async function PATCH(
     }
 
     if(
-      schedule.schedule_kind==='rental_retrieval'&&
+      scheduleKind==='rental_retrieval'&&
       schedule.consultation_id
     ){
       const consultationPayload:Record<string,unknown>={

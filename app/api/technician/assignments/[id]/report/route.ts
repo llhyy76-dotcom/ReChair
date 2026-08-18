@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {requireTechnicianSession} from '@/lib/technicianAuth';
 import {getSupabaseServer} from '@/lib/supabaseServer';
+import {normalizeScheduleKind} from '@/lib/scheduleKind';
 
 export const dynamic='force-dynamic';
 
@@ -83,6 +84,7 @@ export async function GET(
       success:true,
       data:{
         ...schedule,
+        schedule_kind:normalizeScheduleKind(schedule),
         service_schedule_photos:photos||[],
       },
     });
@@ -125,7 +127,8 @@ export async function PATCH(
         id,
         assignee,
         completed_at,
-        schedule_kind
+        schedule_kind,
+        service_type
       `)
       .eq('id',id)
       .eq('assignee',session.technician.name)
@@ -142,9 +145,20 @@ export async function PATCH(
       );
     }
 
-    const isRentalRetrieval=currentSchedule.schedule_kind==='rental_retrieval';
+    const scheduleKind=normalizeScheduleKind(currentSchedule);
+    const isRentalInstallation=scheduleKind==='rental_installation';
+    const isRentalRetrieval=scheduleKind==='rental_retrieval';
+    const symptomText=String(body.symptom_text||'').trim();
+    const actionText=String(body.action_text||'').trim();
+    const partsText=String(body.replaced_parts||'').trim();
+    const confirmationText=String(body.customer_confirmation||'').trim();
     const returnCondition=String(body.rental_return_condition||'').trim();
     const returnDisposition=String(body.rental_return_disposition||'').trim();
+    if(isRentalInstallation&&(!symptomText||!actionText||!confirmationText)){
+      return NextResponse.json({
+        error:'설치환경, 설치·작동시험 내용, 고객 안내 확인을 모두 입력해 주세요.',
+      },{status:400});
+    }
     if(isRentalRetrieval&&!RETURN_CONDITIONS.includes(returnCondition)){
       return NextResponse.json({error:'회수 제품의 반납상태를 선택해 주세요.'},{status:400});
     }
@@ -155,20 +169,22 @@ export async function PATCH(
     const payload={
       status:'완료',
 
+      schedule_kind:scheduleKind,
+
       completed_at:
         currentSchedule.completed_at||now,
 
       symptom_text:
-        String(body.symptom_text||'').trim()||null,
+        symptomText||null,
 
       action_text:
-        String(body.action_text||'').trim()||null,
+        actionText||null,
 
       replaced_parts:
-        String(body.replaced_parts||'').trim()||null,
+        partsText||null,
 
       customer_confirmation:
-        String(body.customer_confirmation||'').trim()||null,
+        confirmationText||null,
 
       completed_by_technician_id:
         session.technician_id,

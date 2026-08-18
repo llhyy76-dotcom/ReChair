@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {requireTechnicianSession} from '@/lib/technicianAuth';
 import {getSupabaseServer} from '@/lib/supabaseServer';
+import {normalizeScheduleKind} from '@/lib/scheduleKind';
 
 const ALLOWED=['이동중','방문중','작업중','완료'];
 
@@ -70,6 +71,7 @@ export async function PATCH(
 
     const payload:any={
       status:body.status,
+      schedule_kind:normalizeScheduleKind(current),
       updated_at:now,
     };
 
@@ -132,8 +134,9 @@ export async function PATCH(
 
     if(data?.consultation_id){
       const consultationPayload:any={updated_at:now};
-      const isRentalInstallation=data.schedule_kind==='rental_installation';
-      const isRentalRetrieval=data.schedule_kind==='rental_retrieval';
+      const scheduleKind=normalizeScheduleKind(data);
+      const isRentalInstallation=scheduleKind==='rental_installation';
+      const isRentalRetrieval=scheduleKind==='rental_retrieval';
 
       if(isRentalInstallation){
         consultationPayload.status='예약완료';

@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect,useState} from 'react';
+import {isCommercialRental,normalizeScheduleKind} from '@/lib/scheduleKind';
 
 type Photo={
   id:string;
@@ -52,6 +53,26 @@ const photoLabels:Record<string,string>={
   part:'교체 부품',
   receipt:'영수증',
   other:'기타 사진',
+};
+
+const installationPhotoLabels:Record<string,string>={
+  front:'설치 완료 정면',
+  side:'설치 완료 측면',
+  label:'제품·제조 라벨',
+  after:'설치장소 전경',
+  part:'코인기 설정',
+  receipt:'인수·정산 자료',
+  other:'기타 설치 사진',
+};
+
+const retrievalPhotoLabels:Record<string,string>={
+  front:'회수 제품 정면',
+  side:'회수 제품 측면',
+  label:'모델·제조 라벨',
+  after:'분해·포장 후',
+  part:'리모컨·부속품',
+  receipt:'정산 확인',
+  other:'기타 회수 사진',
 };
 
 function formatDateTime(value?:string|null){
@@ -132,7 +153,15 @@ export default function AdminFieldReport({
   },[scheduleId]);
 
   const photos=report?.service_schedule_photos||[];
-  const isRetrieval=report?.schedule_kind==='rental_retrieval';
+  const scheduleKind=normalizeScheduleKind(report||{});
+  const isInstallation=scheduleKind==='rental_installation';
+  const isRetrieval=scheduleKind==='rental_retrieval';
+  const isCommercial=isCommercialRental(report?.service_type);
+  const activePhotoLabels=isRetrieval
+    ?retrievalPhotoLabels
+    :isInstallation
+      ?installationPhotoLabels
+      :photoLabels;
   async function reviewReport(
   approvalStatus:'승인'|'반려'|'검토대기'
 ){
@@ -146,7 +175,11 @@ export default function AdminFieldReport({
 
   const confirmMessage=
     approvalStatus==='승인'
-      ? '이 작업보고를 승인하시겠습니까?'
+      ? isInstallation
+        ? '이 렌탈 설치보고를 승인하고 계약을 운영중으로 변경하시겠습니까?'
+        : isRetrieval
+          ? '이 렌탈 회수보고를 승인하고 상품 상태를 반영하시겠습니까?'
+          : '이 작업보고를 승인하시겠습니까?'
       : approvalStatus==='반려'
         ? '이 작업보고를 기사에게 반려하시겠습니까?'
         : '검토대기 상태로 되돌리시겠습니까?';
@@ -195,13 +228,18 @@ export default function AdminFieldReport({
 
     setMessage(
       approvalStatus==='승인'
-        ? '작업보고가 승인되었습니다.'
+        ? isInstallation
+          ? '렌탈 설치보고가 승인되어 계약이 운영중으로 변경되었습니다.'
+          : isRetrieval
+            ? '렌탈 회수보고가 승인되었습니다.'
+            : '작업보고가 승인되었습니다.'
         : approvalStatus==='반려'
           ? '작업보고가 반려되었습니다.'
           : '검토대기 상태로 변경되었습니다.'
     );
 
     await load();
+    onUpdated?.();
   }catch(error){
     console.error(
       'admin report review client error',
@@ -226,10 +264,18 @@ export default function AdminFieldReport({
       >
         <header className="admin-report-header">
           <div>
-            <p>{isRetrieval?'RECHAIR RENTAL RETRIEVAL REPORT':'RECHAIR SERVICE REPORT'}</p>
+            <p>{isRetrieval
+              ?'RECHAIR RENTAL RETRIEVAL REPORT'
+              :isInstallation
+                ?'RECHAIR RENTAL INSTALLATION REPORT'
+                :'RECHAIR SERVICE REPORT'}</p>
             <h2>
               {report?.customer_name||
-                (isRetrieval?'렌탈 회수보고':'AS 작업보고')}
+                (isRetrieval
+                  ?'렌탈 회수보고'
+                  :isInstallation
+                    ?'렌탈 설치보고'
+                    :'AS 작업보고')}
             </h2>
 
             <span>
@@ -340,21 +386,33 @@ export default function AdminFieldReport({
 
             <section className="admin-report-text-grid">
               <article>
-                <h3>{isRetrieval?'반납상태 상세':'고객 증상'}</h3>
+                <h3>{isRetrieval
+                  ?'반납상태 상세'
+                  :isInstallation
+                    ?'설치환경·특이사항'
+                    :'고객 증상'}</h3>
                 <p>
                   {text(report.symptom_text)}
                 </p>
               </article>
 
               <article>
-                <h3>{isRetrieval?'회수조치 내용':'조치 내용'}</h3>
+                <h3>{isRetrieval
+                  ?'회수조치 내용'
+                  :isInstallation
+                    ?'설치·작동시험 내용'
+                    :'조치 내용'}</h3>
                 <p>
                   {text(report.action_text)}
                 </p>
               </article>
 
               <article>
-                <h3>{isRetrieval?'회수 부속품':'교체 부품'}</h3>
+                <h3>{isRetrieval
+                  ?'회수 부속품'
+                  :isInstallation
+                    ?'설치 제품·구성품'
+                    :'교체 부품'}</h3>
                 <p>
                   {text(report.replaced_parts)}
                 </p>
@@ -366,7 +424,11 @@ export default function AdminFieldReport({
               </article>}
 
               <article>
-                <h3>고객 확인사항</h3>
+                <h3>{isInstallation
+                  ?isCommercial
+                    ?'영업용 설치 안내·인수 확인'
+                    :'고객 안내·설치 확인'
+                  :'고객 확인사항'}</h3>
                 <p>
                   {text(
                     report.customer_confirmation
@@ -376,7 +438,11 @@ export default function AdminFieldReport({
             </section>
 
             <section className="admin-report-photos">
-              <h3>현장 사진</h3>
+              <h3>{isRetrieval
+                ?'회수 상태 사진'
+                :isInstallation
+                  ?'설치 완료 사진'
+                  :'현장 사진'}</h3>
 
               {photos.length===0?(
                 <div className="admin-report-empty">
@@ -387,7 +453,7 @@ export default function AdminFieldReport({
                   {photos.map(photo=>(
                     <article key={photo.id}>
                       <b>
-                        {photoLabels[
+                        {activePhotoLabels[
                           photo.photo_type
                         ]||photo.photo_type}
                       </b>
@@ -400,7 +466,7 @@ export default function AdminFieldReport({
                         <img
                           src={photo.photo_url}
                           alt={
-                            photoLabels[
+                            activePhotoLabels[
                               photo.photo_type
                             ]||'현장 사진'
                           }
@@ -413,7 +479,7 @@ export default function AdminFieldReport({
             </section>
 
             <section className="admin-report-signature">
-              <h3>고객 서명</h3>
+              <h3>{isInstallation?'설치 확인 고객 서명':'고객 서명'}</h3>
 
               {report.customer_signature_url?(
                 <a

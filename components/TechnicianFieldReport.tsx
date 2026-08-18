@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import {isCommercialRental,normalizeScheduleKind} from '@/lib/scheduleKind';
 
 type Photo={
   id:string;
@@ -50,6 +51,19 @@ const retrievalPhotoTypes=[
   {type:'receipt',label:'정산 확인',description:'현장 정산자료가 있는 경우 촬영',required:false},
 ] as const;
 
+const installationPhotoTypes=[
+  {type:'front',label:'설치 완료 정면',description:'설치된 제품 전체가 정면에서 보이도록 촬영',required:true},
+  {type:'side',label:'설치 완료 측면',description:'제품 측면과 주변 설치 공간이 함께 보이도록 촬영',required:true},
+  {type:'label',label:'제품·제조 라벨',description:'모델명과 제조번호가 선명하게 보이도록 촬영',required:true},
+  {type:'after',label:'설치장소 전경',description:'제품과 사용 공간이 함께 보이도록 촬영',required:false},
+  {type:'receipt',label:'인수·정산 자료',description:'현장 인수 또는 정산자료가 있는 경우 촬영',required:false},
+] as const;
+
+const commercialInstallationPhotoTypes=[
+  ...installationPhotoTypes,
+  {type:'part',label:'코인기 설정',description:'코인기와 금액·이용시간 설정 상태를 촬영',required:true},
+] as const;
+
 const wizardSteps=[
   {id:'symptom',label:'증상'},
   {id:'action',label:'조치'},
@@ -64,6 +78,11 @@ const actionOptions=['부품 교체','현장 수리','조정·체결','점검 �
 const commonParts=['마사지 모터','메인 PCB','리모컨','에어호스','솔레노이드 밸브','센서'];
 const returnConditionOptions=['정상','경미손상','수리필요','심각손상','부품누락'];
 const returnDispositionOptions=['재렌탈가능','점검필요','정비필요','폐기검토'];
+const installationCheckOptions=['반입동선 확보','전원 확인','바닥 수평','설치공간 확보','외관 이상 없음'];
+const commercialInstallationCheckOptions=[...installationCheckOptions,'코인기 위치 확인'];
+const installationActionOptions=['제품 반입·조립','수평 조정','전원·리모컨 확인','마사지 기능 시험','안전·사용법 안내'];
+const commercialInstallationActionOptions=[...installationActionOptions,'코인 투입 시험','요금·이용시간 설정'];
+const installationResultOptions=['정상 설치 완료','보완 필요','설치 불가'];
 
 type PartSelection={name:string;quantity:number};
 
@@ -99,6 +118,9 @@ export default function TechnicianFieldReport({
   const [selectedParts,setSelectedParts]=useState<PartSelection[]>([]);
   const [returnCondition,setReturnCondition]=useState('');
   const [returnDisposition,setReturnDisposition]=useState('');
+  const [installationChecks,setInstallationChecks]=useState<string[]>([]);
+  const [installationActions,setInstallationActions]=useState<string[]>([]);
+  const [installationResult,setInstallationResult]=useState('');
 
   const [message,setMessage]=useState('');
   const [loading,setLoading]=useState(true);
@@ -111,8 +133,28 @@ export default function TechnicianFieldReport({
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
   const drawingRef=useRef(false);
   const hasDrawingRef=useRef(false);
-  const isRetrieval=report?.schedule_kind==='rental_retrieval';
-  const activePhotoTypes=isRetrieval?retrievalPhotoTypes:photoTypes;
+  const scheduleKind=normalizeScheduleKind(report||{});
+  const isInstallation=scheduleKind==='rental_installation';
+  const isRetrieval=scheduleKind==='rental_retrieval';
+  const isCommercial=isCommercialRental(report?.service_type);
+  const activeInstallationChecks=isCommercial
+    ?commercialInstallationCheckOptions
+    :installationCheckOptions;
+  const activeInstallationActions=isCommercial
+    ?commercialInstallationActionOptions
+    :installationActionOptions;
+  const activePhotoTypes=isRetrieval
+    ?retrievalPhotoTypes
+    :isInstallation
+      ?isCommercial
+        ?commercialInstallationPhotoTypes
+        :installationPhotoTypes
+      :photoTypes;
+  const stepLabels=isRetrieval
+    ?['반납상태','회수조치','사진','서명','확인']
+    :isInstallation
+      ?['설치환경','설치·시험','사진','서명','확인']
+      :wizardSteps.map(step=>step.label);
 
   async function parseResponse(response:Response){
     const contentType=response.headers.get('content-type')||'';
@@ -160,6 +202,29 @@ export default function TechnicianFieldReport({
       setConfirmation(data.customer_confirmation||'');
       setReturnCondition(data.rental_return_condition||'');
       setReturnDisposition(data.rental_return_disposition||'');
+      if(normalizeScheduleKind(data)==='rental_installation'){
+        const checks=isCommercialRental(data.service_type)
+          ?commercialInstallationCheckOptions
+          :installationCheckOptions;
+        const actions=isCommercialRental(data.service_type)
+          ?commercialInstallationActionOptions
+          :installationActionOptions;
+        setInstallationChecks(
+          checks.filter(value=>(data.symptom_text||'').includes(value))
+        );
+        setInstallationActions(
+          actions.filter(value=>(data.action_text||'').includes(value))
+        );
+        setInstallationResult(
+          installationResultOptions.find(
+            value=>(data.action_text||'').includes(value)
+          )||''
+        );
+      }else{
+        setInstallationChecks([]);
+        setInstallationActions([]);
+        setInstallationResult('');
+      }
     }catch(error){
       console.error('field report load error',error);
       setMessage('작업보고를 불러오지 못했습니다.');
@@ -173,9 +238,21 @@ export default function TechnicianFieldReport({
   },[scheduleId]);
 
   async function saveReport(){
+    for(let step=0;step<4;step+=1){
+      if(!validateStep(step)){
+        setCurrentStep(step);
+        return;
+      }
+    }
     try{
       setSaving(true);
-      setMessage('작업보고를 저장하고 있습니다.');
+      setMessage(
+        isInstallation
+          ?'렌탈 설치보고를 저장하고 있습니다.'
+          :isRetrieval
+            ?'렌탈 회수보고를 저장하고 있습니다.'
+            :'작업보고를 저장하고 있습니다.'
+      );
 
       const response=await fetch(
         `/api/technician/assignments/${scheduleId}/report`,
@@ -202,7 +279,13 @@ export default function TechnicianFieldReport({
         return;
       }
 
-      setMessage('작업보고가 저장되었습니다.');
+      setMessage(
+        isInstallation
+          ?'렌탈 설치보고가 검토대기로 제출되었습니다.'
+          :isRetrieval
+            ?'렌탈 회수보고가 검토대기로 제출되었습니다.'
+            :'작업보고가 검토대기로 제출되었습니다.'
+      );
       await load();
     }catch(error){
       console.error('field report save error',error);
@@ -648,7 +731,55 @@ export default function TechnicianFieldReport({
     syncParts([]);
   }
 
+  function toggleInstallationCheck(value:string){
+    const next=installationChecks.includes(value)
+      ?installationChecks.filter(item=>item!==value)
+      :[...installationChecks,value];
+    setInstallationChecks(next);
+    setSymptom(
+      next.length
+        ?`설치환경 확인: ${next.join(', ')}`
+        :''
+    );
+  }
+
+  function toggleInstallationAction(value:string){
+    const next=installationActions.includes(value)
+      ?installationActions.filter(item=>item!==value)
+      :[...installationActions,value];
+    setInstallationActions(next);
+    setAction(
+      next.length
+        ?`설치작업: ${next.join(', ')}`
+        :''
+    );
+  }
+
   function generateReportText(){
+    if(isInstallation){
+      if(!installationChecks.length||!installationActions.length||!installationResult){
+        setMessage('설치환경, 설치 작업항목, 최종 작동시험 결과를 먼저 선택하세요.');
+        return;
+      }
+      setSymptom(`설치환경 확인: ${installationChecks.join(', ')}.`);
+      setAction(
+        `설치작업: ${installationActions.join(', ')}. 최종 작동시험 결과는 '${installationResult}'입니다.`
+      );
+      setParts(parts.trim()||(
+        isCommercial
+          ?'리모컨, 전원선, 코인박스 열쇠 및 기본 구성품 확인'
+          :'리모컨, 전원선 및 기본 구성품 확인'
+      ));
+      if(!confirmation.trim()){
+        setConfirmation(
+          isCommercial
+            ?'설치 위치와 제품 작동, 코인 투입, 요금·이용시간 설정, 안전수칙을 고객과 함께 확인했습니다.'
+            :'설치 위치와 제품 작동, 리모컨 사용법, 안전수칙을 고객과 함께 확인했습니다.'
+        );
+      }
+      setMessage('선택한 내용으로 렌탈 설치보고 문장을 작성했습니다. 필요한 내용을 추가로 수정할 수 있습니다.');
+      return;
+    }
     if(isRetrieval){
       if(!returnCondition||!returnDisposition){
         setMessage('반납상태와 회수 후 처리방향을 먼저 선택하세요.');
@@ -684,6 +815,17 @@ export default function TechnicianFieldReport({
   }
 
   function validateStep(step:number){
+    if(isInstallation&&step===0&&(!installationChecks.length||!symptom.trim())){
+      setMessage('설치환경 확인 항목을 선택하고 현장 특이사항을 확인하세요.');
+      return false;
+    }
+    if(
+      isInstallation&&step===1&&
+      (!installationActions.length||!installationResult||!action.trim()||!confirmation.trim())
+    ){
+      setMessage('설치 작업항목과 작동시험 결과를 선택하고 고객 안내 내용을 확인하세요.');
+      return false;
+    }
     if(isRetrieval&&step===0&&(!returnCondition||!symptom.trim())){
       setMessage('회수 제품의 반납상태를 선택하고 상세 내용을 확인하세요.');
       return false;
@@ -692,11 +834,11 @@ export default function TechnicianFieldReport({
       setMessage('회수 후 처리방향을 선택하고 회수조치 내용을 확인하세요.');
       return false;
     }
-    if(step===0&&!symptom.trim()){
+    if(!isInstallation&&!isRetrieval&&step===0&&!symptom.trim()){
       setMessage('고객 증상을 선택하거나 입력하세요.');
       return false;
     }
-    if(step===1&&!action.trim()){
+    if(!isInstallation&&!isRetrieval&&step===1&&!action.trim()){
       setMessage('원인과 조치 내용을 선택하거나 입력하세요.');
       return false;
     }
@@ -753,10 +895,20 @@ export default function TechnicianFieldReport({
       >
         <header>
           <div>
-            <p>{isRetrieval?'RENTAL RETRIEVAL REPORT':'FIELD SERVICE REPORT'}</p>
+            <p>{isRetrieval
+              ?'RENTAL RETRIEVAL REPORT'
+              :isInstallation
+                ?'RENTAL INSTALLATION REPORT'
+                :'FIELD SERVICE REPORT'}</p>
 
             <h2>
-              {report?.customer_name||(isRetrieval?'렌탈 회수보고':'현장 작업보고')}
+              {report?.customer_name||(
+                isRetrieval
+                  ?'렌탈 회수보고'
+                  :isInstallation
+                    ?'렌탈 설치보고'
+                    :'현장 작업보고'
+              )}
             </h2>
 
             <span>
@@ -828,7 +980,7 @@ export default function TechnicianFieldReport({
               onClick={()=>setCurrentStep(index)}
             >
               <b>{index<currentStep?'✓':index+1}</b>
-              <span>{isRetrieval?['반납상태','회수조치','사진','서명','확인'][index]:step.label}</span>
+              <span>{stepLabels[index]}</span>
             </button>
           ))}
         </nav>
@@ -837,19 +989,53 @@ export default function TechnicianFieldReport({
           <section className="wizard-section">
             <div className="wizard-heading">
               <small>STEP 1</small>
-              <h3>{isRetrieval?'회수 제품의 반납상태를 선택하세요':'고객 증상을 선택하세요'}</h3>
-              <p>{isRetrieval?'제품 외관과 작동상태를 확인한 뒤 가장 가까운 상태를 선택합니다.':'자주 발생하는 증상은 버튼만 누르면 입력됩니다.'}</p>
+              <h3>{isRetrieval
+                ?'회수 제품의 반납상태를 선택하세요'
+                :isInstallation
+                  ?'설치환경과 반입 조건을 확인하세요'
+                  :'고객 증상을 선택하세요'}</h3>
+              <p>{isRetrieval
+                ?'제품 외관과 작동상태를 확인한 뒤 가장 가까운 상태를 선택합니다.'
+                :isInstallation
+                  ?'현장의 반입동선, 전원, 바닥, 설치공간을 확인한 항목만 선택합니다.'
+                  :'자주 발생하는 증상은 버튼만 누르면 입력됩니다.'}</p>
             </div>
             <div className="choice-grid">
-              {(isRetrieval?returnConditionOptions:symptomOptions).map(value=>(
-                <button key={value} type="button" className={(isRetrieval?returnCondition:selectedSymptom)===value?'selected':''} disabled={isApproved} onClick={()=>{
-                  if(isRetrieval){setReturnCondition(value);setSymptom(value)}else chooseSymptom(value);
+              {(isRetrieval
+                ?returnConditionOptions
+                :isInstallation
+                  ?activeInstallationChecks
+                  :symptomOptions
+              ).map(value=>(
+                <button key={value} type="button" className={(
+                  isRetrieval
+                    ?returnCondition===value
+                    :isInstallation
+                      ?installationChecks.includes(value)
+                      :selectedSymptom===value
+                )?'selected':''} disabled={isApproved} onClick={()=>{
+                  if(isRetrieval){
+                    setReturnCondition(value);
+                    setSymptom(value);
+                  }else if(isInstallation){
+                    toggleInstallationCheck(value);
+                  }else{
+                    chooseSymptom(value);
+                  }
                 }}>{value}</button>
               ))}
             </div>
             <label className="wizard-textarea">
-              <span>{isRetrieval?'반납상태 상세':'증상 상세'}</span>
-              <textarea value={symptom} disabled={isApproved} onChange={event=>setSymptom(event.target.value)} placeholder={isRetrieval?'오염, 스크래치, 작동상태, 누락된 부속품 등을 입력하세요.':'고객이 설명한 증상과 점검 전 상태를 입력하세요.'}/>
+              <span>{isRetrieval
+                ?'반납상태 상세'
+                :isInstallation
+                  ?'설치환경 및 특이사항'
+                  :'증상 상세'}</span>
+              <textarea value={symptom} disabled={isApproved} onChange={event=>setSymptom(event.target.value)} placeholder={isRetrieval
+                ?'오염, 스크래치, 작동상태, 누락된 부속품 등을 입력하세요.'
+                :isInstallation
+                  ?'엘리베이터, 계단, 문 폭, 콘센트 위치 등 설치 전 특이사항을 입력하세요.'
+                  :'고객이 설명한 증상과 점검 전 상태를 입력하세요.'}/>
             </label>
           </section>
         )}
@@ -858,13 +1044,42 @@ export default function TechnicianFieldReport({
           <section className="wizard-section">
             <div className="wizard-heading">
               <small>STEP 2</small>
-              <h3>{isRetrieval?'회수조치와 후속 처리방향을 기록하세요':'원인과 조치를 기록하세요'}</h3>
-              <p>{isRetrieval?'제품 회수 후 재렌탈·점검·정비·폐기검토 중 하나를 선택합니다.':'선택값을 바탕으로 작업보고 문장을 자동 생성합니다.'}</p>
+              <h3>{isRetrieval
+                ?'회수조치와 후속 처리방향을 기록하세요'
+                :isInstallation
+                  ?'설치 작업과 최종 작동시험을 기록하세요'
+                  :'원인과 조치를 기록하세요'}</h3>
+              <p>{isRetrieval
+                ?'제품 회수 후 재렌탈·점검·정비·폐기검토 중 하나를 선택합니다.'
+                :isInstallation
+                  ?'실제로 완료한 설치 작업을 선택하고 작동시험 결과를 확인합니다.'
+                  :'선택값을 바탕으로 작업보고 문장을 자동 생성합니다.'}</p>
             </div>
             {isRetrieval?<>
               <h4>회수 후 처리방향</h4>
               <div className="choice-grid compact">
                 {returnDispositionOptions.map(value=><button key={value} type="button" className={returnDisposition===value?'selected':''} disabled={isApproved} onClick={()=>setReturnDisposition(value)}>{value}</button>)}
+              </div>
+            </>:isInstallation?<>
+              <h4>설치 작업항목</h4>
+              <div className="choice-grid compact">
+                {activeInstallationActions.map(value=><button
+                  key={value}
+                  type="button"
+                  className={installationActions.includes(value)?'selected':''}
+                  disabled={isApproved}
+                  onClick={()=>toggleInstallationAction(value)}
+                >{value}</button>)}
+              </div>
+              <h4>최종 작동시험</h4>
+              <div className="choice-grid compact">
+                {installationResultOptions.map(value=><button
+                  key={value}
+                  type="button"
+                  className={installationResult===value?'selected':''}
+                  disabled={isApproved}
+                  onClick={()=>setInstallationResult(value)}
+                >{value}</button>)}
               </div>
             </>:<>
               <h4>추정 원인</h4>
@@ -898,11 +1113,34 @@ export default function TechnicianFieldReport({
                 </div>)}
               </div>}
             </>}
-            <button type="button" className="auto-report-button" disabled={isApproved} onClick={generateReportText}>선택 내용으로 보고서 자동 작성</button>
+            <button type="button" className="auto-report-button" disabled={isApproved} onClick={generateReportText}>{isInstallation?'선택 내용으로 설치보고 작성':'선택 내용으로 보고서 자동 작성'}</button>
             <div className="report-form-grid wizard-fields">
-              <label><span>{isRetrieval?'회수조치 내용':'조치 내용'}</span><textarea value={action} disabled={isApproved} onChange={event=>setAction(event.target.value)} placeholder={isRetrieval?'분해, 포장, 운반 준비 및 현장 특이사항을 입력하세요.':'점검 결과와 수리·조정 내용을 입력하세요.'}/></label>
-              <label><span>{isRetrieval?'회수 부속품':'교체 부품'}</span><textarea value={parts} disabled={isApproved} onChange={event=>{setParts(event.target.value);if(!isRetrieval)setSelectedParts(parseParts(event.target.value));}} placeholder={isRetrieval?'리모컨, 전원선, 설명서 등 함께 회수한 부속품을 입력하세요.':'부품명과 수량, 회수 여부를 입력하세요.'}/></label>
-              <label><span>고객 확인사항</span><textarea value={confirmation} disabled={isApproved} onChange={event=>setConfirmation(event.target.value)} placeholder={isRetrieval?'제품과 부속품 회수, 현장 정리 및 정산 확인사항을 입력하세요.':'비용과 보증, 사용방법 등 안내사항을 입력하세요.'}/></label>
+              <label><span>{isRetrieval
+                ?'회수조치 내용'
+                :isInstallation
+                  ?'설치·작동시험 내용'
+                  :'조치 내용'}</span><textarea value={action} disabled={isApproved} onChange={event=>setAction(event.target.value)} placeholder={isRetrieval
+                ?'분해, 포장, 운반 준비 및 현장 특이사항을 입력하세요.'
+                :isInstallation
+                  ?(isCommercial?'제품 설치와 코인 금액·이용시간 설정, 투입시험 결과를 입력하세요.':'제품 설치와 전체 기능 작동시험 결과를 입력하세요.')
+                  :'점검 결과와 수리·조정 내용을 입력하세요.'}/></label>
+              <label><span>{isRetrieval
+                ?'회수 부속품'
+                :isInstallation
+                  ?'설치 제품·구성품'
+                  :'교체 부품'}</span><textarea value={parts} disabled={isApproved} onChange={event=>{
+                setParts(event.target.value);
+                if(!isRetrieval&&!isInstallation)setSelectedParts(parseParts(event.target.value));
+              }} placeholder={isRetrieval
+                ?'리모컨, 전원선, 설명서 등 함께 회수한 부속품을 입력하세요.'
+                :isInstallation
+                  ?(isCommercial?'모델·제조번호, 리모컨, 전원선, 코인박스 열쇠 등 인수 구성품을 입력하세요.':'모델·제조번호, 리모컨, 전원선 등 인수 구성품을 입력하세요.')
+                  :'부품명과 수량, 회수 여부를 입력하세요.'}/></label>
+              <label><span>{isInstallation?'고객 안내·설치 확인':'고객 확인사항'}</span><textarea value={confirmation} disabled={isApproved} onChange={event=>setConfirmation(event.target.value)} placeholder={isRetrieval
+                ?'제품과 부속품 회수, 현장 정리 및 정산 확인사항을 입력하세요.'
+                :isInstallation
+                  ?(isCommercial?'제품 작동, 코인 이용방법, 요금·이용시간, 안전수칙 안내 내용을 입력하세요.':'제품 작동, 리모컨 사용법, 안전수칙 안내 내용을 입력하세요.')
+                  :'비용과 보증, 사용방법 등 안내사항을 입력하세요.'}/></label>
             </div>
           </section>
         )}
@@ -912,8 +1150,16 @@ export default function TechnicianFieldReport({
           <div className="report-photo-heading">
             <div>
               <small>PHOTO REGISTRATION</small>
-              <h3>{isRetrieval?'회수 상태 사진':'현장 사진'}</h3>
-              <p>{isRetrieval?'제품 정면·측면·라벨을 포함해 회수 직전 상태가 잘 보이도록 촬영해주세요.':'필수 사진 3장을 포함해 작업 상태가 잘 보이도록 촬영해주세요.'}</p>
+              <h3>{isRetrieval
+                ?'회수 상태 사진'
+                :isInstallation
+                  ?'설치 완료 사진'
+                  :'현장 사진'}</h3>
+              <p>{isRetrieval
+                ?'제품 정면·측면·라벨을 포함해 회수 직전 상태가 잘 보이도록 촬영해주세요.'
+                :isInstallation
+                  ?(isCommercial?'설치 정면·측면·라벨과 코인기 설정 상태를 촬영해주세요.':'설치 정면·측면·라벨이 선명하게 보이도록 촬영해주세요.')
+                  :'필수 사진 3장을 포함해 작업 상태가 잘 보이도록 촬영해주세요.'}</p>
             </div>
             <strong>{photos.length}장 등록</strong>
           </div>
@@ -1018,7 +1264,11 @@ export default function TechnicianFieldReport({
             <h3>고객 서명</h3>
 
             <p>
-              작업내용을 확인한 고객이 아래 칸에 서명합니다.
+              {isInstallation
+                ?'설치 위치, 제품 작동과 사용방법을 확인한 고객이 아래 칸에 서명합니다.'
+                :isRetrieval
+                  ?'회수 제품과 부속품, 현장 상태를 확인한 고객이 아래 칸에 서명합니다.'
+                  :'작업내용을 확인한 고객이 아래 칸에 서명합니다.'}
             </p>
           </div>
 
@@ -1089,18 +1339,49 @@ export default function TechnicianFieldReport({
 
         {currentStep===4&&(
           <section className="wizard-section report-review-card">
-            <div className="wizard-heading"><small>FINAL CHECK</small><h3>{isRetrieval?'회수보고 최종 확인':'작업보고 최종 확인'}</h3><p>저장 전 누락된 내용이 없는지 확인하세요.</p></div>
+            <div className="wizard-heading"><small>FINAL CHECK</small><h3>{isRetrieval
+              ?'회수보고 최종 확인'
+              :isInstallation
+                ?'설치보고 최종 확인'
+                :'작업보고 최종 확인'}</h3><p>저장 전 누락된 내용이 없는지 확인하세요.</p></div>
             <dl>
-              <div><dt>{isRetrieval?'반납상태 상세':'고객 증상'}</dt><dd>{symptom||'미입력'}</dd></div>
+              <div><dt>{isRetrieval
+                ?'반납상태 상세'
+                :isInstallation
+                  ?'설치환경·특이사항'
+                  :'고객 증상'}</dt><dd>{symptom||'미입력'}</dd></div>
               {isRetrieval&&<div><dt>반납상태</dt><dd>{returnCondition||'미입력'}</dd></div>}
               {isRetrieval&&<div><dt>후속 처리방향</dt><dd>{returnDisposition||'미입력'}</dd></div>}
-              <div><dt>{isRetrieval?'회수조치 내용':'조치 내용'}</dt><dd>{action||'미입력'}</dd></div>
-              <div><dt>{isRetrieval?'회수 부속품':'교체 부품'}</dt><dd>{parts||(isRetrieval?'기록 없음':'교체 부품 없음')}</dd></div>
-              <div><dt>고객 안내</dt><dd>{confirmation||'미입력'}</dd></div>
-              <div><dt>현장 사진</dt><dd>{photos.length}장</dd></div>
+              {isInstallation&&<div><dt>최종 작동시험</dt><dd>{installationResult||'미입력'}</dd></div>}
+              <div><dt>{isRetrieval
+                ?'회수조치 내용'
+                :isInstallation
+                  ?'설치·작동시험 내용'
+                  :'조치 내용'}</dt><dd>{action||'미입력'}</dd></div>
+              <div><dt>{isRetrieval
+                ?'회수 부속품'
+                :isInstallation
+                  ?'설치 제품·구성품'
+                  :'교체 부품'}</dt><dd>{parts||(
+                isRetrieval
+                  ?'기록 없음'
+                  :isInstallation
+                    ?'구성품 기록 없음'
+                    :'교체 부품 없음'
+              )}</dd></div>
+              <div><dt>{isInstallation?'고객 안내·설치 확인':'고객 안내'}</dt><dd>{confirmation||'미입력'}</dd></div>
+              <div><dt>{isInstallation?'설치 완료 사진':'현장 사진'}</dt><dd>{photos.length}장</dd></div>
               <div><dt>고객 서명</dt><dd>{report?.customer_signature_url?'등록 완료':'미등록'}</dd></div>
             </dl>
-            <button type="button" className="primary final-save" disabled={saving||isApproved} onClick={saveReport}>{isApproved?'승인 완료':saving?'저장 중':isRetrieval?'회수보고 저장 및 제출':'작업보고 저장 및 제출'}</button>
+            <button type="button" className="primary final-save" disabled={saving||isApproved} onClick={saveReport}>{isApproved
+              ?'승인 완료'
+              :saving
+                ?'저장 중'
+                :isRetrieval
+                  ?'회수보고 저장 및 제출'
+                  :isInstallation
+                    ?'설치보고 저장 및 제출'
+                    :'작업보고 저장 및 제출'}</button>
           </section>
         )}
 

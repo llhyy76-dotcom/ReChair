@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
 import {requireTechnicianSession} from '@/lib/technicianAuth';
+import {normalizeScheduleKind} from '@/lib/scheduleKind';
 
 export const dynamic='force-dynamic';
 
@@ -54,7 +55,10 @@ export async function GET(req:NextRequest){
     }
 
     return NextResponse.json({
-      data:data||[],
+      data:(data||[]).map(item=>({
+        ...item,
+        schedule_kind:normalizeScheduleKind(item),
+      })),
       technician:{
         id:session.technician_id,
         name:technicianName,

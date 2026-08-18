@@ -1,0 +1,47 @@
+ReChair OMS v0.8.4 — 렌탈 설치 전용 현장보고서
+
+이번 버전은 Supabase SQL을 실행하지 않습니다.
+v0.8.3까지 반영된 최신 ReChair 프로젝트에 파일만 덮어씁니다.
+
+1. 적용 방법
+- 압축을 풉니다.
+- 압축 폴더 안의 app, components, lib 폴더를 C:\ReChair에 같은 경로로 덮어씁니다.
+- C:\ReChair 폴더 전체나 .git 폴더를 삭제하지 마세요.
+
+2. GitHub Desktop
+Summary에는 아래 문구를 입력합니다.
+
+Add rental installation field report routing v0.8.4
+
+Commit to main → Push origin 순서로 진행합니다.
+
+3. Vercel
+- 배포가 Ready가 될 때까지 기다립니다.
+- 새로운 환경변수나 Supabase SQL은 필요하지 않습니다.
+
+4. 확인 위치
+- 기사 화면: /technician
+- 관리자 현장 캘린더: /admin/schedule
+- 렌탈 운영센터: /admin/rental/operations
+
+5. 렌탈 설치보고 순서
+① 설치환경 확인
+② 설치·작동시험
+③ 설치 완료 사진
+④ 고객 확인 서명
+⑤ 최종 확인 및 검토대기 제출
+
+6. 보고서 유형
+- 출장수리·부품수리 등: 일반 AS 작업보고서
+- 개인용/영업용(코인형) 렌탈 배정: 렌탈 설치보고서
+- 렌탈 계약종료 후 회수 배정: 렌탈 회수보고서
+
+7. 기존 렌탈 배정
+예전에 schedule_kind가 비어 있거나 service로 저장된 일정도 아래 서비스명이면 렌탈 설치로 자동 인식합니다.
+- 개인용 안마의자 렌탈
+- 영업용(코인형) 안마의자 렌탈
+- 영업용 안마의자 렌탈
+- 코인형 안마의자 렌탈
+- 안마의자 렌탈 설치
+
+기사 또는 관리자가 해당 일정을 저장하면 schedule_kind도 rental_installation으로 자동 보정됩니다.

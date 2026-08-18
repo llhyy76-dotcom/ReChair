@@ -3,6 +3,7 @@
 import {useEffect,useMemo,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import TechnicianFieldReport from '@/components/TechnicianFieldReport';
+import {normalizeScheduleKind} from '@/lib/scheduleKind';
 import styles from './TechnicianMobileApp.module.css';
 
 type Assignment={
@@ -122,8 +123,9 @@ function nextActionLabel(item:Assignment){
 }
 
 function jobKindLabel(item:Assignment){
-  if(item.schedule_kind==='rental_installation')return '렌탈 설치';
-  if(item.schedule_kind==='rental_retrieval')return '렌탈 회수';
+  const scheduleKind=normalizeScheduleKind(item);
+  if(scheduleKind==='rental_installation')return '렌탈 설치';
+  if(scheduleKind==='rental_retrieval')return '렌탈 회수';
   return '';
 }
 

@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
 import {requireAdmin} from '@/lib/adminAuth';
+import {normalizeScheduleKind} from '@/lib/scheduleKind';
 
 const STATUSES=['배정대기','배정완료','이동중','방문중','작업중','완료','취소'];
 
@@ -48,6 +49,7 @@ export async function PATCH(
       assignee:String(body.assignee||'').trim()||null,
       duration_minutes:durationMinutes,
       status:String(body.status),
+      schedule_kind:normalizeScheduleKind(current),
       address:String(body.address||'').trim()||null,
       memo:String(body.memo||'').trim()||null,
       updated_at:now,
@@ -62,8 +64,9 @@ export async function PATCH(
     if(error)throw error;
 
     if(data?.consultation_id){
-      const isRentalInstallation=data.schedule_kind==='rental_installation';
-      const isRentalRetrieval=data.schedule_kind==='rental_retrieval';
+      const scheduleKind=normalizeScheduleKind(data);
+      const isRentalInstallation=scheduleKind==='rental_installation';
+      const isRentalRetrieval=scheduleKind==='rental_retrieval';
       const consultationPayload:Record<string,unknown>={
         assignee:payload.assignee,
         next_action_at:payload.status==='취소'?null:payload.scheduled_at,
