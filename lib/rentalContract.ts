@@ -1,28 +1,45 @@
 import crypto from 'node:crypto';
 
-export const RENTAL_CONTRACT_TERMS_VERSION='2026-08-v1';
+export const RENTAL_CONTRACT_TERMS_VERSION='2026-08-v2';
 export const RENTAL_CONTRACT_COOKIE='rechair_rental_contract_session';
 export const RENTAL_CONTRACT_SIGNATURE_BUCKET='rental-contract-signatures';
 
 export type RentalContractType='personal'|'commercial';
 export type RentalContractStatus='draft'|'sent'|'signed'|'superseded'|'void';
+export type RentalCustomerEntityType=''|'individual'|'sole_proprietor'|'corporation';
+export type RentalProviderEntityType='sole_proprietor'|'corporation';
+
+export type RentalContractProvider={
+  entity_type:RentalProviderEntityType;
+  business_name:string;
+  representative:string;
+  business_number:string;
+  corporate_number:string;
+  address:string;
+  phone:string;
+};
+
+export type RentalContractCustomer={
+  entity_type:RentalCustomerEntityType;
+  name:string;
+  phone:string;
+  installation_address:string;
+  business_name:string;
+  representative:string;
+  business_number:string;
+  corporate_number:string;
+  business_address:string;
+  signer_name:string;
+  signer_title:string;
+  signer_authority_confirmed:boolean;
+};
 
 export type RentalContractSnapshot={
-  schema_version:'2026-08-v1';
+  schema_version:'2026-08-v2';
   contract_no:string;
   contract_type:RentalContractType;
-  provider:{
-    business_name:string;
-    representative:string;
-    business_number:string;
-    address:string;
-    phone:string;
-  };
-  customer:{
-    name:string;
-    phone:string;
-    installation_address:string;
-  };
+  provider:RentalContractProvider;
+  customer:RentalContractCustomer;
   product:{
     title:string;
     brand:string;
@@ -49,6 +66,7 @@ export type RentalContractSnapshot={
     early_termination:string;
     withdrawal:string;
     privacy:string;
+    business_transaction:string;
     commercial_operation:string;
     special_terms:string;
   };
@@ -61,12 +79,19 @@ const DEFAULT_TERMS={
   loss_damage:'고객은 제품을 선량하게 관리해야 합니다. 분실·도난·화재·침수 또는 중대한 파손이 발생한 경우 즉시 공급자에게 알리고, 귀책사유와 실제 손해를 확인하여 처리합니다.',
   early_termination:'고객이 중도해지를 요청하면 해지일까지 발생한 렌탈료와 사전에 고지된 실제 회수비를 정산합니다. 별도의 위약금이나 손해배상은 관계 법령과 계약서의 명확한 특약 범위에서만 적용합니다.',
   withdrawal:'고객의 청약철회·계약해지 권리는 관계 법령에서 정한 기준에 따르며, 이 계약의 내용이 법률상 권리를 부당하게 제한하지 않습니다.',
-  privacy:'필수 수집항목은 성명, 연락처, 설치주소, 계약·납부·서비스 이력입니다. 계약 체결과 이행, 요금 정산, 제품 설치·회수, 고객지원 및 법적 의무 준수를 위해 처리하며 계약 종료 후 5년간 보관합니다. 관련 법령에서 별도 기간을 정한 경우에는 그 기간을 따릅니다. 고객은 동의를 거부할 수 있으나 필수정보 처리에 동의하지 않으면 렌탈 계약 체결과 서비스 제공이 어렵습니다.',
+  privacy:'필수 수집항목은 계약자·대표자·서명자의 성명과 연락처, 설치주소, 해당하는 경우 상호·사업자등록번호·법인등록번호·사업장주소, 계약·납부·서비스 이력입니다. 계약 체결과 이행, 요금 정산, 제품 설치·회수, 고객지원 및 법적 의무 준수를 위해 처리하며 계약 종료 후 5년간 보관합니다. 관련 법령에서 별도 기간을 정한 경우에는 그 기간을 따릅니다. 고객은 동의를 거부할 수 있으나 필수정보 처리에 동의하지 않으면 렌탈 계약 체결과 서비스 제공이 어렵습니다.',
+  business_transaction:'사업자 또는 법인 계약자는 세금계산서 발행과 계약 이행에 필요한 정확한 사업자 정보를 제공하고 변경 시 공급자에게 알립니다. 서명자는 계약자를 대표하여 본 계약을 체결할 적법한 권한이 있음을 확인합니다. 다만 계약자가 관계 법령상 소비자에 해당하는 경우 법률상 권리를 제한하지 않습니다.',
   commercial_operation:'',
   special_terms:'별도 특약 없음',
 };
 
 const COMMERCIAL_OPERATION='코인형 제품의 운영수익은 별도 특약이 없는 한 고객에게 귀속됩니다. 고객은 영업장 사용권한, 전원과 설치공간, 이용자 안전과 일상 관리를 담당하며, 수익배분·정산·영업시간·도난 및 제3자 훼손 책임이 있는 경우 특약사항에 구체적으로 기재합니다.';
+
+export const CUSTOMER_ENTITY_LABEL:Record<Exclude<RentalCustomerEntityType,''>,string>={
+  individual:'개인',
+  sole_proprietor:'개인사업자',
+  corporation:'법인사업자',
+};
 
 export function normalizePhone(value:unknown){
   return String(value||'').replace(/\D/g,'');
@@ -158,26 +183,67 @@ function dateOnly(value:unknown){
   return /^\d{4}-\d{2}-\d{2}$/.test(text)?text:'';
 }
 
+function customerEntityType(value:unknown):RentalCustomerEntityType{
+  return ['individual','sole_proprietor','corporation'].includes(String(value))
+    ?String(value) as RentalCustomerEntityType
+    :'';
+}
+
+function providerEntityType(value:unknown,corporateNumber:unknown):RentalProviderEntityType{
+  if(value==='corporation'||value==='sole_proprietor')return value;
+  return cleanText(corporateNumber,30)?'corporation':'sole_proprietor';
+}
+
+export function sanitizeRentalProviderSettings(raw:any):RentalContractProvider{
+  return {
+    entity_type:providerEntityType(raw?.entity_type,raw?.corporate_number),
+    business_name:cleanText(raw?.business_name,120),
+    representative:cleanText(raw?.representative,80),
+    business_number:cleanText(raw?.business_number,30),
+    corporate_number:cleanText(raw?.corporate_number,30),
+    address:cleanText(raw?.address,300),
+    phone:cleanText(raw?.phone,30),
+  };
+}
+
+export function validateRentalProviderSettings(provider:RentalContractProvider){
+  const missing:string[]=[];
+  if(!provider.business_name)missing.push(provider.entity_type==='corporation'?'법인명':'상호');
+  if(!provider.representative)missing.push('대표자');
+  if(provider.business_number.replace(/\D/g,'').length!==10)missing.push('10자리 사업자등록번호');
+  if(provider.entity_type==='corporation'&&provider.corporate_number.replace(/\D/g,'').length!==13){
+    missing.push('13자리 법인등록번호');
+  }
+  if(!provider.address)missing.push(provider.entity_type==='corporation'?'본점 주소':'사업장 주소');
+  if(normalizePhone(provider.phone).length<9)missing.push('정확한 공급자 연락처');
+  return Array.from(new Set(missing));
+}
+
 export function sanitizeRentalContractSnapshot(
   raw:any,
   contractNo:string,
   contractType:RentalContractType
 ):RentalContractSnapshot{
+  const entityType=customerEntityType(raw?.customer?.entity_type);
+  const legacyName=cleanText(raw?.customer?.name,80);
   return {
-    schema_version:'2026-08-v1',
+    schema_version:'2026-08-v2',
     contract_no:cleanText(contractNo,80),
     contract_type:contractType,
-    provider:{
-      business_name:cleanText(raw?.provider?.business_name,120),
-      representative:cleanText(raw?.provider?.representative,80),
-      business_number:cleanText(raw?.provider?.business_number,30),
-      address:cleanText(raw?.provider?.address,300),
-      phone:cleanText(raw?.provider?.phone,30),
-    },
+    provider:sanitizeRentalProviderSettings(raw?.provider||{}),
     customer:{
-      name:cleanText(raw?.customer?.name,80),
+      entity_type:entityType,
+      name:legacyName,
       phone:cleanText(raw?.customer?.phone,30),
       installation_address:cleanText(raw?.customer?.installation_address,300),
+      business_name:cleanText(raw?.customer?.business_name,120),
+      representative:cleanText(raw?.customer?.representative,80),
+      business_number:cleanText(raw?.customer?.business_number,30),
+      corporate_number:cleanText(raw?.customer?.corporate_number,30),
+      business_address:cleanText(raw?.customer?.business_address,300),
+      signer_name:cleanText(raw?.customer?.signer_name,80)||(entityType==='individual'?legacyName:''),
+      signer_title:cleanText(raw?.customer?.signer_title,80),
+      signer_authority_confirmed:raw?.customer?.signer_authority_confirmed===true,
     },
     product:{
       title:cleanText(raw?.product?.title,200),
@@ -205,6 +271,9 @@ export function sanitizeRentalContractSnapshot(
       early_termination:cleanText(raw?.terms?.early_termination,4000),
       withdrawal:cleanText(raw?.terms?.withdrawal,4000),
       privacy:cleanText(raw?.terms?.privacy,4000),
+      business_transaction:entityType&&entityType!=='individual'
+        ?cleanText(raw?.terms?.business_transaction,4000)||DEFAULT_TERMS.business_transaction
+        :'',
       commercial_operation:contractType==='commercial'
         ?cleanText(raw?.terms?.commercial_operation,4000)
         :'',
@@ -222,14 +291,16 @@ export function buildRentalContractDraft({
   consultation:any;
   contractNo:string;
   contractType:RentalContractType;
-  providerDefaults?:Partial<RentalContractSnapshot['provider']>|null;
+  providerDefaults?:Partial<RentalContractProvider>|null;
 }):RentalContractSnapshot{
   return sanitizeRentalContractSnapshot({
     provider:providerDefaults||{},
     customer:{
+      entity_type:'',
       name:consultation.customer_name??consultation.name??'',
       phone:consultation.phone??'',
       installation_address:consultation.address??'',
+      signer_name:consultation.customer_name??consultation.name??'',
     },
     product:{
       title:consultation.product_title??consultation.service_type??'',
@@ -261,15 +332,21 @@ export function rentalContractDocumentHash(snapshot:RentalContractSnapshot){
   return crypto.createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
 }
 
+export function expectedRentalContractSigner(snapshot:any){
+  const entityType=customerEntityType(snapshot?.customer?.entity_type);
+  return !entityType||entityType==='individual'
+    ?cleanText(snapshot?.customer?.name,80)
+    :cleanText(snapshot?.customer?.signer_name,80);
+}
+
 export function validateRentalContractForSending(snapshot:RentalContractSnapshot){
   const missing:string[]=[];
   const required:[string,unknown][]=[
-    ['공급자 상호',snapshot.provider.business_name],
-    ['대표자',snapshot.provider.representative],
-    ['사업자등록번호',snapshot.provider.business_number],
+    ['계약자 유형',snapshot.customer.entity_type],
+    ['공급자 상호·법인명',snapshot.provider.business_name],
+    ['공급자 대표자',snapshot.provider.representative],
     ['공급자 주소',snapshot.provider.address],
     ['공급자 연락처',snapshot.provider.phone],
-    ['고객 이름',snapshot.customer.name],
     ['고객 연락처',snapshot.customer.phone],
     ['설치 주소',snapshot.customer.installation_address],
     ['상품명',snapshot.product.title],
@@ -278,11 +355,27 @@ export function validateRentalContractForSending(snapshot:RentalContractSnapshot
     ['계약 종료일',snapshot.period.end_date],
   ];
   for(const [label,value] of required){if(!String(value||'').trim())missing.push(label)}
+
+  const providerMissing=validateRentalProviderSettings(snapshot.provider);
+  missing.push(...providerMissing.map(item=>`공급자 ${item}`));
   if(normalizePhone(snapshot.customer.phone).length<9)missing.push('정확한 고객 연락처');
-  if(normalizePhone(snapshot.provider.phone).length<9)missing.push('정확한 공급자 연락처');
-  if(String(snapshot.provider.business_number||'').replace(/\D/g,'').length!==10){
-    missing.push('10자리 사업자등록번호');
+
+  if(snapshot.customer.entity_type==='individual'){
+    if(!snapshot.customer.name)missing.push('개인 계약자 이름');
   }
+  if(snapshot.customer.entity_type==='sole_proprietor'||snapshot.customer.entity_type==='corporation'){
+    if(!snapshot.customer.business_name)missing.push(snapshot.customer.entity_type==='corporation'?'고객 법인명':'고객 상호');
+    if(!snapshot.customer.representative)missing.push('고객 대표자');
+    if(snapshot.customer.business_number.replace(/\D/g,'').length!==10)missing.push('고객 10자리 사업자등록번호');
+    if(!snapshot.customer.business_address)missing.push('고객 사업장·본점 주소');
+    if(!snapshot.customer.signer_name)missing.push('계약 서명자 이름');
+    if(snapshot.customer.entity_type==='corporation'){
+      if(snapshot.customer.corporate_number.replace(/\D/g,'').length!==13)missing.push('고객 13자리 법인등록번호');
+      if(!snapshot.customer.signer_title)missing.push('계약 서명자 직책');
+    }
+    if(!snapshot.customer.signer_authority_confirmed)missing.push('계약 서명권한 확인');
+  }
+
   if(snapshot.period.contract_months<1)missing.push('계약기간');
   if(snapshot.pricing.payment_day<1)missing.push('매월 결제일');
   if(
@@ -290,7 +383,14 @@ export function validateRentalContractForSending(snapshot:RentalContractSnapshot
     snapshot.period.end_date<snapshot.period.start_date
   )missing.push('계약 시작일·종료일 순서');
   for(const [key,value] of Object.entries(snapshot.terms)){
-    if(key!=='commercial_operation'&&!String(value||'').trim())missing.push('계약 조항');
+    if(
+      key!=='commercial_operation'&&
+      key!=='business_transaction'&&
+      !String(value||'').trim()
+    )missing.push('계약 조항');
+  }
+  if(snapshot.customer.entity_type&&snapshot.customer.entity_type!=='individual'&&!snapshot.terms.business_transaction){
+    missing.push('사업자 계약 조건');
   }
   if(snapshot.contract_type==='commercial'&&!snapshot.terms.commercial_operation){
     missing.push('영업용 운영·정산 조건');

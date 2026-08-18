@@ -87,6 +87,7 @@ export async function GET(
       version:contract.version,
       contract_no:contract.contract_no,
       contract_type:contract.contract_type,
+      customer_entity_type:contract.customer_entity_type,
       status:contract.status,
       document_snapshot:contract.document_snapshot,
       document_sha256:contract.document_sha256,

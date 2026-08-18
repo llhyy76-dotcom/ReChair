@@ -6,6 +6,14 @@ function dateTime(value:unknown){
 }
 
 export default function RentalContractDocument({snapshot,contract}:{snapshot:any;contract:any}){
+  const customer=snapshot.customer||{};
+  const provider=snapshot.provider||{};
+  const entityType=customer.entity_type||'individual';
+  const entityLabel=entityType==='corporation'
+    ?'법인사업자'
+    :entityType==='sole_proprietor'
+      ?'개인사업자'
+      :'개인';
   const clauses=[
     ['소유권',snapshot.terms.ownership],
     ['설치 및 이전',snapshot.terms.installation_relocation],
@@ -14,6 +22,9 @@ export default function RentalContractDocument({snapshot,contract}:{snapshot:any
     ['중도해지',snapshot.terms.early_termination],
     ['청약철회 및 해지권',snapshot.terms.withdrawal],
     ['개인정보 처리',snapshot.terms.privacy],
+    ...(entityType!=='individual'&&snapshot.terms.business_transaction
+      ?[['사업자 계약 및 서명권한',snapshot.terms.business_transaction]]
+      :[]),
     ...(snapshot.contract_type==='commercial'
       ?[['영업용 운영 및 정산',snapshot.terms.commercial_operation]]
       :[]),
@@ -24,23 +35,35 @@ export default function RentalContractDocument({snapshot,contract}:{snapshot:any
     <header>
       <p>RECHAIR RENTAL AGREEMENT</p>
       <h1>안마의자 렌탈 계약서</h1>
-      <span>{snapshot.contract_type==='commercial'?'영업용(코인형) 렌탈':'개인용 렌탈'} · {snapshot.contract_no} · v{contract.version}</span>
+      <span>{snapshot.contract_type==='commercial'?'영업용(코인형) 렌탈':'개인용 렌탈'} · 계약자 {entityLabel} · {snapshot.contract_no} · v{contract.version}</span>
     </header>
 
     <section className="contract-party-grid">
       <div>
         <h2>공급자</h2>
-        <p><b>{snapshot.provider.business_name}</b></p>
-        <p>대표 {snapshot.provider.representative}</p>
-        <p>사업자번호 {snapshot.provider.business_number}</p>
-        <p>{snapshot.provider.address}</p>
-        <p>{snapshot.provider.phone}</p>
+        <p><b>{provider.business_name}</b></p>
+        <p>대표 {provider.representative}</p>
+        <p>사업자등록번호 {provider.business_number}</p>
+        {provider.entity_type==='corporation'&&provider.corporate_number&&<p>법인등록번호 {provider.corporate_number}</p>}
+        <p>{provider.address}</p>
+        <p>{provider.phone}</p>
       </div>
       <div>
-        <h2>고객</h2>
-        <p><b>{snapshot.customer.name}</b></p>
-        <p>{snapshot.customer.phone}</p>
-        <p>{snapshot.customer.installation_address}</p>
+        <h2>계약자 · {entityLabel}</h2>
+        {entityType==='individual'?<>
+          <p><b>{customer.name}</b></p>
+          <p>{customer.phone}</p>
+          <p>설치주소 {customer.installation_address}</p>
+        </>:<>
+          <p><b>{customer.business_name}</b></p>
+          <p>대표 {customer.representative}</p>
+          <p>사업자등록번호 {customer.business_number}</p>
+          {entityType==='corporation'&&customer.corporate_number&&<p>법인등록번호 {customer.corporate_number}</p>}
+          <p>{customer.business_address}</p>
+          <p>담당 {customer.name||'-'} · {customer.phone}</p>
+          <p>설치주소 {customer.installation_address}</p>
+          <p>서명자 {customer.signer_name}{customer.signer_title?` · ${customer.signer_title}`:''}</p>
+        </>}
       </div>
     </section>
 
@@ -64,7 +87,7 @@ export default function RentalContractDocument({snapshot,contract}:{snapshot:any
     {contract.signed_at?<section className="contract-sign-block">
         <p>고객은 위 계약내용과 개인정보 처리 안내를 확인하고 동의했습니다.</p>
         <div><span>서명일시</span><b>{dateTime(contract.signed_at)}</b></div>
-        <div><span>서명자</span><b>{contract.signer_name||snapshot.customer.name}</b></div>
+        <div><span>서명자</span><b>{contract.signer_name||customer.signer_name||customer.name}</b></div>
         {contract.signature_url&&<img src={contract.signature_url} alt="전자서명"/>}
         <small>문서 검증값: {contract.document_sha256}</small>
       </section>

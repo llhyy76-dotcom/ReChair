@@ -91,6 +91,7 @@ export async function GET(
         version:item.version,
         contract_no:item.contract_no,
         contract_type:item.contract_type,
+        customer_entity_type:item.customer_entity_type,
         status:item.status,
         sent_at:item.sent_at,
         signed_at:item.signed_at,
@@ -156,12 +157,22 @@ export async function POST(
 
     let providerDefaults:any=null;
     if(!sourceSnapshot){
-      const {data:previous}=await supabase
-        .from('rental_contracts')
-        .select('document_snapshot')
-        .order('created_at',{ascending:false})
-        .limit(1);
-      providerDefaults=previous?.[0]?.document_snapshot?.provider||null;
+      const {data:providerSettings,error:providerError}=await supabase
+        .from('rental_contract_provider_settings')
+        .select('*')
+        .eq('id',1)
+        .maybeSingle();
+      if(providerError)throw providerError;
+      providerDefaults=providerSettings||null;
+
+      if(!providerDefaults){
+        const {data:previous}=await supabase
+          .from('rental_contracts')
+          .select('document_snapshot')
+          .order('created_at',{ascending:false})
+          .limit(1);
+        providerDefaults=previous?.[0]?.document_snapshot?.provider||null;
+      }
     }
 
     const contractNo=createRentalContractNumber(id,version);
@@ -177,6 +188,7 @@ export async function POST(
         version,
         contract_no:contractNo,
         contract_type:contractType,
+        customer_entity_type:snapshot.customer.entity_type||null,
         status:'draft',
         document_snapshot:snapshot,
         document_sha256:documentHash,
@@ -229,7 +241,13 @@ export async function PATCH(
       const documentHash=rentalContractDocumentHash(snapshot);
       const {data:updated,error}=await supabase
         .from('rental_contracts')
-        .update({document_snapshot:snapshot,document_sha256:documentHash,updated_at:new Date().toISOString()})
+        .update({
+          customer_entity_type:snapshot.customer.entity_type||null,
+          document_snapshot:snapshot,
+          document_sha256:documentHash,
+          terms_version:RENTAL_CONTRACT_TERMS_VERSION,
+          updated_at:new Date().toISOString(),
+        })
         .eq('id',contract.id)
         .eq('status','draft')
         .select('*')

@@ -4,6 +4,7 @@ import {getSupabaseServer} from '@/lib/supabaseServer';
 import {
   RENTAL_CONTRACT_COOKIE,
   RENTAL_CONTRACT_SIGNATURE_BUCKET,
+  expectedRentalContractSigner,
   hashRentalContractAccessToken,
   verifyRentalContractSession,
 } from '@/lib/rentalContract';
@@ -58,8 +59,8 @@ export async function POST(
       return response({error:'계약내용과 개인정보 처리 안내에 모두 동의해 주세요.'},400);
     }
     const signerName=String(body.signer_name||'').trim().slice(0,80);
-    if(!sameName(signerName,contract.document_snapshot?.customer?.name)){
-      return response({error:'계약서의 고객 이름과 서명자 이름이 일치하지 않습니다.'},400);
+    if(!sameName(signerName,expectedRentalContractSigner(contract.document_snapshot))){
+      return response({error:'계약서에 지정된 서명자 이름과 일치하지 않습니다.'},400);
     }
 
     const signatureData=String(body.signature_data_url||'');

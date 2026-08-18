@@ -36,7 +36,12 @@ export default function RentalContractCustomer({token}:{token:string}){
       }
       if(!response.ok){setError(result.error||'계약서를 불러오지 못했습니다.');return}
       setContract(result.data);setVerificationRequired(false);
-      setSignerName(result.data?.document_snapshot?.customer?.name||'');
+      const customer=result.data?.document_snapshot?.customer;
+      setSignerName(
+        customer?.entity_type&&customer.entity_type!=='individual'
+          ?customer?.signer_name||''
+          :customer?.name||''
+      );
     }catch(error){
       console.error('customer contract load error',error);setError('계약서를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.');
     }finally{setLoading(false)}
@@ -136,6 +141,8 @@ export default function RentalContractCustomer({token}:{token:string}){
   if(!contract)return <main className="rc-contract-page"><div className="rc-contract-state error"><b>{error||'계약서를 열 수 없습니다.'}</b><span>담당자에게 계약 링크를 다시 요청해 주세요.</span></div></main>;
 
   const signed=['signed','superseded'].includes(contract.status);
+  const customerEntityType=contract.document_snapshot?.customer?.entity_type||'individual';
+  const isBusinessCustomer=customerEntityType!=='individual';
   return <main className="rc-contract-page">
     <div className="rc-contract-shell">
       <div className="rc-contract-topbar">
@@ -148,9 +155,9 @@ export default function RentalContractCustomer({token}:{token:string}){
 
       {!signed&&<section className="rc-contract-sign-form">
         <h2>계약 확인 및 전자서명</h2>
-        <label className="rc-contract-check"><input type="checkbox" checked={contractConsent} onChange={e=>setContractConsent(e.target.checked)}/><span>월 렌탈료, 계약기간, 소유권, 중도해지, 회수 및 특약사항을 포함한 위 계약내용을 확인하고 동의합니다.</span></label>
+        <label className="rc-contract-check"><input type="checkbox" checked={contractConsent} onChange={e=>setContractConsent(e.target.checked)}/><span>월 렌탈료, 계약기간, 소유권, 중도해지, 회수 및 특약사항을 포함한 위 계약내용을 확인하고 동의합니다.{isBusinessCustomer?' 계약서에 표시된 사업자를 대표해 서명할 권한이 있음을 확인합니다.':''}</span></label>
         <label className="rc-contract-check"><input type="checkbox" checked={privacyConsent} onChange={e=>setPrivacyConsent(e.target.checked)}/><span>계약 체결·이행, 요금 정산 및 고객지원을 위한 필수 개인정보 처리에 동의합니다. 동의를 거부할 수 있으나 계약과 서비스 제공이 어려우며, 마케팅 동의는 포함하지 않습니다.</span></label>
-        <label className="rc-contract-signer"><span>서명자 이름</span><input value={signerName} onChange={e=>setSignerName(e.target.value)} placeholder="계약서 고객 이름과 동일하게 입력"/></label>
+        <label className="rc-contract-signer"><span>서명자 이름</span><input value={signerName} onChange={e=>setSignerName(e.target.value)} placeholder={isBusinessCustomer?'계약서에 지정된 서명자 이름':'개인 계약자 이름과 동일하게 입력'}/></label>
         <div className="rc-contract-canvas-head"><span>아래 칸에 직접 서명해 주세요.</span><button type="button" onClick={clearSignature}>다시 쓰기</button></div>
         <canvas ref={canvasRef} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}/>
         {error&&<p className="rc-contract-error">{error}</p>}
