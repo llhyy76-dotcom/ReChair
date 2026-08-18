@@ -1,6 +1,7 @@
 'use client';
 
 import {useCallback,useEffect,useMemo,useState} from 'react';
+import AdminRentalRetrievalPanel from './AdminRentalRetrievalPanel';
 
 type RentalRow={
   id:string;
@@ -29,6 +30,11 @@ type RentalRow={
   contract_days_remaining?:number|null;
   contract_expiring?:boolean;
   contract_expired?:boolean;
+  retrieval_schedule_id?:string|null;
+  retrieval_status?:string|null;
+  retrieval_required?:boolean;
+  retrieval_active?:boolean;
+  retrieval_completed?:boolean;
 };
 
 type Payment={
@@ -43,8 +49,8 @@ type Payment={
   memo?:string|null;
 };
 
-type Filter='전체'|'운영중'|'미납'|'청구미생성'|'종료임박';
-const FILTERS:Filter[]=['전체','운영중','미납','청구미생성','종료임박'];
+type Filter='전체'|'운영중'|'미납'|'청구미생성'|'종료임박'|'회수필요'|'회수진행';
+const FILTERS:Filter[]=['전체','운영중','미납','청구미생성','종료임박','회수필요','회수진행'];
 
 function money(value:unknown){
   return `${Number(value||0).toLocaleString('ko-KR')}원`;
@@ -151,6 +157,8 @@ export default function AdminRentalOperations(){
     if(filter==='미납')return row.billing_status==='미납';
     if(filter==='청구미생성')return row.billing_status==='청구미생성';
     if(filter==='종료임박')return row.contract_expiring||row.contract_expired;
+    if(filter==='회수필요')return row.retrieval_required;
+    if(filter==='회수진행')return row.retrieval_active;
     return true;
   }),[rows,filter]);
 
@@ -251,7 +259,7 @@ export default function AdminRentalOperations(){
         <div>
           <p>RECHAIR RENTAL OPERATIONS</p>
           <h1>렌탈 운영·납부센터</h1>
-          <span>운영 중 계약의 월 납부, 미납 및 계약 종료 예정일을 관리합니다.</span>
+          <span>월 납부·미납·계약 종료와 제품 회수까지 한 화면에서 관리합니다.</span>
         </div>
         <nav>
           <a href="/admin/rental">상담·계약관리</a>
@@ -265,6 +273,8 @@ export default function AdminRentalOperations(){
         <button onClick={()=>setFilter('미납')} className={`danger ${filter==='미납'?'active':''}`}><span>미납 고객</span><b>{summary.overdue||0}</b></button>
         <button onClick={()=>setFilter('청구미생성')} className={filter==='청구미생성'?'active':''}><span>청구 미생성</span><b>{summary.no_schedule||0}</b></button>
         <button onClick={()=>setFilter('종료임박')} className={`warning ${filter==='종료임박'?'active':''}`}><span>종료 임박·경과</span><b>{Number(summary.expiring||0)+Number(summary.expired||0)}</b></button>
+        <button onClick={()=>setFilter('회수필요')} className={`warning ${filter==='회수필요'?'active':''}`}><span>회수 일정 필요</span><b>{summary.retrieval_required||0}</b></button>
+        <button onClick={()=>setFilter('회수진행')} className={filter==='회수진행'?'active':''}><span>회수 진행 중</span><b>{summary.retrieval_active||0}</b></button>
       </section>
 
       <section className="rental-ops-toolbar">
@@ -281,7 +291,7 @@ export default function AdminRentalOperations(){
         <div className="rental-contract-list">
           <div className="rental-list-head"><b>{filter}</b><span>{filtered.length}건</span></div>
           {filtered.length?filtered.map(row=><button key={row.id} className={selected?.id===row.id?'selected':''} onClick={()=>void selectRow(row)}>
-            <div className="rental-row-head"><strong>{row.customer_name||'이름 없음'}</strong><em data-status={row.billing_status}>{row.billing_status}</em></div>
+            <div className="rental-row-head"><strong>{row.customer_name||'이름 없음'}</strong><div className="rental-row-statuses"><em data-status={row.billing_status}>{row.billing_status}</em>{row.retrieval_status&&row.retrieval_status!=='미대상'&&<em data-retrieval={row.retrieval_status}>{row.retrieval_status}</em>}</div></div>
             <span>{row.phone||'-'} · {row.region||'지역 미입력'}</span>
             <p>{row.product_title||[row.brand,row.model_name].filter(Boolean).join(' ')||row.service_type||'렌탈 상품'}</p>
             <footer><small>{row.rental_contract_no||'계약번호 미입력'}</small><b>{money(row.rental_monthly_fee)}/월</b></footer>
@@ -328,6 +338,11 @@ export default function AdminRentalOperations(){
                 </tr>;
               })}</tbody>
             </table></div>:<div className="rental-billing-empty"><b>월 청구일정이 없습니다.</b><p>계약 시작일, 계약기간, 월 렌탈료와 결제일을 확인한 후 청구일정을 생성하세요.</p><button disabled={generating} onClick={()=>void generatePayments(false)}>계약기간 청구일정 생성</button></div>}
+
+            <AdminRentalRetrievalPanel
+              consultation={selected}
+              onUpdated={()=>void load(selected.id)}
+            />
           </>}
         </div>
       </section>

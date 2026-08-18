@@ -16,6 +16,9 @@ const ALLOWED_PHOTO_TYPES=[
   'other',
 ];
 
+const RETURN_CONDITIONS=['정상','경미손상','수리필요','심각손상','부품누락'];
+const RETURN_DISPOSITIONS=['재렌탈가능','점검필요','정비필요','폐기검토'];
+
 function unauthorizedResponse(){
   return NextResponse.json(
     {
@@ -121,7 +124,8 @@ export async function PATCH(
       .select(`
         id,
         assignee,
-        completed_at
+        completed_at,
+        schedule_kind
       `)
       .eq('id',id)
       .eq('assignee',session.technician.name)
@@ -136,6 +140,16 @@ export async function PATCH(
           status:404,
         }
       );
+    }
+
+    const isRentalRetrieval=currentSchedule.schedule_kind==='rental_retrieval';
+    const returnCondition=String(body.rental_return_condition||'').trim();
+    const returnDisposition=String(body.rental_return_disposition||'').trim();
+    if(isRentalRetrieval&&!RETURN_CONDITIONS.includes(returnCondition)){
+      return NextResponse.json({error:'회수 제품의 반납상태를 선택해 주세요.'},{status:400});
+    }
+    if(isRentalRetrieval&&!RETURN_DISPOSITIONS.includes(returnDisposition)){
+      return NextResponse.json({error:'회수 후 처리방향을 선택해 주세요.'},{status:400});
     }
 
     const payload={
@@ -170,6 +184,11 @@ export async function PATCH(
       report_reviewed_by:null,
 
       updated_at:now,
+
+      ...(isRentalRetrieval?{
+        rental_return_condition:returnCondition,
+        rental_return_disposition:returnDisposition,
+      }:{}),
     };
     const {data,error}=await supabase
       .from('service_schedules')

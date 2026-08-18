@@ -72,7 +72,9 @@ export async function PATCH(
         action_text,
         customer_signature_url,
         completed_at,
-        field_report_updated_at
+        field_report_updated_at,
+        rental_return_condition,
+        rental_return_disposition
       `)
       .eq('id',id)
       .single();
@@ -110,6 +112,16 @@ export async function PATCH(
           status:400,
         }
       );
+    }
+
+    if(
+      schedule.schedule_kind==='rental_retrieval'&&
+      approvalStatus==='승인'&&
+      (!schedule.rental_return_condition||!schedule.rental_return_disposition)
+    ){
+      return NextResponse.json({
+        error:'회수 제품의 반납상태와 후속 처리방향이 기록되지 않아 승인할 수 없습니다.',
+      },{status:400});
     }
 
     const now=new Date().toISOString();
@@ -173,6 +185,7 @@ export async function PATCH(
     }
 
     let consultationUpdated=false;
+    let productUpdated=false;
     if(
       schedule.schedule_kind==='rental_installation'&&
       schedule.consultation_id
@@ -194,10 +207,12 @@ export async function PATCH(
         consultationPayload.status='예약완료';
       }
 
-      const {error:consultationError}=await supabase
+      const {data:consultation,error:consultationError}=await supabase
         .from('consultations')
         .update(consultationPayload)
-        .eq('id',schedule.consultation_id);
+        .eq('id',schedule.consultation_id)
+        .select('id,product_id')
+        .single();
 
       if(consultationError){
         console.error('rental consultation stage sync error',consultationError);
@@ -206,12 +221,85 @@ export async function PATCH(
         },{status:500});
       }
       consultationUpdated=true;
+
+      if(approvalStatus==='승인'&&consultation.product_id){
+        const {data:product,error:productLoadError}=await supabase
+          .from('products').select('id,stock_qty')
+          .eq('id',consultation.product_id).maybeSingle();
+        if(productLoadError)throw productLoadError;
+        if(product&&Number(product.stock_qty||1)<=1){
+          const {error:productError}=await supabase.from('products').update({
+            status:'렌탈중',is_visible:false,updated_at:now,
+          }).eq('id',product.id);
+          if(productError)throw productError;
+          productUpdated=true;
+        }
+      }
+    }
+
+    if(
+      schedule.schedule_kind==='rental_retrieval'&&
+      schedule.consultation_id
+    ){
+      const consultationPayload:Record<string,unknown>={
+        rental_stage:'계약종료',
+        status:'계약종료',
+        rental_stage_updated_at:now,
+        next_action_at:null,
+        updated_at:now,
+      };
+      if(approvalStatus==='승인'){
+        consultationPayload.rental_retrieval_completed_at=schedule.completed_at||now;
+        consultationPayload.rental_return_condition=schedule.rental_return_condition;
+        consultationPayload.rental_return_disposition=schedule.rental_return_disposition;
+      }
+
+      const {data:consultation,error:consultationError}=await supabase
+        .from('consultations')
+        .update(consultationPayload)
+        .eq('id',schedule.consultation_id)
+        .select('id,product_id')
+        .single();
+      if(consultationError){
+        return NextResponse.json({
+          error:`작업보고는 저장되었지만 회수 계약 연동에 실패했습니다: ${consultationError.message}`,
+        },{status:500});
+      }
+      consultationUpdated=true;
+
+      if(consultation.product_id){
+        const {data:product,error:productLoadError}=await supabase
+          .from('products')
+          .select('id,stock_qty')
+          .eq('id',consultation.product_id)
+          .maybeSingle();
+        if(productLoadError)throw productLoadError;
+        if(product&&Number(product.stock_qty||1)<=1){
+          const statusMap:Record<string,string>={
+            재렌탈가능:'렌탈가능',
+            점검필요:'점검중',
+            정비필요:'정비중',
+            폐기검토:'폐기검토',
+          };
+          const nextProductStatus=approvalStatus==='승인'
+            ?statusMap[String(schedule.rental_return_disposition)]||'점검중'
+            :'회수예정';
+          const {error:productError}=await supabase.from('products').update({
+            status:nextProductStatus,
+            is_visible:approvalStatus==='승인'&&nextProductStatus==='렌탈가능',
+            updated_at:now,
+          }).eq('id',product.id);
+          if(productError)throw productError;
+          productUpdated=true;
+        }
+      }
     }
 
     return NextResponse.json({
       success:true,
       data,
       consultation_updated:consultationUpdated,
+      product_updated:productUpdated,
     });
   }catch(error:any){
     if(

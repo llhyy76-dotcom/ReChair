@@ -42,14 +42,22 @@ export async function GET(req:NextRequest){
 
     const ids=(consultations||[]).map((item:any)=>item.id).filter(Boolean);
     let payments:any[]=[];
+    let retrievals:any[]=[];
     if(ids.length){
-      const {data,error}=await supabase
-        .from('rental_payments')
-        .select('*')
-        .in('consultation_id',ids)
-        .order('due_date',{ascending:true});
-      if(error)throw error;
-      payments=data||[];
+      const [paymentResult,retrievalResult]=await Promise.all([
+        supabase.from('rental_payments').select('*')
+          .in('consultation_id',ids)
+          .order('due_date',{ascending:true}),
+        supabase.from('service_schedules').select('*')
+          .in('consultation_id',ids)
+          .eq('schedule_kind','rental_retrieval')
+          .neq('status','취소')
+          .order('scheduled_at',{ascending:false}),
+      ]);
+      if(paymentResult.error)throw paymentResult.error;
+      if(retrievalResult.error)throw retrievalResult.error;
+      payments=paymentResult.data||[];
+      retrievals=retrievalResult.data||[];
     }
 
     const rows=(consultations||[]).map((consultation:any)=>{
@@ -58,6 +66,7 @@ export async function GET(req:NextRequest){
       const overdue=unpaid.filter((payment:any)=>payment.due_date<today);
       const nextPayment=unpaid.find((payment:any)=>payment.due_date>=today)||overdue[0]||null;
       const paid=own.filter((payment:any)=>payment.status==='납부완료');
+      const retrieval=retrievals.find((item:any)=>item.consultation_id===consultation.id)||null;
       const contractDays=consultation.rental_end_date
         ?daysBetween(today,String(consultation.rental_end_date))
         :null;
@@ -70,6 +79,23 @@ export async function GET(req:NextRequest){
             :paid.length
               ?'정상'
               :'대기';
+      const retrievalApproved=retrieval?.report_approval_status==='승인';
+      const retrievalRequired=
+        consultation.rental_stage==='계약종료'&&
+        !retrieval&&
+        !consultation.rental_retrieval_completed_at;
+      const retrievalActive=Boolean(retrieval&&!retrievalApproved);
+      const retrievalStatus=retrievalApproved
+        ?'회수완료'
+        :retrieval?.report_approval_status==='반려'
+          ?'보고반려'
+          :retrieval?.status==='완료'
+            ?'검토대기'
+            :retrieval
+              ?retrieval.status
+              :retrievalRequired
+                ?'회수일정필요'
+                :'미대상';
 
       return {
         ...consultation,
@@ -83,6 +109,11 @@ export async function GET(req:NextRequest){
         contract_days_remaining:contractDays,
         contract_expiring:contractDays!==null&&contractDays>=0&&contractDays<=60,
         contract_expired:contractDays!==null&&contractDays<0,
+        retrieval_schedule_id:retrieval?.id||null,
+        retrieval_status:retrievalStatus,
+        retrieval_required:retrievalRequired,
+        retrieval_active:retrievalActive,
+        retrieval_completed:retrievalApproved,
       };
     });
 
@@ -93,6 +124,9 @@ export async function GET(req:NextRequest){
       no_schedule:rows.filter((row:any)=>row.billing_status==='청구미생성').length,
       expiring:rows.filter((row:any)=>row.contract_expiring).length,
       expired:rows.filter((row:any)=>row.contract_expired).length,
+      retrieval_required:rows.filter((row:any)=>row.retrieval_required).length,
+      retrieval_active:rows.filter((row:any)=>row.retrieval_active).length,
+      retrieval_completed:rows.filter((row:any)=>row.retrieval_completed).length,
     };
 
     return NextResponse.json({data:rows,summary,today});
@@ -108,4 +142,3 @@ export async function GET(req:NextRequest){
     },{status:500});
   }
 }
-

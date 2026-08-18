@@ -19,6 +19,15 @@
   box-shadow:inset 3px 0 #0284c7;
 }
 
+.schedule-kind-badge.retrieval{
+  background:#ffedd5;
+  color:#c2410c;
+}
+
+.month-event.rental-retrieval-event{
+  box-shadow:inset 3px 0 #f97316;
+}
+
 .month-event em{
   margin-left:auto;
   border-radius:999px;

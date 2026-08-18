@@ -451,6 +451,10 @@ export default function AdminProducts() {
                     <option>상담가능</option>
                     <option>예약중</option>
                     <option>렌탈중</option>
+                    <option>회수예정</option>
+                    <option>점검중</option>
+                    <option>정비중</option>
+                    <option>폐기검토</option>
                     <option>노출종료</option>
                   </>
                 ) : (

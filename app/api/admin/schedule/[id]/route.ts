@@ -63,6 +63,7 @@ export async function PATCH(
 
     if(data?.consultation_id){
       const isRentalInstallation=data.schedule_kind==='rental_installation';
+      const isRentalRetrieval=data.schedule_kind==='rental_retrieval';
       const consultationPayload:Record<string,unknown>={
         assignee:payload.assignee,
         next_action_at:payload.status==='취소'?null:payload.scheduled_at,
@@ -81,6 +82,17 @@ export async function PATCH(
           consultationPayload.rental_installation_at=payload.scheduled_at;
           consultationPayload.rental_stage_updated_at=now;
         }
+      }else if(isRentalRetrieval){
+        if(payload.status==='취소'){
+          consultationPayload.rental_stage='계약종료';
+          consultationPayload.status='계약종료';
+          consultationPayload.rental_retrieval_at=null;
+        }else{
+          consultationPayload.rental_stage='계약종료';
+          consultationPayload.status='계약종료';
+          consultationPayload.rental_retrieval_at=payload.scheduled_at;
+        }
+        consultationPayload.rental_stage_updated_at=now;
       }else if(payload.status==='완료'){
         consultationPayload.status='방문완료';
       }
@@ -90,6 +102,25 @@ export async function PATCH(
         .update(consultationPayload)
         .eq('id',data.consultation_id);
       if(consultationError)throw consultationError;
+
+      if(isRentalRetrieval){
+        const {data:consultation,error:loadConsultationError}=await supabase
+          .from('consultations').select('product_id').eq('id',data.consultation_id).single();
+        if(loadConsultationError)throw loadConsultationError;
+        if(consultation?.product_id){
+          const {data:product,error:productLoadError}=await supabase
+            .from('products').select('id,stock_qty').eq('id',consultation.product_id).maybeSingle();
+          if(productLoadError)throw productLoadError;
+          if(product&&Number(product.stock_qty||1)<=1){
+            const {error:productError}=await supabase.from('products').update({
+              status:'회수예정',
+              is_visible:false,
+              updated_at:now,
+            }).eq('id',product.id);
+            if(productError)throw productError;
+          }
+        }
+      }
     }
 
     return NextResponse.json({data});

@@ -15,6 +15,7 @@ type Photo={
 
 type Report={
   id:string;
+  schedule_kind?:string|null;
   customer_name?:string;
   service_type?:string;
   symptom_text?:string|null;
@@ -26,6 +27,8 @@ type Report={
   report_rejection_reason?:string|null;
   report_reviewed_at?:string|null;
   report_reviewed_by?:string|null;
+  rental_return_condition?:string|null;
+  rental_return_disposition?:string|null;
   service_schedule_photos?:Photo[];
 };
 
@@ -36,6 +39,15 @@ const photoTypes=[
   {type:'after',label:'작업 후',description:'수리 완료 상태를 확인할 수 있도록 촬영',required:false},
   {type:'part',label:'교체 부품',description:'교체하거나 회수한 부품을 촬영',required:false},
   {type:'receipt',label:'영수증',description:'비용이 발생한 경우 영수증을 촬영',required:false},
+] as const;
+
+const retrievalPhotoTypes=[
+  {type:'front',label:'회수 제품 정면',description:'회수 직전 제품 전체 상태가 보이도록 촬영',required:true},
+  {type:'side',label:'회수 제품 측면',description:'좌·우 외관과 손상 여부가 보이도록 촬영',required:true},
+  {type:'label',label:'모델·제조 라벨',description:'모델명과 제조번호가 선명하게 보이도록 촬영',required:true},
+  {type:'after',label:'분해·포장 후',description:'운반 준비가 끝난 상태를 촬영',required:false},
+  {type:'part',label:'리모컨·부속품',description:'함께 회수한 리모컨과 부속품을 촬영',required:false},
+  {type:'receipt',label:'정산 확인',description:'현장 정산자료가 있는 경우 촬영',required:false},
 ] as const;
 
 const wizardSteps=[
@@ -50,6 +62,8 @@ const symptomOptions=['전원 불량','마사지볼 이상','에어백 이상','
 const causeOptions=['단선·접촉 불량','PCB 이상','모터 이상','센서 이상','에어 누기','조립·마찰 문제','원인 미확인'];
 const actionOptions=['부품 교체','현장 수리','조정·체결','점검 후 정상','청소·윤활','사용방법 안내'];
 const commonParts=['마사지 모터','메인 PCB','리모컨','에어호스','솔레노이드 밸브','센서'];
+const returnConditionOptions=['정상','경미손상','수리필요','심각손상','부품누락'];
+const returnDispositionOptions=['재렌탈가능','점검필요','정비필요','폐기검토'];
 
 type PartSelection={name:string;quantity:number};
 
@@ -83,6 +97,8 @@ export default function TechnicianFieldReport({
   const [selectedCause,setSelectedCause]=useState('');
   const [selectedAction,setSelectedAction]=useState('');
   const [selectedParts,setSelectedParts]=useState<PartSelection[]>([]);
+  const [returnCondition,setReturnCondition]=useState('');
+  const [returnDisposition,setReturnDisposition]=useState('');
 
   const [message,setMessage]=useState('');
   const [loading,setLoading]=useState(true);
@@ -95,6 +111,8 @@ export default function TechnicianFieldReport({
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
   const drawingRef=useRef(false);
   const hasDrawingRef=useRef(false);
+  const isRetrieval=report?.schedule_kind==='rental_retrieval';
+  const activePhotoTypes=isRetrieval?retrievalPhotoTypes:photoTypes;
 
   async function parseResponse(response:Response){
     const contentType=response.headers.get('content-type')||'';
@@ -140,6 +158,8 @@ export default function TechnicianFieldReport({
       setParts(loadedParts);
       setSelectedParts(parseParts(loadedParts));
       setConfirmation(data.customer_confirmation||'');
+      setReturnCondition(data.rental_return_condition||'');
+      setReturnDisposition(data.rental_return_disposition||'');
     }catch(error){
       console.error('field report load error',error);
       setMessage('작업보고를 불러오지 못했습니다.');
@@ -169,6 +189,8 @@ export default function TechnicianFieldReport({
             action_text:action,
             replaced_parts:parts,
             customer_confirmation:confirmation,
+            rental_return_condition:returnCondition,
+            rental_return_disposition:returnDisposition,
           }),
         }
       );
@@ -627,6 +649,21 @@ export default function TechnicianFieldReport({
   }
 
   function generateReportText(){
+    if(isRetrieval){
+      if(!returnCondition||!returnDisposition){
+        setMessage('반납상태와 회수 후 처리방향을 먼저 선택하세요.');
+        return;
+      }
+      const conditionDetail=symptom.trim()||returnCondition;
+      setSymptom(conditionDetail);
+      setAction(`제품 회수 및 운반 준비를 완료했습니다. 반납상태는 '${returnCondition}', 후속 처리방향은 '${returnDisposition}'으로 판단했습니다.`);
+      setParts(parts.trim()||'회수 부속품 별도 기록 없음');
+      if(!confirmation.trim()){
+        setConfirmation('제품과 리모컨·부속품 회수 및 현장 상태를 고객과 함께 확인했습니다.');
+      }
+      setMessage('선택한 내용으로 회수보고 문장을 작성했습니다. 필요한 내용을 추가로 수정할 수 있습니다.');
+      return;
+    }
     const symptomText=symptom.trim()||selectedSymptom;
     const causeText=selectedCause||'점검 결과';
     const actionChoice=selectedAction||action.trim();
@@ -647,6 +684,14 @@ export default function TechnicianFieldReport({
   }
 
   function validateStep(step:number){
+    if(isRetrieval&&step===0&&(!returnCondition||!symptom.trim())){
+      setMessage('회수 제품의 반납상태를 선택하고 상세 내용을 확인하세요.');
+      return false;
+    }
+    if(isRetrieval&&step===1&&(!returnDisposition||!action.trim())){
+      setMessage('회수 후 처리방향을 선택하고 회수조치 내용을 확인하세요.');
+      return false;
+    }
     if(step===0&&!symptom.trim()){
       setMessage('고객 증상을 선택하거나 입력하세요.');
       return false;
@@ -656,7 +701,7 @@ export default function TechnicianFieldReport({
       return false;
     }
     if(step===2){
-      const missing=photoTypes.filter(item=>item.required&&!photos.some(photo=>photo.photo_type===item.type));
+      const missing=activePhotoTypes.filter(item=>item.required&&!photos.some(photo=>photo.photo_type===item.type));
       if(missing.length){
         setMessage(`필수 사진을 등록하세요: ${missing.map(item=>item.label).join(', ')}`);
         return false;
@@ -708,10 +753,10 @@ export default function TechnicianFieldReport({
       >
         <header>
           <div>
-            <p>FIELD SERVICE REPORT</p>
+            <p>{isRetrieval?'RENTAL RETRIEVAL REPORT':'FIELD SERVICE REPORT'}</p>
 
             <h2>
-              {report?.customer_name||'현장 작업보고'}
+              {report?.customer_name||(isRetrieval?'렌탈 회수보고':'현장 작업보고')}
             </h2>
 
             <span>
@@ -783,7 +828,7 @@ export default function TechnicianFieldReport({
               onClick={()=>setCurrentStep(index)}
             >
               <b>{index<currentStep?'✓':index+1}</b>
-              <span>{step.label}</span>
+              <span>{isRetrieval?['반납상태','회수조치','사진','서명','확인'][index]:step.label}</span>
             </button>
           ))}
         </nav>
@@ -792,17 +837,19 @@ export default function TechnicianFieldReport({
           <section className="wizard-section">
             <div className="wizard-heading">
               <small>STEP 1</small>
-              <h3>고객 증상을 선택하세요</h3>
-              <p>자주 발생하는 증상은 버튼만 누르면 입력됩니다.</p>
+              <h3>{isRetrieval?'회수 제품의 반납상태를 선택하세요':'고객 증상을 선택하세요'}</h3>
+              <p>{isRetrieval?'제품 외관과 작동상태를 확인한 뒤 가장 가까운 상태를 선택합니다.':'자주 발생하는 증상은 버튼만 누르면 입력됩니다.'}</p>
             </div>
             <div className="choice-grid">
-              {symptomOptions.map(value=>(
-                <button key={value} type="button" className={selectedSymptom===value?'selected':''} disabled={isApproved} onClick={()=>chooseSymptom(value)}>{value}</button>
+              {(isRetrieval?returnConditionOptions:symptomOptions).map(value=>(
+                <button key={value} type="button" className={(isRetrieval?returnCondition:selectedSymptom)===value?'selected':''} disabled={isApproved} onClick={()=>{
+                  if(isRetrieval){setReturnCondition(value);setSymptom(value)}else chooseSymptom(value);
+                }}>{value}</button>
               ))}
             </div>
             <label className="wizard-textarea">
-              <span>증상 상세</span>
-              <textarea value={symptom} disabled={isApproved} onChange={event=>setSymptom(event.target.value)} placeholder="고객이 설명한 증상과 점검 전 상태를 입력하세요."/>
+              <span>{isRetrieval?'반납상태 상세':'증상 상세'}</span>
+              <textarea value={symptom} disabled={isApproved} onChange={event=>setSymptom(event.target.value)} placeholder={isRetrieval?'오염, 스크래치, 작동상태, 누락된 부속품 등을 입력하세요.':'고객이 설명한 증상과 점검 전 상태를 입력하세요.'}/>
             </label>
           </section>
         )}
@@ -811,53 +858,51 @@ export default function TechnicianFieldReport({
           <section className="wizard-section">
             <div className="wizard-heading">
               <small>STEP 2</small>
-              <h3>원인과 조치를 기록하세요</h3>
-              <p>선택값을 바탕으로 작업보고 문장을 자동 생성합니다.</p>
+              <h3>{isRetrieval?'회수조치와 후속 처리방향을 기록하세요':'원인과 조치를 기록하세요'}</h3>
+              <p>{isRetrieval?'제품 회수 후 재렌탈·점검·정비·폐기검토 중 하나를 선택합니다.':'선택값을 바탕으로 작업보고 문장을 자동 생성합니다.'}</p>
             </div>
-            <h4>추정 원인</h4>
-            <div className="choice-grid compact">
-              {causeOptions.map(value=>(
-                <button key={value} type="button" className={selectedCause===value?'selected':''} disabled={isApproved} onClick={()=>chooseCause(value)}>{value}</button>
-              ))}
-            </div>
-            <h4>조치 방법</h4>
-            <div className="choice-grid compact">
-              {actionOptions.map(value=>(
-                <button key={value} type="button" className={selectedAction===value?'selected':''} disabled={isApproved} onClick={()=>chooseAction(value)}>{value}</button>
-              ))}
-            </div>
-            <h4>교체 부품</h4>
-            <div className="choice-grid compact part-choice-grid">
-              {commonParts.map(value=>{
-                const selected=selectedParts.some(item=>item.name===value);
-                return (
-                  <button key={value} type="button" className={selected?'selected':''} disabled={isApproved} onClick={()=>choosePart(value)}>{value}</button>
-                );
-              })}
-              <button type="button" className={selectedParts.length===0?'selected':''} disabled={isApproved} onClick={clearParts}>교체 부품 없음</button>
-            </div>
-
-            {selectedParts.length>0&&(
-              <div className="part-quantity-list">
-                {selectedParts.map(item=>(
-                  <div key={item.name} className="part-quantity-row">
-                    <strong>{item.name}</strong>
-                    <div>
-                      <button type="button" disabled={isApproved||item.quantity<=1} onClick={()=>changePartQuantity(item.name,item.quantity-1)} aria-label={`${item.name} 수량 감소`}>−</button>
-                      <input type="number" min="1" max="99" value={item.quantity} disabled={isApproved} onChange={event=>changePartQuantity(item.name,Number(event.target.value)||1)} aria-label={`${item.name} 수량`}/>
-                      <button type="button" disabled={isApproved||item.quantity>=99} onClick={()=>changePartQuantity(item.name,item.quantity+1)} aria-label={`${item.name} 수량 증가`}>＋</button>
-                      <span>EA</span>
-                      <button type="button" className="part-remove" disabled={isApproved} onClick={()=>choosePart(item.name)}>삭제</button>
-                    </div>
-                  </div>
+            {isRetrieval?<>
+              <h4>회수 후 처리방향</h4>
+              <div className="choice-grid compact">
+                {returnDispositionOptions.map(value=><button key={value} type="button" className={returnDisposition===value?'selected':''} disabled={isApproved} onClick={()=>setReturnDisposition(value)}>{value}</button>)}
+              </div>
+            </>:<>
+              <h4>추정 원인</h4>
+              <div className="choice-grid compact">
+                {causeOptions.map(value=>(
+                  <button key={value} type="button" className={selectedCause===value?'selected':''} disabled={isApproved} onClick={()=>chooseCause(value)}>{value}</button>
                 ))}
               </div>
-            )}
+              <h4>조치 방법</h4>
+              <div className="choice-grid compact">
+                {actionOptions.map(value=>(
+                  <button key={value} type="button" className={selectedAction===value?'selected':''} disabled={isApproved} onClick={()=>chooseAction(value)}>{value}</button>
+                ))}
+              </div>
+              <h4>교체 부품</h4>
+              <div className="choice-grid compact part-choice-grid">
+                {commonParts.map(value=>{
+                  const selected=selectedParts.some(item=>item.name===value);
+                  return <button key={value} type="button" className={selected?'selected':''} disabled={isApproved} onClick={()=>choosePart(value)}>{value}</button>;
+                })}
+                <button type="button" className={selectedParts.length===0?'selected':''} disabled={isApproved} onClick={clearParts}>교체 부품 없음</button>
+              </div>
+              {selectedParts.length>0&&<div className="part-quantity-list">
+                {selectedParts.map(item=><div key={item.name} className="part-quantity-row">
+                  <strong>{item.name}</strong><div>
+                    <button type="button" disabled={isApproved||item.quantity<=1} onClick={()=>changePartQuantity(item.name,item.quantity-1)} aria-label={`${item.name} 수량 감소`}>−</button>
+                    <input type="number" min="1" max="99" value={item.quantity} disabled={isApproved} onChange={event=>changePartQuantity(item.name,Number(event.target.value)||1)} aria-label={`${item.name} 수량`}/>
+                    <button type="button" disabled={isApproved||item.quantity>=99} onClick={()=>changePartQuantity(item.name,item.quantity+1)} aria-label={`${item.name} 수량 증가`}>＋</button>
+                    <span>EA</span><button type="button" className="part-remove" disabled={isApproved} onClick={()=>choosePart(item.name)}>삭제</button>
+                  </div>
+                </div>)}
+              </div>}
+            </>}
             <button type="button" className="auto-report-button" disabled={isApproved} onClick={generateReportText}>선택 내용으로 보고서 자동 작성</button>
             <div className="report-form-grid wizard-fields">
-              <label><span>조치 내용</span><textarea value={action} disabled={isApproved} onChange={event=>setAction(event.target.value)} placeholder="점검 결과와 수리·조정 내용을 입력하세요."/></label>
-              <label><span>교체 부품</span><textarea value={parts} disabled={isApproved} onChange={event=>{setParts(event.target.value);setSelectedParts(parseParts(event.target.value));}} placeholder="부품명과 수량, 회수 여부를 입력하세요."/></label>
-              <label><span>고객 확인사항</span><textarea value={confirmation} disabled={isApproved} onChange={event=>setConfirmation(event.target.value)} placeholder="비용과 보증, 사용방법 등 안내사항을 입력하세요."/></label>
+              <label><span>{isRetrieval?'회수조치 내용':'조치 내용'}</span><textarea value={action} disabled={isApproved} onChange={event=>setAction(event.target.value)} placeholder={isRetrieval?'분해, 포장, 운반 준비 및 현장 특이사항을 입력하세요.':'점검 결과와 수리·조정 내용을 입력하세요.'}/></label>
+              <label><span>{isRetrieval?'회수 부속품':'교체 부품'}</span><textarea value={parts} disabled={isApproved} onChange={event=>{setParts(event.target.value);if(!isRetrieval)setSelectedParts(parseParts(event.target.value));}} placeholder={isRetrieval?'리모컨, 전원선, 설명서 등 함께 회수한 부속품을 입력하세요.':'부품명과 수량, 회수 여부를 입력하세요.'}/></label>
+              <label><span>고객 확인사항</span><textarea value={confirmation} disabled={isApproved} onChange={event=>setConfirmation(event.target.value)} placeholder={isRetrieval?'제품과 부속품 회수, 현장 정리 및 정산 확인사항을 입력하세요.':'비용과 보증, 사용방법 등 안내사항을 입력하세요.'}/></label>
             </div>
           </section>
         )}
@@ -867,14 +912,14 @@ export default function TechnicianFieldReport({
           <div className="report-photo-heading">
             <div>
               <small>PHOTO REGISTRATION</small>
-              <h3>현장 사진</h3>
-              <p>필수 사진 3장을 포함해 작업 상태가 잘 보이도록 촬영해주세요.</p>
+              <h3>{isRetrieval?'회수 상태 사진':'현장 사진'}</h3>
+              <p>{isRetrieval?'제품 정면·측면·라벨을 포함해 회수 직전 상태가 잘 보이도록 촬영해주세요.':'필수 사진 3장을 포함해 작업 상태가 잘 보이도록 촬영해주세요.'}</p>
             </div>
             <strong>{photos.length}장 등록</strong>
           </div>
 
           <div className="photo-progress" aria-label="사진 등록 진행률">
-            {photoTypes.map(item=>{
+            {activePhotoTypes.map(item=>{
               const done=photos.some(photo=>photo.photo_type===item.type);
               return (
                 <span key={item.type} className={done?'done':''}>
@@ -885,7 +930,7 @@ export default function TechnicianFieldReport({
           </div>
 
           <div className="report-photo-grid">
-            {photoTypes.map(({type,label,description,required})=>{
+            {activePhotoTypes.map(({type,label,description,required})=>{
               const matchingPhotos=photos.filter(
                 photo=>photo.photo_type===type
               );
@@ -1044,16 +1089,18 @@ export default function TechnicianFieldReport({
 
         {currentStep===4&&(
           <section className="wizard-section report-review-card">
-            <div className="wizard-heading"><small>FINAL CHECK</small><h3>작업보고 최종 확인</h3><p>저장 전 누락된 내용이 없는지 확인하세요.</p></div>
+            <div className="wizard-heading"><small>FINAL CHECK</small><h3>{isRetrieval?'회수보고 최종 확인':'작업보고 최종 확인'}</h3><p>저장 전 누락된 내용이 없는지 확인하세요.</p></div>
             <dl>
-              <div><dt>고객 증상</dt><dd>{symptom||'미입력'}</dd></div>
-              <div><dt>조치 내용</dt><dd>{action||'미입력'}</dd></div>
-              <div><dt>교체 부품</dt><dd>{parts||'교체 부품 없음'}</dd></div>
+              <div><dt>{isRetrieval?'반납상태 상세':'고객 증상'}</dt><dd>{symptom||'미입력'}</dd></div>
+              {isRetrieval&&<div><dt>반납상태</dt><dd>{returnCondition||'미입력'}</dd></div>}
+              {isRetrieval&&<div><dt>후속 처리방향</dt><dd>{returnDisposition||'미입력'}</dd></div>}
+              <div><dt>{isRetrieval?'회수조치 내용':'조치 내용'}</dt><dd>{action||'미입력'}</dd></div>
+              <div><dt>{isRetrieval?'회수 부속품':'교체 부품'}</dt><dd>{parts||(isRetrieval?'기록 없음':'교체 부품 없음')}</dd></div>
               <div><dt>고객 안내</dt><dd>{confirmation||'미입력'}</dd></div>
               <div><dt>현장 사진</dt><dd>{photos.length}장</dd></div>
               <div><dt>고객 서명</dt><dd>{report?.customer_signature_url?'등록 완료':'미등록'}</dd></div>
             </dl>
-            <button type="button" className="primary final-save" disabled={saving||isApproved} onClick={saveReport}>{isApproved?'승인 완료':saving?'저장 중':'작업보고 저장 및 제출'}</button>
+            <button type="button" className="primary final-save" disabled={saving||isApproved} onClick={saveReport}>{isApproved?'승인 완료':saving?'저장 중':isRetrieval?'회수보고 저장 및 제출':'작업보고 저장 및 제출'}</button>
           </section>
         )}
 

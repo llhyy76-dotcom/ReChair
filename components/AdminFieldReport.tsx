@@ -11,6 +11,7 @@ type Photo={
 
 type AdminReport={
   id:string;
+  schedule_kind?:string|null;
   consultation_id?:string|null;
   customer_name?:string|null;
   phone?:string|null;
@@ -38,6 +39,8 @@ type AdminReport={
   report_rejection_reason?:string|null;
   report_reviewed_at?:string|null;
   report_reviewed_by?:string|null;
+  rental_return_condition?:string|null;
+  rental_return_disposition?:string|null;
   service_schedule_photos?:Photo[];
 };
 
@@ -129,6 +132,7 @@ export default function AdminFieldReport({
   },[scheduleId]);
 
   const photos=report?.service_schedule_photos||[];
+  const isRetrieval=report?.schedule_kind==='rental_retrieval';
   async function reviewReport(
   approvalStatus:'승인'|'반려'|'검토대기'
 ){
@@ -222,10 +226,10 @@ export default function AdminFieldReport({
       >
         <header className="admin-report-header">
           <div>
-            <p>RECHAIR SERVICE REPORT</p>
+            <p>{isRetrieval?'RECHAIR RENTAL RETRIEVAL REPORT':'RECHAIR SERVICE REPORT'}</p>
             <h2>
               {report?.customer_name||
-                'AS 작업보고'}
+                (isRetrieval?'렌탈 회수보고':'AS 작업보고')}
             </h2>
 
             <span>
@@ -336,25 +340,30 @@ export default function AdminFieldReport({
 
             <section className="admin-report-text-grid">
               <article>
-                <h3>고객 증상</h3>
+                <h3>{isRetrieval?'반납상태 상세':'고객 증상'}</h3>
                 <p>
                   {text(report.symptom_text)}
                 </p>
               </article>
 
               <article>
-                <h3>조치 내용</h3>
+                <h3>{isRetrieval?'회수조치 내용':'조치 내용'}</h3>
                 <p>
                   {text(report.action_text)}
                 </p>
               </article>
 
               <article>
-                <h3>교체 부품</h3>
+                <h3>{isRetrieval?'회수 부속품':'교체 부품'}</h3>
                 <p>
                   {text(report.replaced_parts)}
                 </p>
               </article>
+
+              {isRetrieval&&<article>
+                <h3>반납상태 · 후속 처리</h3>
+                <p>{report.rental_return_condition||'미입력'} · {report.rental_return_disposition||'미입력'}</p>
+              </article>}
 
               <article>
                 <h3>고객 확인사항</h3>
