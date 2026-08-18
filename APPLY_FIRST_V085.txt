@@ -1,0 +1,40 @@
+ReChair OMS v0.8.5 전자 렌탈 계약 적용 안내
+================================================
+
+중요: 반드시 SQL을 먼저 실행한 뒤 GitHub에 파일을 올리세요.
+
+1. 기존 C:\ReChair 폴더 전체를 별도 위치에 백업합니다.
+   .git 폴더는 삭제하지 마세요.
+
+2. Supabase 대시보드 → SQL Editor → New query에서 아래 파일의 전체 내용을 실행합니다.
+   supabase/v085_electronic_rental_contracts.sql
+
+3. SQL 실행 결과가 Success인지 확인합니다.
+   생성 대상:
+   - rental_contracts
+   - rental_contract_events
+   - rental-contract-signatures Storage bucket (Private)
+   - consultations의 rental_contract_id / version / document hash 컬럼
+
+4. 이 패치 압축을 풀어 나온 파일과 폴더를 C:\ReChair에 같은 경로로 덮어씁니다.
+   ReChair 폴더 전체나 .git 폴더를 삭제하지 마세요.
+
+5. GitHub Desktop Summary:
+   Add secure electronic rental contracts v0.8.5
+
+6. Commit to main → Push origin을 누르고 Vercel 배포가 Ready가 될 때까지 기다립니다.
+
+7. 배포 후 /admin/rental에서 렌탈 상담을 선택하고 "전자 렌탈 계약서" 영역을 확인합니다.
+
+별도 환경변수는 추가하지 않습니다.
+기존 ADMIN_SESSION_SECRET, NEXT_PUBLIC_SUPABASE_URL,
+SUPABASE_SERVICE_ROLE_KEY를 그대로 사용합니다.
+
+주의사항
+- 최초 계약서 작성 시 실제 계약 사업자의 상호, 대표자, 사업자등록번호,
+  주소와 연락처를 정확히 입력하세요.
+- 기본 계약 조항은 운영용 초안입니다. 실제 영업 개시 전 국내 소비자법
+  전문가의 최종 검토를 권장합니다.
+- 고객에게 발급된 계약 링크는 개인정보이므로 공개 게시판에 올리지 마세요.
+- 서명 완료 계약서는 수정할 수 없습니다. 변경 시 "변경계약서 작성"을 사용하세요.
+

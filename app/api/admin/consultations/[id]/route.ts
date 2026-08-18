@@ -118,13 +118,33 @@ export async function PATCH(
 
       const { data: current, error: currentError } = await supabase
         .from('consultations')
-        .select('service_type,rental_stage,rental_quote_sent_at,rental_contract_signed_at,retention_expires_at')
+        .select('service_type,rental_stage,rental_quote_sent_at,rental_contract_id,rental_contract_signed_at,retention_expires_at')
         .eq('id', id)
         .single();
 
       if (currentError) throw currentError;
       if (!String(current.service_type || '').includes('렌탈')) {
         throw new InputError('렌탈 상담에만 렌탈 계약정보를 저장할 수 있습니다.');
+      }
+
+      if (['계약완료', '설치예약', '운영중'].includes(nextStage)) {
+        if (!current.rental_contract_id || !current.rental_contract_signed_at) {
+          throw new InputError('고객 전자서명이 완료된 계약서가 있어야 계약완료 이후 단계로 이동할 수 있습니다.');
+        }
+        const { data: signedContract, error: signedContractError } = await supabase
+          .from('rental_contracts')
+          .select('id,status,signed_at')
+          .eq('id', current.rental_contract_id)
+          .eq('consultation_id', id)
+          .maybeSingle();
+        if (
+          signedContractError ||
+          !signedContract ||
+          !['signed', 'superseded'].includes(String(signedContract.status)) ||
+          !signedContract.signed_at
+        ) {
+          throw new InputError('유효한 전자서명 계약서를 확인할 수 없습니다. 계약서를 다시 확인해 주세요.');
+        }
       }
 
       payload.rental_stage = nextStage;
@@ -135,12 +155,6 @@ export async function PATCH(
       }
       if (nextStage === '견적발송' && !current.rental_quote_sent_at) {
         payload.rental_quote_sent_at = now.toISOString();
-      }
-      if (nextStage === '계약완료' && !current.rental_contract_signed_at) {
-        payload.rental_contract_signed_at = now.toISOString();
-        const retention = new Date(now);
-        retention.setFullYear(retention.getFullYear() + 5);
-        payload.retention_expires_at = retention.toISOString();
       }
     }
 
@@ -212,4 +226,3 @@ export async function PATCH(
     );
   }
 }
-

@@ -1,6 +1,7 @@
 'use client';
 
 import {useCallback,useEffect,useMemo,useState} from 'react';
+import AdminRentalContractPanel from './AdminRentalContractPanel';
 
 const RENTAL_STAGES = [
   { value: '상담접수', label: '상담 접수', note: '고객 문의 접수' },
@@ -80,6 +81,9 @@ export default function AdminRentalCRMPanel({
   const stage = consultation.rental_stage || '상담접수';
   const stageIndex = Math.max(0, RENTAL_STAGES.findIndex((item) => item.value === stage));
   const isClosed = stage === '계약종료' || stage === '취소';
+  const hasSignedContract=Boolean(
+    consultation.rental_contract_id&&consultation.rental_contract_signed_at
+  );
   const installationLocked=Boolean(
     installationSchedule&&['이동중','방문중','작업중','완료'].includes(installationSchedule.status)
   );
@@ -154,6 +158,10 @@ export default function AdminRentalCRMPanel({
   }
 
   async function syncInstallation(){
+    if(!hasSignedContract){
+      setScheduleMessage('고객 전자서명이 완료된 계약서가 있어야 설치 일정을 생성할 수 있습니다.');
+      return;
+    }
     if(!consultation.rental_installation_at){
       setScheduleMessage('설치 예정일을 입력해 주세요.');
       return;
@@ -230,6 +238,9 @@ export default function AdminRentalCRMPanel({
         {RENTAL_STAGES.map((item, index) => {
           const active = item.value === stage;
           const passed = !isClosed && index < stageIndex;
+          const needsSignedContract=['계약완료','설치예약','운영중'].includes(item.value);
+          const contractLocked=needsSignedContract&&!hasSignedContract;
+          const operatingLocked=item.value==='운영중'&&!active&&!consultation.rental_operating_started_at;
           return (
             <button
               type="button"
@@ -237,8 +248,12 @@ export default function AdminRentalCRMPanel({
               className={`${active ? 'active' : ''} ${passed ? 'passed' : ''}`.trim()}
               onClick={() => onChange('rental_stage', item.value)}
               aria-pressed={active}
-              disabled={item.value==='운영중'&&!active&&!consultation.rental_operating_started_at}
-              title={item.value==='운영중'&&!active&&!consultation.rental_operating_started_at?'설치 작업보고가 관리자 승인되면 자동 전환됩니다.':undefined}
+              disabled={contractLocked||operatingLocked}
+              title={contractLocked
+                ?'고객 전자서명이 완료되면 계약완료 단계로 자동 전환됩니다.'
+                :operatingLocked
+                  ?'설치 작업보고가 관리자 승인되면 자동 전환됩니다.'
+                  :undefined}
             >
               <b>{index + 1}</b>
               <span>{item.label}</span>
@@ -299,6 +314,11 @@ export default function AdminRentalCRMPanel({
         <textarea value={consultation.rental_terms_memo || ''} onChange={(event) => onChange('rental_terms_memo', event.target.value)} placeholder="중도해지, 소유권 이전, 설치 조건, 특약사항 등을 기록하세요."/>
       </label>
 
+      <AdminRentalContractPanel
+        consultation={consultation}
+        onRefresh={onRefresh}
+      />
+
       <section className="rental-installation-link">
         <div className="rental-installation-head">
           <div>
@@ -353,7 +373,8 @@ export default function AdminRentalCRMPanel({
           <button
             type="button"
             onClick={()=>void syncInstallation()}
-            disabled={scheduleLoading||installationLocked}
+            disabled={scheduleLoading||installationLocked||!hasSignedContract}
+            title={!hasSignedContract?'고객 전자서명이 완료된 후 설치 일정을 생성할 수 있습니다.':undefined}
           >
             {scheduleLoading?'처리 중…':installationSchedule?'설치 일정 업데이트':'설치 일정 생성'}
           </button>

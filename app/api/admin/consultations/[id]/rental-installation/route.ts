@@ -146,6 +146,23 @@ export async function POST(
     if(!String(consultation.service_type||'').includes('렌탈')){
       return NextResponse.json({error:'렌탈 상담에만 설치 일정을 연결할 수 있습니다.'},{status:400});
     }
+    if(!consultation.rental_contract_id||!consultation.rental_contract_signed_at){
+      return NextResponse.json({error:'고객 전자서명이 완료된 렌탈 계약서가 있어야 설치 일정을 생성할 수 있습니다.'},{status:409});
+    }
+    const {data:signedContract,error:signedContractError}=await supabase
+      .from('rental_contracts')
+      .select('id,status,signed_at')
+      .eq('id',consultation.rental_contract_id)
+      .eq('consultation_id',id)
+      .maybeSingle();
+    if(
+      signedContractError||
+      !signedContract||
+      !['signed','superseded'].includes(String(signedContract.status))||
+      !signedContract.signed_at
+    ){
+      return NextResponse.json({error:'유효한 전자서명 계약서를 확인할 수 없습니다.'},{status:409});
+    }
     if(!['계약완료','설치예약'].includes(String(consultation.rental_stage||''))){
       return NextResponse.json({error:'렌탈 단계를 먼저 계약완료로 저장해 주세요.'},{status:409});
     }
