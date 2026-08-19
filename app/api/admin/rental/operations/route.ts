@@ -43,6 +43,7 @@ export async function GET(req:NextRequest){
     const ids=(consultations||[]).map((item:any)=>item.id).filter(Boolean);
     let payments:any[]=[];
     let retrievals:any[]=[];
+    let assets:any[]=[];
     if(ids.length){
       const [paymentResult,retrievalResult]=await Promise.all([
         supabase.from('rental_payments').select('*')
@@ -60,6 +61,18 @@ export async function GET(req:NextRequest){
       retrievals=retrievalResult.data||[];
     }
 
+    const assetIds=(consultations||[])
+      .map((item:any)=>item.rental_asset_id)
+      .filter(Boolean);
+    if(assetIds.length){
+      const {data,error}=await supabase
+        .from('rental_assets')
+        .select('id,asset_no,serial_number,status,condition_grade,location_type,location_text')
+        .in('id',assetIds);
+      if(error)throw error;
+      assets=data||[];
+    }
+
     const rows=(consultations||[]).map((consultation:any)=>{
       const own=payments.filter((payment:any)=>payment.consultation_id===consultation.id);
       const unpaid=own.filter((payment:any)=>payment.status==='납부예정');
@@ -67,6 +80,7 @@ export async function GET(req:NextRequest){
       const nextPayment=unpaid.find((payment:any)=>payment.due_date>=today)||overdue[0]||null;
       const paid=own.filter((payment:any)=>payment.status==='납부완료');
       const retrieval=retrievals.find((item:any)=>item.consultation_id===consultation.id)||null;
+      const asset=assets.find((item:any)=>item.id===consultation.rental_asset_id)||null;
       const contractDays=consultation.rental_end_date
         ?daysBetween(today,String(consultation.rental_end_date))
         :null;
@@ -114,6 +128,13 @@ export async function GET(req:NextRequest){
         retrieval_required:retrievalRequired,
         retrieval_active:retrievalActive,
         retrieval_completed:retrievalApproved,
+        rental_asset_no:asset?.asset_no||null,
+        rental_asset_serial:asset?.serial_number||null,
+        rental_asset_status:asset?.status||null,
+        rental_asset_grade:asset?.condition_grade||null,
+        rental_asset_location:asset
+          ?[asset.location_type,asset.location_text].filter(Boolean).join(' · ')
+          :null,
       };
     });
 

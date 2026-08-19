@@ -35,6 +35,11 @@ type RentalRow={
   retrieval_required?:boolean;
   retrieval_active?:boolean;
   retrieval_completed?:boolean;
+  rental_asset_no?:string|null;
+  rental_asset_serial?:string|null;
+  rental_asset_status?:string|null;
+  rental_asset_grade?:string|null;
+  rental_asset_location?:string|null;
 };
 
 type Payment={
@@ -263,6 +268,7 @@ export default function AdminRentalOperations(){
         </div>
         <nav>
           <a href="/admin/rental">상담·계약관리</a>
+          <a href="/admin/rental/assets">개별 자산대장</a>
           <a href="/admin/schedule">현장 캘린더</a>
         </nav>
       </header>
@@ -311,6 +317,14 @@ export default function AdminRentalOperations(){
               <article><span>계약기간</span><strong>{date(selected.rental_start_date)} ~ {date(selected.rental_end_date)}</strong></article>
               <article data-alert={selected.contract_expired||selected.contract_expiring}><span>종료까지</span><strong>{selected.contract_days_remaining===null||selected.contract_days_remaining===undefined?'-':selected.contract_days_remaining<0?`${Math.abs(selected.contract_days_remaining)}일 경과`:`${selected.contract_days_remaining}일`}</strong></article>
             </section>
+
+            {selected.rental_asset_no&&<section className="rental-operation-asset">
+              <div><span>배정 자산</span><b>{selected.rental_asset_no}</b></div>
+              <div><span>제조번호</span><b>{selected.rental_asset_serial||'미입력'}</b></div>
+              <div><span>자산 상태</span><b>{selected.rental_asset_status||'-'} · {selected.rental_asset_grade||'-'}</b></div>
+              <div><span>현재 위치</span><b>{selected.rental_asset_location||'-'}</b></div>
+              <a href="/admin/rental/assets">자산대장</a>
+            </section>}
 
             <section className="rental-payment-summary">
               <div><span>전체 청구</span><b>{paymentSummary.total}회</b></div>

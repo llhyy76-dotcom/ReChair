@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
 import {requireAdmin} from '@/lib/adminAuth';
 import {availabilityCheck,kstDayRange,overlaps} from '@/lib/dispatchRecommendation';
+import {recordRentalAssetEvent,syncRentalProductFromAssets} from '@/lib/rentalAsset';
 
 export const dynamic='force-dynamic';
 
@@ -81,7 +82,7 @@ async function loadProduct(supabase:ReturnType<typeof getSupabaseServer>,product
   if(!productId)return null;
   const {data,error}=await supabase
     .from('products')
-    .select('id,title,name,brand,model_name,model,status,stock_qty,is_visible,listing_type')
+    .select('id,title,name,brand,model_name,model,status,stock_qty,is_visible,listing_type,rental_asset_managed')
     .eq('id',String(productId))
     .maybeSingle();
   if(error)throw error;
@@ -163,6 +164,28 @@ export async function POST(
     const reason=String(body.termination_reason||consultation.rental_termination_reason||'').trim();
     if(!reason)return NextResponse.json({error:'계약 종료·회수 사유를 입력해 주세요.'},{status:400});
 
+    const product=await loadProduct(supabase,consultation.product_id);
+    let managedAsset:any=null;
+    if(product?.rental_asset_managed){
+      if(!consultation.rental_asset_id){
+        return NextResponse.json({
+          error:'이 계약에 배정된 실물 렌탈 자산이 없어 회수 일정을 만들 수 없습니다.',
+        },{status:409});
+      }
+      const {data:asset,error:assetError}=await supabase
+        .from('rental_assets').select('*')
+        .eq('id',consultation.rental_asset_id)
+        .eq('product_id',product.id)
+        .maybeSingle();
+      if(assetError)throw assetError;
+      if(!asset||!['렌탈중','회수예정'].includes(String(asset.status))){
+        return NextResponse.json({
+          error:'배정된 자산을 확인할 수 없거나 회수 가능한 상태가 아닙니다.',
+        },{status:409});
+      }
+      managedAsset=asset;
+    }
+
     const {data:existing,error:existingError}=await supabase
       .from('service_schedules').select('*')
       .eq('consultation_id',id)
@@ -195,6 +218,7 @@ export async function POST(
       memo:retrievalMemo(consultation,reason,body.memo),
       rental_return_condition:null,
       rental_return_disposition:null,
+      rental_asset_id:managedAsset?.id||null,
       updated_at:now,
     };
     const scheduleQuery=existing
@@ -216,8 +240,21 @@ export async function POST(
     if(updateError)throw updateError;
 
     let productUpdated=false;
-    const product=await loadProduct(supabase,consultation.product_id);
-    if(product&&Number(product.stock_qty||1)<=1){
+    if(managedAsset){
+      const previousStatus=String(managedAsset.status);
+      const {error:assetError}=await supabase.from('rental_assets').update({
+        status:'회수예정',updated_at:now,
+      }).eq('id',managedAsset.id);
+      if(assetError)throw assetError;
+      if(previousStatus!=='회수예정'){
+        await recordRentalAssetEvent({
+          supabase,assetId:managedAsset.id,consultationId:id,scheduleId:schedule.id,
+          eventType:'retrieval_scheduled',fromStatus:previousStatus,toStatus:'회수예정',
+          actorType:'admin',detail:{scheduled_at:requestedStart.toISOString(),assignee,reason},
+        });
+      }
+      productUpdated=await syncRentalProductFromAssets(supabase,managedAsset.product_id);
+    }else if(product&&Number(product.stock_qty||1)<=1){
       const {error:productError}=await supabase.from('products').update({
         status:'회수예정',is_visible:false,updated_at:now,
       }).eq('id',product.id);

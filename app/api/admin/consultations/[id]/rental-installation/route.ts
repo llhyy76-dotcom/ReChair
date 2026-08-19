@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
 import {requireAdmin} from '@/lib/adminAuth';
 import {availabilityCheck,kstDayRange,overlaps} from '@/lib/dispatchRecommendation';
+import {recordRentalAssetEvent,syncRentalProductFromAssets} from '@/lib/rentalAsset';
 
 export const dynamic='force-dynamic';
 
@@ -167,6 +168,37 @@ export async function POST(
       return NextResponse.json({error:'렌탈 단계를 먼저 계약완료로 저장해 주세요.'},{status:409});
     }
 
+    let managedAsset:any=null;
+    if(consultation.product_id){
+      const {data:product,error:productError}=await supabase
+        .from('products')
+        .select('id,rental_asset_managed')
+        .eq('id',consultation.product_id)
+        .maybeSingle();
+      if(productError)throw productError;
+      if(product?.rental_asset_managed){
+        if(!consultation.rental_asset_id){
+          return NextResponse.json({
+            error:'설치 일정을 만들기 전에 계약에 실제 안마의자 자산을 배정해 주세요.',
+          },{status:409});
+        }
+        const {data:asset,error:assetError}=await supabase
+          .from('rental_assets')
+          .select('*')
+          .eq('id',consultation.rental_asset_id)
+          .eq('product_id',consultation.product_id)
+          .eq('current_consultation_id',id)
+          .maybeSingle();
+        if(assetError)throw assetError;
+        if(!asset||!['배정완료','설치예약'].includes(String(asset.status))){
+          return NextResponse.json({
+            error:'배정된 자산을 확인할 수 없거나 설치 가능한 상태가 아닙니다.',
+          },{status:409});
+        }
+        managedAsset=asset;
+      }
+    }
+
     const requestedStart=new Date(body.scheduled_at||consultation.rental_installation_at||'');
     if(Number.isNaN(requestedStart.getTime())){
       return NextResponse.json({error:'설치 예정일을 입력해 주세요.'},{status:400});
@@ -219,6 +251,7 @@ export async function POST(
       duration_minutes:durationMinutes,
       status:'배정완료',
       memo:installationMemo(consultation,body.memo),
+      rental_asset_id:managedAsset?.id||null,
       updated_at:now,
     };
 
@@ -241,6 +274,24 @@ export async function POST(
       })
       .eq('id',id);
     if(updateError)throw updateError;
+
+    if(managedAsset){
+      const previousStatus=String(managedAsset.status);
+      const {error:assetError}=await supabase.from('rental_assets').update({
+        status:'설치예약',
+        location_type:'창고',
+        updated_at:now,
+      }).eq('id',managedAsset.id);
+      if(assetError)throw assetError;
+      if(previousStatus!=='설치예약'){
+        await recordRentalAssetEvent({
+          supabase,assetId:managedAsset.id,consultationId:id,scheduleId:schedule.id,
+          eventType:'installation_scheduled',fromStatus:previousStatus,toStatus:'설치예약',
+          actorType:'admin',detail:{scheduled_at:requestedStart.toISOString(),assignee},
+        });
+      }
+      await syncRentalProductFromAssets(supabase,managedAsset.product_id);
+    }
 
     return NextResponse.json({data:schedule,created:!existing},{status:existing?200:201});
   }catch(error:unknown){

@@ -2,6 +2,7 @@
 
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import AdminRentalContractPanel from './AdminRentalContractPanel';
+import AdminRentalAssetAssignment from './AdminRentalAssetAssignment';
 
 const RENTAL_STAGES = [
   { value: '상담접수', label: '상담 접수', note: '고객 문의 접수' },
@@ -316,6 +317,11 @@ export default function AdminRentalCRMPanel({
 
       <AdminRentalContractPanel
         consultation={consultation}
+        onRefresh={onRefresh}
+      />
+
+      <AdminRentalAssetAssignment
+        consultationId={consultation.id}
         onRefresh={onRefresh}
       />
 

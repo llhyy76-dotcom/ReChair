@@ -2,6 +2,12 @@ import {NextRequest,NextResponse} from 'next/server';
 import {getSupabaseServer} from '@/lib/supabaseServer';
 import {requireAdmin} from '@/lib/adminAuth';
 import {normalizeScheduleKind} from '@/lib/scheduleKind';
+import {
+  recordRentalAssetEvent,
+  returnDispositionStatus,
+  statusLocation,
+  syncRentalProductFromAssets,
+} from '@/lib/rentalAsset';
 
 export const dynamic='force-dynamic';
 
@@ -66,6 +72,7 @@ export async function PATCH(
       .select(`
         id,
         consultation_id,
+        rental_asset_id,
         schedule_kind,
         service_type,
         customer_name,
@@ -229,7 +236,7 @@ export async function PATCH(
         .from('consultations')
         .update(consultationPayload)
         .eq('id',schedule.consultation_id)
-        .select('id,product_id')
+        .select('id,product_id,address,rental_asset_id')
         .single();
 
       if(consultationError){
@@ -240,7 +247,33 @@ export async function PATCH(
       }
       consultationUpdated=true;
 
-      if(approvalStatus==='승인'&&consultation.product_id){
+      const rentalAssetId=schedule.rental_asset_id||consultation.rental_asset_id;
+      if(rentalAssetId){
+        const {data:asset,error:assetLoadError}=await supabase
+          .from('rental_assets').select('*').eq('id',rentalAssetId).maybeSingle();
+        if(assetLoadError)throw assetLoadError;
+        if(asset){
+          const nextStatus=approvalStatus==='승인'?'렌탈중':'설치예약';
+          const {error:assetError}=await supabase.from('rental_assets').update({
+            status:nextStatus,
+            location_type:approvalStatus==='승인'?'고객설치':'창고',
+            location_text:approvalStatus==='승인'?(consultation.address||asset.location_text):asset.location_text,
+            installed_at:approvalStatus==='승인'?(schedule.completed_at||now):asset.installed_at,
+            current_consultation_id:schedule.consultation_id,
+            updated_at:now,
+          }).eq('id',asset.id);
+          if(assetError)throw assetError;
+          if(String(asset.status)!==nextStatus){
+            await recordRentalAssetEvent({
+              supabase,assetId:asset.id,consultationId:schedule.consultation_id,
+              scheduleId:schedule.id,eventType:approvalStatus==='승인'?'installation_approved':'installation_review_reset',
+              fromStatus:asset.status,toStatus:nextStatus,actorType:'admin',
+              detail:{approval_status:approvalStatus,rejection_reason:rejectionReason||null},
+            });
+          }
+          productUpdated=await syncRentalProductFromAssets(supabase,asset.product_id);
+        }
+      }else if(approvalStatus==='승인'&&consultation.product_id){
         const {data:product,error:productLoadError}=await supabase
           .from('products').select('id,stock_qty')
           .eq('id',consultation.product_id).maybeSingle();
@@ -276,7 +309,7 @@ export async function PATCH(
         .from('consultations')
         .update(consultationPayload)
         .eq('id',schedule.consultation_id)
-        .select('id,product_id')
+        .select('id,product_id,rental_asset_id')
         .single();
       if(consultationError){
         return NextResponse.json({
@@ -285,7 +318,36 @@ export async function PATCH(
       }
       consultationUpdated=true;
 
-      if(consultation.product_id){
+      const rentalAssetId=schedule.rental_asset_id||consultation.rental_asset_id;
+      if(rentalAssetId){
+        const {data:asset,error:assetLoadError}=await supabase
+          .from('rental_assets').select('*').eq('id',rentalAssetId).maybeSingle();
+        if(assetLoadError)throw assetLoadError;
+        if(asset){
+          const nextStatus=approvalStatus==='승인'
+            ?returnDispositionStatus(schedule.rental_return_disposition)
+            :'회수예정';
+          const {error:assetError}=await supabase.from('rental_assets').update({
+            status:nextStatus,
+            location_type:statusLocation(nextStatus),
+            location_text:approvalStatus==='승인'?null:asset.location_text,
+            returned_at:approvalStatus==='승인'?(schedule.completed_at||now):asset.returned_at,
+            current_consultation_id:approvalStatus==='승인'?null:schedule.consultation_id,
+            updated_at:now,
+          }).eq('id',asset.id);
+          if(assetError)throw assetError;
+          if(String(asset.status)!==nextStatus){
+            await recordRentalAssetEvent({
+              supabase,assetId:asset.id,consultationId:schedule.consultation_id,
+              scheduleId:schedule.id,eventType:approvalStatus==='승인'?'retrieval_approved':'retrieval_review_reset',
+              fromStatus:asset.status,toStatus:nextStatus,actorType:'admin',
+              detail:{approval_status:approvalStatus,return_condition:schedule.rental_return_condition,
+                return_disposition:schedule.rental_return_disposition,rejection_reason:rejectionReason||null},
+            });
+          }
+          productUpdated=await syncRentalProductFromAssets(supabase,asset.product_id);
+        }
+      }else if(consultation.product_id){
         const {data:product,error:productLoadError}=await supabase
           .from('products')
           .select('id,stock_qty')
